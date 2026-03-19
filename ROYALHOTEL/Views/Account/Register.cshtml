@@ -1,0 +1,88 @@
+@{
+    ViewData["Title"] = "Đăng ký";
+}
+
+<!-- TOP NAV -->
+<section class="rh-payTop">
+    <div class="rh-container">
+        <header class="rh-nav rh-nav--plain">
+            <div class="rh-brand">
+                <div class="rh-brand__top">ROYAL</div>
+                <div class="rh-brand__bot">LUXURY HOTEL</div>
+            </div>
+
+            <nav class="rh-menu">
+                <a class="rh-menu__link" asp-controller="Home" asp-action="Index">Trang chủ</a>
+                <a class="rh-menu__link" href="#">Giới thiệu</a>
+                <a class="rh-menu__link" asp-controller="Rooms" asp-action="Index">Phòng &amp; giá</a>
+                <a class="rh-menu__link" href="#">Liên hệ</a>
+            </nav>
+
+            <div class="rh-account">
+                <a class="rh-account__btn" asp-controller="Account" asp-action="Login" style="text-decoration: none;">
+                    <span class="rh-account__icon">👤</span>
+                    <span class="rh-account__text">Đăng nhập</span>
+                </a>
+            </div>
+        </header>
+    </div>
+</section>
+
+<!-- REGISTER PAGE -->
+<section class="rh-loginPage">
+    <div class="rh-container">
+        
+        <div class="rh-loginBox">
+            <div class="rh-loginBox__header">
+                <h1 class="rh-loginBox__title">Đăng ký tài khoản</h1>
+                <p class="rh-loginBox__subtitle">Tạo tài khoản để trải nghiệm dịch vụ tốt nhất</p>
+            </div>
+
+            @if (ViewBag.ErrorMessage != null)
+            {
+                <div class="rh-loginBox__error">
+                    @ViewBag.ErrorMessage
+                </div>
+            }
+
+            <form method="post" asp-controller="Account" asp-action="Register" class="rh-loginForm">
+                @Html.AntiForgeryToken()
+                <div class="rh-loginForm__group">
+                    <label class="rh-loginForm__label">Họ và tên</label>
+                    <input type="text" name="fullName" class="rh-loginForm__input" placeholder="Nguyễn Văn A" required />
+                </div>
+
+                <div class="rh-loginForm__group">
+                    <label class="rh-loginForm__label">Email</label>
+                    <input type="email" name="email" class="rh-loginForm__input" placeholder="example@email.com" required />
+                </div>
+
+                <div class="rh-loginForm__group">
+                    <label class="rh-loginForm__label">Số điện thoại</label>
+                    <input type="tel" name="phone" class="rh-loginForm__input" placeholder="0123456789" required />
+                </div>
+
+                <div class="rh-loginForm__group">
+                    <label class="rh-loginForm__label">Mật khẩu</label>
+                    <input type="password" name="password" class="rh-loginForm__input" placeholder="••••••••" required />
+                </div>
+
+                <div class="rh-loginForm__group">
+                    <label class="rh-loginForm__label">Xác nhận mật khẩu</label>
+                    <input type="password" name="confirmPassword" class="rh-loginForm__input" placeholder="••••••••" required />
+                </div>
+
+                <button type="submit" class="rh-loginForm__submit">Đăng ký</button>
+
+                <div class="rh-loginForm__divider">
+                    <span>hoặc</span>
+                </div>
+
+                <div class="rh-loginForm__register">
+                    Đã có tài khoản? <a asp-controller="Account" asp-action="Login">Đăng nhập ngay</a>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</section>

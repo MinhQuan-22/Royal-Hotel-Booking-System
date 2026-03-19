@@ -1,0 +1,281 @@
+@using System.Globalization
+@using ROYALHOTEL.Models
+@using ROYALHOTEL.Helpers
+@model List<Room>
+
+@{
+    ViewData["Title"] = "Phòng";
+    var vi = CultureInfo.GetCultureInfo("vi-VN");
+
+    var checkIn = (string?)ViewBag.CheckIn;
+    var checkOut = (string?)ViewBag.CheckOut;
+    var guests = (int)(ViewBag.Guests ?? 0);
+    var sort = (string?)ViewBag.Sort ?? "price_asc";
+
+    var rooms = Model ?? new List<Room>();
+
+    var featuredRooms = (IEnumerable<Room>)(ViewBag.FeaturedRooms ?? new List<Room>());
+    var featured = featuredRooms.ToList();
+
+    var filterAmenities = ((IEnumerable<Amenity>)(ViewBag.FilterAmenities ?? new List<Amenity>())).ToList();
+
+    var allRoomTypes = (IEnumerable<string>)(ViewBag.AllRoomTypes ?? new List<string>());
+    var selectedTypes = (IEnumerable<string>)(ViewBag.SelectedRoomTypes ?? new List<string>());
+    var selectedAmenities = Context.Request.Query["amenities"].ToList();
+
+    var minPrice = (decimal)(ViewBag.MinPrice ?? 0m);
+    var maxPrice = (decimal)(ViewBag.MaxPrice ?? 100_000_000m);
+}
+
+<!-- HERO BANNER -->
+<section class="rh-hero" style="background-image:url('/assets/rooms/bannerroom.jpg')">
+    <div class="rh-hero__overlay"></div>
+
+    <div class="rh-container rh-hero__inner">
+
+        <header class="rh-nav">
+            <div class="rh-brand">
+                <div class="rh-brand__top">ROYAL</div>
+                <div class="rh-brand__bot">LUXURY HOTEL</div>
+            </div>
+
+            <nav class="rh-menu">
+                <a class="rh-menu__link" asp-controller="Home" asp-action="Index">Trang chủ</a>
+                <a class="rh-menu__link" href="#">Giới thiệu</a>
+                <a class="rh-menu__link" asp-controller="Rooms" asp-action="Index">Phòng &amp; giá</a>
+                <a class="rh-menu__link" href="#">Liên hệ</a>
+            </nav>
+
+            @await Html.PartialAsync("_AccountAvatar")
+        </header>
+
+        <div class="rh-hero__content">
+            <div class="rh-hero__kicker">TRẢI NGHIỆM ĐẲNG CẤP TRONG TUYỆT VỜI</div>
+            <h1 class="rh-hero__title">TẬN HƯỞNG NHỮNG KHOẢNH KHẮC<br />TUYỆT VỜI NHẤT TRONG CUỘC SỐNG</h1>
+        </div>
+
+        <!-- SEARCH -->
+        <form class="rh-search" method="get" asp-controller="Rooms" asp-action="Index">
+            <div class="rh-search__field">
+                <input type="date" name="checkIn" aria-label="Ngày đến" value="@(checkIn ?? "")" required />
+            </div>
+            <div class="rh-search__field">
+                <input type="date" name="checkOut" aria-label="Ngày đi" value="@(checkOut ?? "")" required />
+            </div>
+            <div class="rh-search__field">
+                <select name="guests" aria-label="Số người" required>
+                    <option value="" selected="@(guests == 0 ? "selected" : (string?)null)">Số người</option>
+                    <option value="1" selected="@(guests == 1 ? "selected" : (string?)null)">1</option>
+                    <option value="2" selected="@(guests == 2 ? "selected" : (string?)null)">2</option>
+                    <option value="3" selected="@(guests == 3 ? "selected" : (string?)null)">3</option>
+                    <option value="4" selected="@(guests == 4 ? "selected" : (string?)null)">4</option>
+                    <option value="5" selected="@(guests == 5 ? "selected" : (string?)null)">5</option>
+                    <option value="6" selected="@(guests == 6 ? "selected" : (string?)null)">6</option>
+                </select>
+                <span class="rh-search__suffix">▾</span>
+            </div>
+            <button class="rh-search__btn" type="submit">Tìm phòng</button>
+        </form>
+
+    </div>
+</section>
+
+<!-- ROOMS & PRICE -->
+<section class="rh-roomsPrice" id="rooms-price">
+    <div class="rh-container">
+        <div class="rh-roomsPrice__eyebrow">ROYAL LUXURY HOTEL</div>
+        <h2 class="rh-roomsPrice__title">PHÒNG &amp; GIÁ</h2>
+
+        <div class="@(featured.Count >= 6 ? "rh-roomsGrid rh-roomsGrid--even" : "rh-roomsGrid")">
+            @for (var i = 0; i < featured.Count; i++)
+            {
+                var r = featured[i];
+                var cardClass = (featured.Count == 5 && i == 3) ? "rh-roomCard rh-roomCard--wide" : "rh-roomCard";
+                var img = r.CoverImageUrl ?? r.Images.OrderBy(x => x.SortOrder).FirstOrDefault()?.ImageUrl ?? "/assets/home/Room1.jpg";
+
+                var displayName = !string.IsNullOrWhiteSpace(r.RoomType)
+                    ? r.RoomType.Trim()
+                    : r.Name;
+
+                <div class="@cardClass">
+                    <img class="rh-roomCard__img" src="@img" alt="@displayName" />
+                    <a asp-controller="Rooms" asp-action="Detail"
+                       asp-route-id="@r.Id"
+                       asp-route-checkIn="@(checkIn)"
+                       asp-route-checkOut="@(checkOut)"
+                       asp-route-guests="@(guests)"
+                       class="rh-roomCard__bookBtn">ĐẶT PHÒNG</a>
+                    <div class="rh-roomCard__info">
+                        <div class="rh-roomCard__price">@r.BasePricePerNight.ToString("N0", vi) / ĐÊM</div>
+                        <div class="rh-roomCard__name">@displayName</div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<!-- RESULT HEADER -->
+<section class="rh-roomsResultHead">
+    <div class="rh-container rh-roomsResultHead__grid">
+        <div class="rh-roomsResultHead__brand">RoyalHotel</div>
+
+        <div class="rh-roomsResultHead__info">
+            <div class="rh-rhinfo__item">📍 123 Nguyễn Huệ, Quận 1, Tp.Hồ Chí Minh</div>
+            <div class="rh-rhinfo__item">🕒 Check-in: 14:00 | Check-out: 12:00</div>
+        </div>
+    </div>
+</section>
+
+<!-- RESULT BODY -->
+<section class="rh-roomsResultBody">
+    <div class="rh-container rh-roomsLayout">
+
+        <form id="roomFilterForm" method="get" asp-controller="Rooms" asp-action="Index"
+              class="rh-roomsLayout__filters">
+            <input type="hidden" name="checkIn" value="@(checkIn ?? "")" />
+            <input type="hidden" name="checkOut" value="@(checkOut ?? "")" />
+            <input type="hidden" name="guests" value="@(guests)" />
+
+            <aside class="rh-roomFilter">
+                <div class="rh-roomFilter__title">Bộ lọc</div>
+
+                @if (!string.IsNullOrWhiteSpace(checkIn) && !string.IsNullOrWhiteSpace(checkOut) && guests > 0)
+                {
+                    <div style="margin-bottom:16px; padding:10px 12px; border-radius:8px; background:#fffbf0; border:1px solid #e8d5a0;">
+                        <div style="font-size:13px; color:#6b5416; margin-bottom:8px; line-height:1.5;">
+                            Đang tìm phòng từ <strong>@checkIn</strong> đến <strong>@checkOut</strong> cho <strong>@guests</strong> khách
+                        </div>
+                        <a href="@Url.Action("Index", "Rooms")" 
+                           style="display:inline-block; padding:5px 10px; background:#fff; border:1px solid #d4a017; border-radius:5px; color:#8b6b17; text-decoration:none; font-size:12px; font-weight:500; transition:all 0.2s;">
+                            ✕ Xem tất cả phòng
+                        </a>
+                    </div>
+                }
+
+                <div class="rh-roomFilter__block">
+                    <div class="rh-roomFilter__label">Loại phòng</div>
+
+                    @foreach (var rt in allRoomTypes)
+                    {
+                        var isChecked = selectedTypes.Contains(rt);
+                        <label class="rh-check">
+                            <input type="checkbox" name="roomTypes" value="@rt" @(isChecked ? "checked" : "")>
+                            <span>@rt</span>
+                        </label>
+                    }
+                </div>
+
+                <div class="rh-roomFilter__block">
+                    <div class="rh-roomFilter__label">Khoảng giá (VND/đêm)</div>
+                    <div class="rh-priceRange">
+                        <input id="minPriceInput" type="number" name="minPrice" value="@minPrice" min="0" max="100000000">
+                        <span>-</span>
+                        <input id="maxPriceInput" type="number" name="maxPrice" value="@maxPrice" min="0" max="100000000" readonly>
+                    </div>
+
+                    <input id="minPriceRange" class="rh-roomFilter__range"
+                           type="range" min="0" max="100000000" step="1000000" value="@minPrice">
+                </div>
+
+                <div class="rh-roomFilter__block">
+                    <div class="rh-roomFilter__label">Tiện ích</div>
+                    @{
+                        var selectedAmenities = Context.Request.Query["amenities"].ToList();
+                    }
+
+                    @foreach (var amenity in filterAmenities)
+                    {
+                        var isChecked = selectedAmenities.Contains(amenity.AmenityKey);
+                        <label class="rh-check">
+                            <input type="checkbox" name="amenities" value="@amenity.AmenityKey" @(isChecked ? "checked" : "")>
+                            <span>@($"{amenity.IconClass} {amenity.Name}".Trim())</span>
+                        </label>
+                    }
+                </div>
+
+                <button type="submit" class="rh-filterApplyBtn">Áp dụng</button>
+            </aside>
+        </form>
+
+        <!-- RIGHT LIST -->
+        <main class="rh-roomList">
+            <div class="rh-roomList__topbar">
+                <div class="rh-roomList__count">@(rooms.Count) phòng có sẵn</div>
+
+                <div class="rh-roomList__sort">
+                    <span>Sắp xếp</span>
+                    <select class="rh-sortBtn" name="sort" form="roomFilterForm" onchange="document.getElementById('roomFilterForm').submit()">
+                        <option value="price_asc" selected="@(sort == "price_asc" ? "selected" : (string?)null)">Giá tăng dần</option>
+                        <option value="price_desc" selected="@(sort == "price_desc" ? "selected" : (string?)null)">Giá giảm dần</option>
+                    </select>
+                </div>
+            </div>
+
+            @if (rooms.Count == 0)
+            {
+                <div style="padding:16px 0;">Không có phòng phù hợp theo điều kiện anh chọn.</div>
+            }
+            else
+            {
+                @foreach (var r in rooms)
+                {
+                    var thumb = r.CoverImageUrl ?? r.Images.OrderBy(x => x.SortOrder).FirstOrDefault()?.ImageUrl ?? "/assets/rooms/room1.png";
+                    var displayAmenities = RoomAmenityViewHelper.GetDisplayAmenities(r, filterAmenities);
+                    var tagTexts = displayAmenities
+                        .Select(a => ($"{a.IconClass} {a.Name}").Trim())
+                        .Where(t => !string.IsNullOrWhiteSpace(t))
+                        .ToList();
+
+                    <article class="rh-roomItem">
+                        <div class="rh-roomItem__thumb">
+                            <img src="@thumb" alt="@r.Name">
+                        </div>
+                        <div class="rh-roomItem__content">
+                            <div class="rh-roomItem__name">@r.Name</div>
+                            <div class="rh-roomItem__meta">👤 Tối đa @r.MaxGuests người • 🛏️ 1 giường đôi</div>
+
+                            <div class="rh-roomItem__tags">
+                                @foreach (var t in tagTexts)
+                                {
+                                    <span class="rh-tag">@t</span>
+                                }
+                            </div>
+
+                            <div class="rh-roomItem__divider"></div>
+
+                            <div class="rh-roomItem__bottom">
+                                <div class="rh-roomItem__price">
+                                    <strong>@r.BasePricePerNight.ToString("N0", vi)</strong> <span>VNĐ/đêm</span>
+                                </div>
+
+                                <a class="rh-roomItem__btn"
+                                   asp-controller="Rooms" asp-action="Detail"
+                                   asp-route-id="@r.Id"
+                                   asp-route-checkIn="@(checkIn)"
+                                   asp-route-checkOut="@(checkOut)"
+                                   asp-route-guests="@(guests)">
+                                    Xem chi tiết
+                                </a>
+                            </div>
+                        </div>
+                    </article>
+                }
+            }
+        </main>
+    </div>
+</section>
+
+<script>
+    (function () {
+        const range = document.getElementById('minPriceRange');
+        const minI = document.getElementById('minPriceInput');
+        const maxI = document.getElementById('maxPriceInput');
+
+        if (!range || !minI || !maxI) return;
+
+        range.addEventListener('input', () => {
+            minI.value = range.value;
+        });
+    })();
+</script>

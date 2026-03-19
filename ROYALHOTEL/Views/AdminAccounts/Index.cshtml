@@ -1,0 +1,164 @@
+@model List<ROYALHOTEL.ViewModels.AdminAccountItemViewModel>
+
+@{
+    ViewData["Title"] = "Account Management";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
+    var roleOptions = ViewBag.RoleOptions as List<string> ?? new List<string>();
+    var statusOptions = ViewBag.StatusOptions as List<string> ?? new List<string>();
+
+    var selectedRole = ViewBag.Role as string;
+    var selectedStatus = ViewBag.Status as string;
+    var keyword = ViewBag.Keyword as string;
+}
+
+<div class="admin-toolbar">
+    <div class="admin-toolbar__left">
+        <h2 class="admin-section-title">Manage Accounts</h2>
+        <p class="admin-section-subtitle">Search accounts and click a row to edit account information.</p>
+    </div>
+
+    <div class="admin-toolbar__right">
+        <a asp-controller="AdminAccounts" asp-action="Create" class="btn btn-success admin-btn-add">
+            + Create Account
+        </a>
+    </div>
+</div>
+
+<div class="admin-filter-card">
+    <form method="get" class="admin-filter-form">
+        <div class="admin-filter-form__group">
+            <input type="text"
+                   name="keyword"
+                   value="@keyword"
+                   class="form-control"
+                   placeholder="Search by full name, email, or phone..." />
+        </div>
+
+        <select name="role" class="form-control" style="max-width: 180px;">
+            <option value="">All roles</option>
+            @foreach (var r in roleOptions)
+            {
+                if (selectedRole == r)
+                {
+                    <option value="@r" selected>@r</option>
+                }
+                else
+                {
+                    <option value="@r">@r</option>
+                }
+            }
+        </select>
+
+        <select name="status" class="form-control" style="max-width: 180px;">
+            <option value="">All status</option>
+            @foreach (var s in statusOptions)
+            {
+                if (selectedStatus == s)
+                {
+                    <option value="@s" selected>@s</option>
+                }
+                else
+                {
+                    <option value="@s">@s</option>
+                }
+            }
+        </select>
+
+        <button type="submit" class="btn btn-primary">Search</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">Clear</a>
+    </form>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success mt-3">@TempData["Success"]</div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger mt-3">@TempData["Error"]</div>
+}
+
+<div class="admin-table-card">
+    <div class="admin-table-card__head">
+        <div>
+            <h3>Account List</h3>
+            <span>@Model.Count account(s)</span>
+        </div>
+    </div>
+
+    <div class="admin-table-responsive">
+        <table class="table admin-room-table align-middle">
+            <thead>
+                <tr>
+                    <th style="width: 80px;">ID</th>
+                    <th>Name</th>
+                    <th style="width: 260px;">Email</th>
+                    <th style="width: 160px;">Phone</th>
+                    <th style="width: 120px;">Role</th>
+                    <th style="width: 120px;">Status</th>
+                    <th style="width: 160px;">Created At</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Any())
+                {
+                    @foreach (var item in Model)
+                    {
+                        var detailUrl = Url.Action("Edit", "AdminAccounts", new { id = item.Id });
+
+                        var roleClass = item.Role == "admin"
+                            ? "admin-status admin-status--confirmed"
+                            : "admin-status admin-status--inactive";
+
+                        var statusClass = item.Status == "active"
+                            ? "admin-status admin-status--checkedin"
+                            : "admin-status admin-status--cancelled";
+
+                        <tr class="admin-account-row"
+                            onclick="window.location.href='@detailUrl'"
+                            style="cursor:pointer;">
+                            <td class="admin-room-id">#@item.Id</td>
+
+                            <td>
+                                <div class="admin-room-name">@item.FullName</div>
+                            </td>
+
+                            <td>
+                                <div class="admin-room-desc">@item.Email</div>
+                            </td>
+
+                            <td>
+                                @(string.IsNullOrWhiteSpace(item.Phone) ? "-" : item.Phone)
+                            </td>
+
+                            <td>
+                                <span class="@roleClass">@item.Role</span>
+                            </td>
+
+                            <td>
+                                <span class="@statusClass">@item.Status</span>
+                            </td>
+
+                            <td>
+                                @item.CreatedAt.ToString("dd/MM/yyyy")
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="7">
+                            <div class="admin-empty-state">
+                                <h4>No accounts found</h4>
+                                <p>There is no account data matching your filter.</p>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

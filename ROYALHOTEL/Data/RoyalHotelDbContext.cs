@@ -1,0 +1,180 @@
+using Microsoft.EntityFrameworkCore;
+using ROYALHOTEL.Models;
+
+namespace ROYALHOTEL.Data;
+
+public class RoyalHotelDbContext : DbContext
+{
+    public RoyalHotelDbContext(DbContextOptions<RoyalHotelDbContext> options) : base(options) { }
+
+    public DbSet<Room> Rooms => Set<Room>();
+    public DbSet<Amenity> Amenities => Set<Amenity>();
+    public DbSet<RoomAmenity> RoomAmenities => Set<RoomAmenity>();
+    public DbSet<RoomImage> RoomImages => Set<RoomImage>();
+    public DbSet<Booking> Bookings => Set<Booking>();
+    public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
+
+    public DbSet<Account> Accounts => Set<Account>();
+    public DbSet<PasswordResetOtp> PasswordResetOtps => Set<PasswordResetOtp>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        // =========================
+        // Room / Amenity / Images
+        // =========================
+        modelBuilder.Entity<RoomAmenity>()
+            .HasKey(x => new { x.RoomId, x.AmenityId });
+
+        modelBuilder.Entity<RoomAmenity>()
+            .HasOne(x => x.Room)
+            .WithMany(r => r.RoomAmenities)
+            .HasForeignKey(x => x.RoomId);
+
+        modelBuilder.Entity<RoomAmenity>()
+            .HasOne(x => x.Amenity)
+            .WithMany(a => a.RoomAmenities)
+            .HasForeignKey(x => x.AmenityId);
+
+        modelBuilder.Entity<RoomImage>()
+            .HasOne<Room>()
+            .WithMany(r => r.Images)
+            .HasForeignKey(i => i.RoomId);
+
+        modelBuilder.Entity<Room>()
+            .Property(x => x.BasePricePerNight)
+            .HasPrecision(18, 2);
+
+        // =========================
+        // Booking
+        // =========================
+        modelBuilder.Entity<Booking>(e =>
+        {
+            e.ToTable("Bookings");
+
+            e.Property(x => x.BookingCode)
+                .HasMaxLength(50)
+                .IsRequired();
+
+            e.Property(x => x.Status)
+                .HasMaxLength(30)
+                .IsRequired();
+
+            e.Property(x => x.GuestName)
+                .HasMaxLength(200);
+
+            e.Property(x => x.GuestEmail)
+                .HasMaxLength(200);
+
+            e.Property(x => x.GuestPhone)
+                .HasMaxLength(50);
+
+            e.Property(x => x.PaymentMethod)
+                .HasMaxLength(50);
+
+            e.Property(x => x.PricePerNight)
+                .HasPrecision(18, 2);
+
+            e.Property(x => x.TotalAmount)
+                .HasPrecision(18, 2);
+
+            e.HasOne(x => x.Room)
+                .WithMany()
+                .HasForeignKey(x => x.RoomId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(x => x.Account)
+                .WithMany(a => a.Bookings)
+                .HasForeignKey(x => x.AccountId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // =========================
+        // PaymentTransaction
+        // =========================
+        modelBuilder.Entity<PaymentTransaction>(e =>
+        {
+            e.ToTable("PaymentTransactions");
+
+            e.Property(x => x.PaymentMethod)
+                .HasMaxLength(50)
+                .IsRequired();
+
+            e.Property(x => x.Amount)
+                .HasPrecision(18, 2);
+
+            e.Property(x => x.Status)
+                .HasMaxLength(50)
+                .IsRequired();
+
+            e.Property(x => x.TransactionCode)
+                .HasMaxLength(100);
+
+            e.HasOne(x => x.Booking)
+                .WithMany(b => b.PaymentTransactions)
+                .HasForeignKey(x => x.BookingId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // =========================
+        // Account
+        // =========================
+        modelBuilder.Entity<Account>(e =>
+        {
+            e.ToTable("Accounts");
+
+            e.HasIndex(x => x.Email).IsUnique();
+
+            e.Property(x => x.FullName)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            e.Property(x => x.Email)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            e.Property(x => x.Phone)
+                .HasMaxLength(50);
+
+            e.Property(x => x.PasswordHash)
+                .HasMaxLength(500)
+                .IsRequired();
+
+            e.Property(x => x.PasswordSalt)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            e.Property(x => x.Role)
+                .HasMaxLength(20)
+                .IsRequired()
+                .HasDefaultValue("user");
+        });
+
+        // =========================
+        // PasswordResetOtp
+        // =========================
+        modelBuilder.Entity<PasswordResetOtp>(e =>
+        {
+            e.ToTable("PasswordResetOtps");
+
+            e.HasKey(x => x.Id);
+
+            e.HasOne(x => x.Account)
+                .WithMany()
+                .HasForeignKey(x => x.AccountId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.Property(x => x.OtpHash)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            e.Property(x => x.OtpSalt)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            e.Property(x => x.AttemptCount)
+                .HasDefaultValue(0);
+        });
+    }
+}

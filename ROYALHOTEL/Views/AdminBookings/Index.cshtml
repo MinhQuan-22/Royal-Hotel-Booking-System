@@ -1,0 +1,145 @@
+@model List<ROYALHOTEL.ViewModels.AdminBookingItemViewModel>
+
+@{
+    ViewData["Title"] = "Booking Management";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
+    var statusOptions = ViewBag.StatusOptions as List<string> ?? new List<string>();
+    var selectedStatus = ViewBag.Status as string;
+    var keyword = ViewBag.Keyword as string;
+}
+
+<div class="admin-toolbar">
+    <div class="admin-toolbar__left">
+        <h2 class="admin-section-title">Manage Bookings</h2>
+        <p class="admin-section-subtitle">Track guest reservations, update status, and view booking details.</p>
+    </div>
+</div>
+
+<div class="admin-filter-card">
+    <form method="get" class="admin-filter-form">
+        <div class="admin-filter-form__group">
+            <input type="text"
+                   name="keyword"
+                   value="@keyword"
+                   class="form-control"
+                   placeholder="Search by booking code, guest, email, room..." />
+        </div>
+
+        <select name="status" class="form-control" style="max-width: 220px;">
+            <option value="">All statuses</option>
+            @foreach (var st in statusOptions)
+            {
+                if (selectedStatus == st)
+                {
+                    <option value="@st" selected>@st</option>
+                }
+                else
+                {
+                    <option value="@st">@st</option>
+                }
+            }
+        </select>
+
+        <button type="submit" class="btn btn-primary">Search</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">Clear</a>
+    </form>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success mt-3">@TempData["Success"]</div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger mt-3">@TempData["Error"]</div>
+}
+
+<div class="admin-table-card">
+    <div class="admin-table-card__head">
+        <div>
+            <h3>Booking List</h3>
+            <span>@Model.Count booking(s)</span>
+        </div>
+    </div>
+
+    <div class="admin-table-responsive">
+        <table class="table admin-room-table align-middle">
+            <thead>
+                <tr>
+                    <th style="width: 80px;">ID</th>
+                    <th style="width: 130px;">Code</th>
+                    <th>Guest / Room</th>
+                    <th style="width: 140px;">Check In</th>
+                    <th style="width: 140px;">Check Out</th>
+                    <th style="width: 90px;">Guests</th>
+                    <th style="width: 180px;">Status</th>
+                    <th style="width: 150px;">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Any())
+                {
+                    @foreach (var item in Model)
+                {
+                    var statusClass = item.Status switch
+                    {
+                        "Confirmed" => "admin-status admin-status--confirmed",
+                        "CheckedIn" => "admin-status admin-status--checkedin",
+                        "CheckedOut" => "admin-status admin-status--checkedout",
+                        "Completed" => "admin-status admin-status--completed",
+                        "Cancelled" => "admin-status admin-status--cancelled",
+                        _ => "admin-status admin-status--inactive"
+                    };
+
+                    var detailUrl = Url.Action("Detail", "AdminBookings", new { id = item.Id });
+
+                    <tr class="admin-booking-row"
+                        onclick="window.location.href='@detailUrl'"
+                        style="cursor:pointer;">
+                        <td class="admin-room-id">#@item.Id</td>
+
+                        <td>
+                            <span class="admin-room-code">@item.BookingCode</span>
+                        </td>
+
+                        <td>
+                            <div>
+                                <div class="admin-room-name">@item.GuestName</div>
+                                <div class="admin-room-desc">@item.GuestEmail</div>
+                                <div class="admin-room-desc">
+                                    Room: @item.RoomName (@item.RoomCode)
+                                </div>
+                            </div>
+                        </td>
+
+                        <td>@item.CheckIn.ToString("dd/MM/yyyy")</td>
+                        <td>@item.CheckOut.ToString("dd/MM/yyyy")</td>
+                        <td>@item.Guests</td>
+
+                        <td>
+                            <span class="@statusClass">@item.Status</span>
+                        </td>
+
+                        <td class="admin-room-price">
+                            @(item.TotalAmount?.ToString("N0") ?? "0")
+                        </td>
+                    </tr>
+                }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="8">
+                            <div class="admin-empty-state">
+                                <h4>No bookings found</h4>
+                                <p>There is no booking data matching your filter.</p>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

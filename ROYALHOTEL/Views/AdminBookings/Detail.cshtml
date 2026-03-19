@@ -1,0 +1,219 @@
+@using System.Globalization
+@model ROYALHOTEL.ViewModels.AdminBookingDetailViewModel
+
+@{
+    ViewData["Title"] = "Booking Detail";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
+    var vi = CultureInfo.GetCultureInfo("vi-VN");
+    var totalAmount = Model.TotalAmount ?? 0;
+
+    var isConfirmed = Model.Status == "Confirmed" || Model.Status == "CheckedIn" || Model.Status == "CheckedOut" || Model.Status == "Completed";
+    var isCheckedIn = Model.Status == "CheckedIn" || Model.Status == "CheckedOut" || Model.Status == "Completed";
+    var isCheckedOut = Model.Status == "CheckedOut" || Model.Status == "Completed";
+    var isCompleted = Model.Status == "Completed";
+    var isCancelled = Model.Status == "Cancelled";
+
+    string statusBadgeClass = Model.Status switch
+    {
+        "Confirmed" => "admin-status admin-status--confirmed",
+        "CheckedIn" => "admin-status admin-status--checkedin",
+        "CheckedOut" => "admin-status admin-status--checkedout",
+        "Completed" => "admin-status admin-status--completed",
+        "Cancelled" => "admin-status admin-status--cancelled",
+        _ => "admin-status admin-status--inactive"
+    };
+}
+
+<div class="admin-toolbar">
+    <div class="admin-toolbar__left">
+        <h2 class="admin-section-title">Booking Detail</h2>
+        <p class="admin-section-subtitle">Manage booking process and review full reservation information.</p>
+    </div>
+
+    <div class="admin-toolbar__right">
+        <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success mt-3">@TempData["Success"]</div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger mt-3">@TempData["Error"]</div>
+}
+
+<div class="admin-booking-detail-page">
+
+    <div class="admin-booking-process-card">
+        <div class="admin-booking-process-card__head">
+            <div>
+                <h3>Booking Process</h3>
+                <span>Booking Code: @Model.BookingCode</span>
+            </div>
+
+            <span class="@statusBadgeClass">@Model.Status</span>
+        </div>
+<div class="admin-booking-process-simple">
+    <div class="admin-step-box @(isConfirmed ? "is-done" : "") @(Model.Status == "Confirmed" ? "is-current" : "")">
+        Confirmed
+    </div>
+
+    <div class="admin-step-arrow">→</div>
+
+    <div class="admin-step-box @(isCheckedIn ? "is-done" : "") @(Model.Status == "CheckedIn" ? "is-current" : "")">
+        Checked In
+    </div>
+
+    <div class="admin-step-arrow">→</div>
+
+    <div class="admin-step-box @(isCheckedOut ? "is-done" : "") @(Model.Status == "CheckedOut" ? "is-current" : "")">
+        Checked Out
+    </div>
+
+    <div class="admin-step-arrow">→</div>
+
+    <div class="admin-step-box @(isCompleted ? "is-done" : "") @(Model.Status == "Completed" ? "is-current" : "")">
+        Completed
+    </div>
+</div>
+
+        @if (isCancelled)
+        {
+            <div class="admin-booking-cancel-box">
+                <strong>Cancelled:</strong> This booking has been cancelled and should not continue in the normal process flow.
+            </div>
+        }
+
+        <div class="admin-booking-update-box">
+            <form asp-action="UpdateStatus" method="post" class="admin-booking-update-form">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+
+                <div class="admin-form-group">
+                    <label>Update Status</label>
+                    <select name="status" class="form-select admin-booking-status-select">
+                        @if (Model.Status == "Confirmed")
+                        {
+                            <option value="Confirmed" selected>Confirmed</option>
+                        }
+                        else
+                        {
+                            <option value="Confirmed">Confirmed</option>
+                        }
+
+                        @if (Model.Status == "CheckedIn")
+                        {
+                            <option value="CheckedIn" selected>Checked In</option>
+                        }
+                        else
+                        {
+                            <option value="CheckedIn">Checked In</option>
+                        }
+
+                        @if (Model.Status == "CheckedOut")
+                        {
+                            <option value="CheckedOut" selected>Checked Out</option>
+                        }
+                        else
+                        {
+                            <option value="CheckedOut">Checked Out</option>
+                        }
+
+                        @if (Model.Status == "Completed")
+                        {
+                            <option value="Completed" selected>Completed</option>
+                        }
+                        else
+                        {
+                            <option value="Completed">Completed</option>
+                        }
+
+                        @if (Model.Status == "Cancelled")
+                        {
+                            <option value="Cancelled" selected>Cancelled</option>
+                        }
+                        else
+                        {
+                            <option value="Cancelled">Cancelled</option>
+                        }
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Update Status</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="admin-booking-detail-grid">
+        <div class="admin-booking-detail-card">
+            <h3>Guest Information</h3>
+
+            <div class="admin-booking-detail-row">
+                <span>Full Name</span>
+                <strong>@(Model.GuestName ?? "N/A")</strong>
+            </div>
+
+            <div class="admin-booking-detail-row">
+                <span>Email</span>
+                <strong>@(Model.GuestEmail ?? "N/A")</strong>
+            </div>
+
+            <div class="admin-booking-detail-row">
+                <span>Phone</span>
+                <strong>@(Model.GuestPhone ?? "N/A")</strong>
+            </div>
+        </div>
+
+        <div class="admin-booking-detail-card">
+            <h3>Stay Information</h3>
+
+            <div class="admin-booking-detail-row">
+                <span>Room</span>
+                <strong>@Model.RoomName (@Model.RoomCode)</strong>
+            </div>
+
+            <div class="admin-booking-detail-row">
+                <span>Check In</span>
+                <strong>@Model.CheckIn.ToString("dd/MM/yyyy")</strong>
+            </div>
+
+            <div class="admin-booking-detail-row">
+                <span>Check Out</span>
+                <strong>@Model.CheckOut.ToString("dd/MM/yyyy")</strong>
+            </div>
+
+            <div class="admin-booking-detail-row">
+                <span>Nights</span>
+                <strong>@Model.Nights</strong>
+            </div>
+
+            <div class="admin-booking-detail-row">
+                <span>Guests</span>
+                <strong>@Model.Guests</strong>
+            </div>
+        </div>
+
+        <div class="admin-booking-detail-card">
+            <h3>Payment Summary</h3>
+
+            <div class="admin-booking-detail-row">
+                <span>Total Amount</span>
+                <strong>@totalAmount.ToString("N0", vi) VNĐ</strong>
+            </div>
+
+            <div class="admin-booking-detail-row">
+                <span>Booking Code</span>
+                <strong>@Model.BookingCode</strong>
+            </div>
+
+            <div class="admin-booking-detail-row">
+                <span>Status</span>
+                <strong>@Model.Status</strong>
+            </div>
+        </div>
+    </div>
+</div>

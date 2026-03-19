@@ -1,0 +1,126 @@
+@model ROYALHOTEL.ViewModels.AdminRoomFormViewModel
+
+@{
+    ViewData["Title"] = "Edit Room";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
+    var previewImage = string.IsNullOrWhiteSpace(Model.CoverImageUrl)
+        ? "/assets/home/Room1.jpg"
+        : Model.CoverImageUrl;
+}
+
+<div class="admin-form-page">
+    <div class="admin-toolbar">
+        <div class="admin-toolbar__left">
+            <h2 class="admin-section-title">Edit Room</h2>
+            <p class="admin-section-subtitle">Update room information and availability status.</p>
+        </div>
+    </div>
+
+    <div class="admin-form-layout">
+        <div class="admin-form-card admin-form-card--main">
+            <form asp-action="Edit" method="post">
+                @Html.AntiForgeryToken()
+                <input asp-for="Id" type="hidden" />
+
+                <div class="admin-form-grid">
+                    <div class="admin-form-group">
+                        <label asp-for="Code" class="form-label">Room Code</label>
+                        <input asp-for="Code" class="form-control" placeholder="Enter room code" />
+                        <span asp-validation-for="Code" class="text-danger"></span>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label asp-for="Name" class="form-label">Room Name</label>
+                        <input asp-for="Name" class="form-control" placeholder="Enter room name" />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label asp-for="RoomType" class="form-label">Room Type</label>
+                        <input asp-for="RoomType" class="form-control" placeholder="Standard / Deluxe / Suite..." />
+                        <span asp-validation-for="RoomType" class="text-danger"></span>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label asp-for="MaxGuests" class="form-label">Max Guests</label>
+                        <input asp-for="MaxGuests" class="form-control" placeholder="Enter max guests" />
+                        <span asp-validation-for="MaxGuests" class="text-danger"></span>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label asp-for="BasePricePerNight" class="form-label">Price Per Night</label>
+                        <input asp-for="BasePricePerNight" class="form-control" placeholder="Enter room price" />
+                        <span asp-validation-for="BasePricePerNight" class="text-danger"></span>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label asp-for="CoverImageUrl" class="form-label">Cover Image URL</label>
+                        <input asp-for="CoverImageUrl" class="form-control" placeholder="/assets/home/Room1.jpg" />
+                        <span asp-validation-for="CoverImageUrl" class="text-danger"></span>
+                    </div>
+
+                    <div class="admin-form-group admin-form-group--full">
+                        <label asp-for="Description" class="form-label">Description</label>
+                        <textarea asp-for="Description" class="form-control" rows="5" placeholder="Enter room description"></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                    </div>
+
+                    <div class="admin-form-group admin-form-group--full">
+                        <div class="admin-switch">
+                            <input asp-for="IsActive" class="form-check-input" />
+                            <label asp-for="IsActive" class="form-check-label">Room is active</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="admin-form-actions">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
+                </div>
+            </form>
+        </div>
+
+        <div class="admin-form-side">
+            <div class="admin-preview-card">
+                <div class="admin-preview-card__head">
+                    <h3>Room Preview</h3>
+                    <span>Current display</span>
+                </div>
+
+                <img src="@previewImage" alt="@Model.Name" class="admin-preview-card__image" />
+
+                <div class="admin-preview-card__body">
+                    <h4>@Model.Name</h4>
+                    <div class="admin-preview-meta">
+                        <span class="admin-pill admin-pill--type">@Model.RoomType</span>
+                        <span class="admin-pill admin-pill--guests">@Model.MaxGuests guest(s)</span>
+                    </div>
+
+                    <div class="admin-preview-price">
+                        @Model.BasePricePerNight.ToString("N0") / night
+                    </div>
+
+                    <p>
+                        @(string.IsNullOrWhiteSpace(Model.Description)
+                            ? "No description available."
+                            : Model.Description)
+                    </p>
+
+                    @if (Model.IsActive)
+                    {
+                        <span class="admin-status admin-status--active">Active</span>
+                    }
+                    else
+                    {
+                        <span class="admin-status admin-status--inactive">Inactive</span>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

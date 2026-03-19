@@ -1,0 +1,23 @@
+﻿
+<!doctype html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - ROYALHOTEL</title>
+
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    @RenderBody()
+
+    <partial name="_Footer" />
+
+    <button id="rhScrollTopBtn" class="rh-scrollTop" type="button" aria-label="Lên đầu trang">
+        <span class="rh-scrollTop__icon">↑</span>
+    </button>
+
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,197 @@
+@using System.Globalization
+@model ROYALHOTEL.Models.Booking
+
+@{
+    ViewData["Title"] = "Đặt phòng thành công";
+
+    var vi = CultureInfo.GetCultureInfo("vi-VN");
+    var roomName = Model.Room?.Name ?? "Phòng";
+    var roomCode = Model.Room?.Code ?? "N/A";
+    var nights = (Model.CheckOut - Model.CheckIn).Days;
+    var totalAmount = Model.TotalAmount ?? 0;
+    var pricePerNight = Model.PricePerNight ?? 0;
+    var guestEmail = Model.GuestEmail ?? "";
+    var paymentText = Model.PaymentMethod == "card" ? "Thẻ tín dụng / Ghi nợ" : "Chuyển khoản ngân hàng";
+}
+
+<!-- TOP NAV -->
+<section class="rh-payTop">
+    <div class="rh-container">
+        <header class="rh-nav rh-nav--plain">
+            <div class="rh-brand">
+                <div class="rh-brand__top">ROYAL</div>
+                <div class="rh-brand__bot">LUXURY HOTEL</div>
+            </div>
+
+            <nav class="rh-menu">
+                <a class="rh-menu__link" asp-controller="Home" asp-action="Index">Trang chủ</a>
+                <a class="rh-menu__link" href="#">Giới thiệu</a>
+                <a class="rh-menu__link" asp-controller="Rooms" asp-action="Index">Phòng &amp; giá</a>
+                <a class="rh-menu__link" href="#">Liên hệ</a>
+            </nav>
+
+            @await Html.PartialAsync("_AccountAvatar")
+        </header>
+    </div>
+</section>
+
+<!-- SUCCESS PAGE -->
+<section class="rh-successPage">
+    <div class="rh-container">
+
+        <!-- Success Message -->
+        <div class="rh-successHero">
+            <div class="rh-successCheck">✓</div>
+            <h1 class="rh-successTitle">Đặt phòng thành công</h1>
+            <p class="rh-successSubtitle">
+                Cảm ơn anh đã lựa chọn Royal Luxury Hotel. Chúng tôi rất hân hạnh được phục vụ anh.
+            </p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="rh-successContent">
+
+            <!-- Booking Code -->
+            <div class="rh-confirmBox">
+                <div class="rh-confirmBox__label">Mã xác nhận đặt phòng</div>
+                <div class="rh-confirmBox__code">
+                    <span class="rh-codeText" id="bookingCodeText">@Model.BookingCode</span>
+                    <button type="button" class="rh-copyCodeBtn" onclick="copyBookingCode()" title="Sao chép">
+                        <span id="copyIcon">📋</span>
+                    </button>
+                </div>
+                <div class="rh-confirmBox__note">Vui lòng xuất trình mã này khi check-in</div>
+            </div>
+
+            <!-- Booking Details -->
+            <div class="rh-detailsGrid">
+
+                <!-- Left Column -->
+                <div class="rh-detailsCol">
+                    <div class="rh-detailCard">
+                        <div class="rh-detailCard__title">Thông tin phòng</div>
+                        <div class="rh-detailCard__body">
+                            <div class="rh-detailRow">
+                                <span class="rh-detailLabel">Loại phòng</span>
+                                <span class="rh-detailValue">@roomName</span>
+                            </div>
+                            <div class="rh-detailRow">
+                                <span class="rh-detailLabel">Mã phòng</span>
+                                <span class="rh-detailValue">@roomCode</span>
+                            </div>
+                            <div class="rh-detailRow">
+                                <span class="rh-detailLabel">Mã booking</span>
+                                <span class="rh-detailValue">@Model.BookingCode</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="rh-detailCard">
+                        <div class="rh-detailCard__title">Thời gian lưu trú</div>
+                        <div class="rh-detailCard__body">
+                            <div class="rh-detailRow">
+                                <span class="rh-detailLabel">Check-in</span>
+                                <span class="rh-detailValue">@Model.CheckIn.ToString("dd/MM/yyyy") - 14:00</span>
+                            </div>
+                            <div class="rh-detailRow">
+                                <span class="rh-detailLabel">Check-out</span>
+                                <span class="rh-detailValue">@Model.CheckOut.ToString("dd/MM/yyyy") - 12:00</span>
+                            </div>
+                            <div class="rh-detailRow">
+                                <span class="rh-detailLabel">Số đêm</span>
+                                <span class="rh-detailValue">@nights đêm</span>
+                            </div>
+                            <div class="rh-detailRow">
+                                <span class="rh-detailLabel">Số khách</span>
+                                <span class="rh-detailValue">@Model.Guests người</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="rh-detailsCol">
+                    <div class="rh-detailCard">
+                        <div class="rh-detailCard__title">Thông tin khách hàng</div>
+                        <div class="rh-detailCard__body">
+                            <div class="rh-detailRow">
+                                <span class="rh-detailLabel">Họ và tên</span>
+                                <span class="rh-detailValue">@Model.GuestName</span>
+                            </div>
+                            <div class="rh-detailRow">
+                                <span class="rh-detailLabel">Email</span>
+                                <span class="rh-detailValue">@Model.GuestEmail</span>
+                            </div>
+                            <div class="rh-detailRow">
+                                <span class="rh-detailLabel">Số điện thoại</span>
+                                <span class="rh-detailValue">@Model.GuestPhone</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="rh-detailCard">
+                        <div class="rh-detailCard__title">Thanh toán</div>
+                        <div class="rh-detailCard__body">
+                            <div class="rh-detailRow">
+                                <span class="rh-detailLabel">Phương thức</span>
+                                <span class="rh-detailValue">@paymentText</span>
+                            </div>
+                            <div class="rh-detailRow">
+                                <span class="rh-detailLabel">Giá phòng (@nights đêm)</span>
+                                <span class="rh-detailValue">@totalAmount.ToString("N0", vi) VNĐ</span>
+                            </div>
+                            <div class="rh-detailRow">
+                                <span class="rh-detailLabel">Đơn giá / đêm</span>
+                                <span class="rh-detailValue">@pricePerNight.ToString("N0", vi) VNĐ</span>
+                            </div>
+                            <div class="rh-detailRow">
+                                <span class="rh-detailLabel">Thuế &amp; Phí dịch vụ</span>
+                                <span class="rh-detailValue">0 VNĐ</span>
+                            </div>
+                            <div class="rh-detailDivider"></div>
+                            <div class="rh-detailRow rh-detailRow--total">
+                                <span class="rh-detailLabel">Tổng thanh toán</span>
+                                <span class="rh-detailValue">@totalAmount.ToString("N0", vi) VNĐ</span>
+                            </div>
+                            <div class="rh-paidBadge">
+                                <span>✓</span>
+                                <span>Đã thanh toán</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Email Notice -->
+            <div class="rh-emailNotice">
+                <span class="rh-emailNotice__icon">✉</span>
+                <span>Email xác nhận đã được gửi đến <strong>@guestEmail</strong></span>
+            </div>
+
+            <!-- Actions -->
+            <div class="rh-successFooter">
+                <a class="rh-btnHome" asp-controller="Home" asp-action="Index">Về trang chủ</a>
+                <div class="rh-contactInfo">
+                    Cần hỗ trợ? Liên hệ: <a href="tel:0788660087">0788 660 087</a>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</section>
+
+<script>
+    function copyBookingCode() {
+        const code = document.getElementById('bookingCodeText').textContent;
+        const icon = document.getElementById('copyIcon');
+
+        navigator.clipboard.writeText(code).then(() => {
+            icon.textContent = '✓';
+            setTimeout(() => {
+                icon.textContent = '📋';
+            }, 2000);
+        });
+    }
+</script>

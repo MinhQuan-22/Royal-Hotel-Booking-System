@@ -1,0 +1,75 @@
+@model ROYALHOTEL.ViewModels.AdminAmenityFormViewModel
+
+@{
+    ViewData["Title"] = "Create Amenity";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="admin-form-page">
+    <div class="admin-toolbar">
+        <div class="admin-toolbar__left">
+            <h2 class="admin-section-title">Create Amenity</h2>
+            <p class="admin-section-subtitle">Add a new hotel amenity.</p>
+        </div>
+    </div>
+
+    <div class="admin-form-layout">
+        <div class="admin-form-card admin-form-card--main">
+            <form asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="admin-form-grid">
+                    <div class="admin-form-group">
+                        <label asp-for="AmenityKey" class="form-label">Amenity Key</label>
+                        <input asp-for="AmenityKey" class="form-control" placeholder="wifi, pool, breakfast..." />
+                        <span asp-validation-for="AmenityKey" class="text-danger"></span>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label asp-for="Name" class="form-label">Display Name</label>
+                        <input asp-for="Name" class="form-control" placeholder="Wifi miễn phí" />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label asp-for="IconClass" class="form-label">Icon</label>
+                        <input asp-for="IconClass" class="form-control" placeholder="📶 or icon class" />
+                        <span asp-validation-for="IconClass" class="text-danger"></span>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label asp-for="Category" class="form-label">Category</label>
+                        <input asp-for="Category" class="form-control" placeholder="basic, food, service..." />
+                        <span asp-validation-for="Category" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="admin-form-actions">
+                    <button type="submit" class="btn btn-primary">Create Amenity</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
+                </div>
+            </form>
+        </div>
+
+        <div class="admin-form-side">
+            <div class="admin-preview-card">
+                <div class="admin-preview-card__head">
+                    <h3>Quick Note</h3>
+                    <span>Amenity setup</span>
+                </div>
+
+                <div class="admin-preview-card__body">
+                    <h4>Tips</h4>
+                    <p>
+                        Use a short unique key like <strong>wifi</strong>, <strong>pool</strong>, <strong>spa</strong>.
+                    </p>
+                    <span class="admin-status admin-status--confirmed">Ready</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

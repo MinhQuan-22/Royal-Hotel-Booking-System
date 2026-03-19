@@ -1,0 +1,21 @@
+node_modules/
+dist/
+build/
+.next/
+out/
+coverage/
+.env
+.env.*
+!.env.example
+.DS_Store
+.vscode/
+.idea/
+# ======================
+# .NET / Visual Studio
+# ======================
+bin/
+obj/
+.vs/
+*.user
+*.suo
+

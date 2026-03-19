@@ -1,0 +1,151 @@
+@using ROYALHOTEL.Models
+@model List<Room>
+
+@{
+    ViewData["Title"] = "Room Management";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="admin-toolbar">
+    <div class="admin-toolbar__left">
+        <h2 class="admin-section-title">Manage Rooms</h2>
+        <p class="admin-section-subtitle">View, search, edit, and manage room information.</p>
+    </div>
+
+    <div class="admin-toolbar__right">
+        <a asp-controller="AdminRooms" asp-action="Create" class="btn btn-success admin-btn-add">
+            + Add New Room
+        </a>
+    </div>
+</div>
+
+<div class="admin-filter-card">
+    <form method="get" class="admin-filter-form">
+        <div class="admin-filter-form__group">
+            <input type="text"
+                   name="keyword"
+                   value="@ViewBag.Keyword"
+                   class="form-control"
+                   placeholder="Search by code, room name, or room type..." />
+        </div>
+        <button type="submit" class="btn btn-primary">Search</button>
+
+        @if (!string.IsNullOrWhiteSpace(ViewBag.Keyword as string))
+        {
+            <a asp-action="Index" class="btn btn-outline-secondary">Clear</a>
+        }
+    </form>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success mt-3">@TempData["Success"]</div>
+}
+
+<div class="admin-table-card">
+    <div class="admin-table-card__head">
+        <div>
+            <h3>Room List</h3>
+            <span>@Model.Count room(s)</span>
+        </div>
+    </div>
+
+    <div class="admin-table-responsive">
+        <table class="table admin-room-table align-middle">
+            <thead>
+                <tr>
+                    <th style="width: 70px;">ID</th>
+                    <th style="width: 90px;">Code</th>
+                    <th>Room</th>
+                    <th style="width: 130px;">Type</th>
+                    <th style="width: 150px;">Price / Night</th>
+                    <th style="width: 110px;">Guests</th>
+                    <th style="width: 120px;">Status</th>
+                    <th style="width: 180px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Any())
+                {
+                    @foreach (var room in Model)
+                    {
+                        var imageUrl = string.IsNullOrWhiteSpace(room.CoverImageUrl)
+                            ? "/assets/home/Room1.jpg"
+                            : room.CoverImageUrl;
+
+                        <tr>
+                            <td class="admin-room-id">#@room.Id</td>
+                            <td>
+                                <span class="admin-room-code">@room.Code</span>
+                            </td>
+                            <td>
+                                <div class="admin-room-info">
+                                    <img src="@imageUrl" alt="@room.Name" class="admin-room-thumb" />
+                                    <div class="admin-room-info__text">
+                                        <div class="admin-room-name">@room.Name</div>
+                                        <div class="admin-room-desc">
+                                            @(string.IsNullOrWhiteSpace(room.Description)
+                                                ? "No description available."
+                                                : room.Description.Length > 70
+                                                    ? room.Description.Substring(0, 70) + "..."
+                                                    : room.Description)
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="admin-pill admin-pill--type">@room.RoomType</span>
+                            </td>
+                            <td class="admin-room-price">
+                                @room.BasePricePerNight.ToString("N0")
+                            </td>
+                            <td>
+                                <span class="admin-pill admin-pill--guests">@room.MaxGuests guest(s)</span>
+                            </td>
+                            <td>
+                                @if (room.IsActive)
+                                {
+                                    <span class="admin-status admin-status--active">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="admin-status admin-status--inactive">Inactive</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="admin-actions">
+                                    <a asp-action="Edit"
+                                       asp-route-id="@room.Id"
+                                       class="btn btn-sm admin-btn admin-btn-edit">
+                                        Edit
+                                    </a>
+
+                                    <form asp-action="Delete"
+                                          asp-route-id="@room.Id"
+                                          method="post"
+                                          onsubmit="return confirm('Are you sure you want to delete this room?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm admin-btn admin-btn-delete">
+                                            Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="8">
+                            <div class="admin-empty-state">
+                                <h4>No rooms found</h4>
+                                <p>Try another keyword or add a new room.</p>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,82 @@
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+    var userName = HttpContextAccessor.HttpContext?.Session.GetString("USER_NAME") ?? "Admin";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - RoyalHotel Admin</title>
+
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="admin-shell">
+        <aside class="admin-sidebar">
+           <div class="admin-brand">
+    <h2>ROYAL</h2>
+    
+    <p>LUXURY HOTEL ADMIN</p>
+</div>
+
+           <!-- <a asp-controller="Admin" asp-action="Index"
+   class="admin-nav-link @(currentController == "Admin" ? "active" : "")">
+    Dashboard
+</a> -->
+
+<a asp-controller="AdminRooms" asp-action="Index"
+   class="admin-nav-link @(currentController == "AdminRooms" ? "active" : "")">
+    Rooms
+</a>
+
+<a asp-controller="AdminBookings" asp-action="Index"
+   class="admin-nav-link @(currentController == "AdminBookings" ? "active" : "")">
+    Bookings
+</a>
+
+<a asp-controller="AdminAccounts" asp-action="Index"
+   class="admin-nav-link @(currentController == "AdminAccounts" ? "active" : "")">
+    Accounts
+</a>
+
+<a asp-controller="AdminAmenities" asp-action="Index"
+   class="admin-nav-link @(currentController == "AdminAmenities" ? "active" : "")">
+    Amenities
+</a>
+
+<a asp-controller="Home" asp-action="Index" class="admin-nav-link">
+    Back to Website
+</a>
+            </nav>
+        </aside>
+
+        <main class="admin-main">
+            <header class="admin-topbar">
+                <div>
+                    <h4 class="mb-0">@ViewData["Title"]</h4>
+                </div>
+
+                <div class="admin-user">
+                    Hello, <strong>@userName</strong>
+                </div>
+            </header>
+
+            <section class="admin-content">
+                @RenderBody()
+            </section>
+        </main>
+    </div>
+
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

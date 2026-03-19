@@ -1,0 +1,35 @@
+@model ROYALHOTEL.ViewModels.AdminDashboardViewModel
+
+@{
+    ViewData["Title"] = "Dashboard";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="stat-grid">
+    <div class="stat-card">
+        <h6>Total Rooms</h6>
+        <h3>@Model.TotalRooms</h3>
+    </div>
+
+    <div class="stat-card">
+        <h6>Total Bookings</h6>
+        <h3>@Model.TotalBookings</h3>
+    </div>
+
+    <div class="stat-card">
+        <h6>Total Accounts</h6>
+        <h3>@Model.TotalAccounts</h3>
+    </div>
+
+    <div class="stat-card">
+        <h6>Available Rooms</h6>
+        <h3>@Model.ActiveRooms</h3>
+    </div>
+</div>
+
+<div class="section-card">
+    <h4 class="mb-3">Welcome to Admin Dashboard</h4>
+    <p class="mb-0">
+        Here you can manage rooms, bookings, accounts, and amenities for the Royal Hotel system.
+    </p>
+</div>

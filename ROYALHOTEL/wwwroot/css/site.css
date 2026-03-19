@@ -1,0 +1,4170 @@
+﻿:root {
+  --gold: #c9a24a;
+  --gold-2: #d7b35f;
+  --dark: #2b2b2b;
+  --beige: #ebe3c9;
+  --white: #fff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    Arial,
+    sans-serif;
+}
+
+a {
+  text-decoration: none;
+}
+
+.rh-container {
+  width: min(1100px, calc(100% - 48px));
+  margin: 0 auto;
+}
+
+/* HERO */
+/* HERO full viewport, không bị cắt dưới */
+.rh-hero {
+  position: relative;
+  height: 88vh; /* ăn theo chiều cao màn hình */
+  min-height: 620px; /* đảm bảo không quá thấp */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  color: #fff;
+  overflow: hidden; /* tránh tràn */
+}
+
+/* overlay tối nhẹ */
+.rh-hero__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* inner: chừa chỗ dưới cho search bar */
+.rh-hero__inner {
+  position: relative;
+  height: 100%;
+  padding: 22px 0 120px; /* chừa đáy nhiều hơn để search không “đè” */
+}
+
+.rh-nav {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.rh-brand {
+  line-height: 1;
+}
+
+.rh-brand__top {
+  color: var(--gold);
+  font-weight: 700;
+  letter-spacing: 4px;
+  font-size: 22px;
+  font-family: "Playfair Display", Georgia, serif;
+}
+
+.rh-brand__bot {
+  color: #fff;
+  font-weight: 300;
+  opacity: 0.95;
+  margin-top: 8px;
+  font-size: 11px;
+  letter-spacing: 3px;
+  font-family: "Playfair Display", Georgia, serif;
+}
+
+.rh-menu {
+  display: flex;
+  gap: 32px;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.rh-menu__link {
+  color: #fff;
+  font-size: 14px;
+  padding-bottom: 8px;
+  opacity: 0.95;
+  position: relative;
+  transition: opacity 0.3s ease;
+}
+
+.rh-menu__link::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: #fff;
+  transition: width 0.3s ease;
+}
+
+.rh-menu__link:hover {
+  opacity: 1;
+}
+
+.rh-menu__link:hover::after {
+  width: 100%;
+}
+
+.rh-menu__link.is-active {
+  opacity: 1;
+}
+
+.rh-menu__link.is-active::after {
+  width: 100%;
+}
+
+/* account dropdown */
+.rh-account {
+  position: relative;
+  margin-top: 6px;
+}
+
+.rh-account__btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  cursor: pointer;
+  padding: 10px 16px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.rh-account__btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: var(--gold);
+}
+
+.rh-account__icon {
+  font-size: 22px;
+  color: #fff;
+}
+
+.rh-account__text {
+  font-size: 13px;
+  text-align: left;
+  line-height: 1.3;
+}
+
+.rh-account__text b {
+  color: var(--gold);
+  font-weight: 500;
+}
+
+.rh-account__caret {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.rh-account__menu {
+  position: absolute;
+  right: 0;
+  top: 52px;
+  width: 180px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid var(--gold);
+  display: none;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.rh-account__item {
+  display: block;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #fff;
+  transition: background 0.2s ease;
+}
+
+.rh-account__item:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--gold);
+}
+
+/* hero text */
+.rh-hero__content {
+  text-align: center;
+  margin-top: 80px;
+}
+
+.rh-hero__kicker {
+  font-size: 13px;
+  letter-spacing: 3px;
+  opacity: 0.95;
+  margin-bottom: 18px;
+  text-transform: uppercase;
+  font-weight: 300;
+}
+
+.rh-hero__title {
+  margin: 0;
+  font-size: 48px;
+  letter-spacing: 2px;
+  font-weight: 300;
+  font-family: "Playfair Display", Georgia, serif;
+  line-height: 1.6;
+  padding: 15px 0;
+}
+
+.rh-hero__btn {
+  display: inline-block;
+  margin-top: 28px;
+  padding: 14px 32px;
+  border: 1px solid var(--gold);
+  color: #fff;
+  font-size: 14px;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  background: transparent;
+}
+
+.rh-hero__btn:hover {
+  background: var(--gold);
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(201, 162, 74, 0.4);
+}
+
+.rh-hero__badge {
+  position: absolute;
+  right: 210px;
+  top: 230px;
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  background: #fff;
+  color: #e68113;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+
+/* search bar */
+.rh-search {
+  position: absolute;
+  left: 50%;
+  bottom: 28px; /* nhích lên 1 chút */
+  transform: translateX(-50%);
+  width: min(900px, 100%);
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 200px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.rh-search__field {
+  position: relative;
+  border-right: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.rh-search__field input,
+.rh-search__field select {
+  width: 100%;
+  padding: 14px 40px 14px 16px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+}
+
+.rh-search__field input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.rh-search__suffix {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0.75;
+  font-size: 14px;
+  pointer-events: none;
+}
+
+/* Ẩn emoji icon khi input là date */
+.rh-search__field input[type="date"] + .rh-search__suffix {
+  display: none;
+}
+
+.rh-search__btn {
+  border: 0;
+  background: var(--gold-2);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+/* footer minimal (để không lỗi khi chưa dán full) */
+.rh-footer {
+  background: #1f1f1f;
+  color: #fff;
+  padding: 28px 0 34px;
+  margin-top: 24px;
+}
+
+.rh-footer__grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 24px;
+}
+
+.rh-footer__title {
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.rh-footer__title.center {
+  text-align: center;
+}
+
+.rh-footer__text {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 12.5px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.rh-footer__links {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 12.5px;
+}
+
+.rh-footer__links a {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.rh-footer__links a:hover {
+  color: #fff;
+}
+
+@media (max-width: 980px) {
+  .rh-hero__badge {
+    display: none;
+  }
+
+  .rh-search {
+    grid-template-columns: 1fr;
+  }
+
+  .rh-search__field {
+    border-right: 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  }
+
+  .rh-footer__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rh-search__btn {
+    width: 100%;
+    padding: 14px 16px;
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* ===== ABOUT SECTION (dưới banner) ===== */
+.rh-about2 {
+  padding: 70px 0 50px;
+  background: #fff;
+}
+
+.rh-about2__wrap {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 50px;
+  align-items: start;
+}
+
+.rh-about2__title {
+  color: #8b6a14;
+  font-size: 32px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  margin-bottom: 16px;
+  font-family: "Playfair Display", Georgia, serif;
+}
+
+.rh-about2__subtitle {
+  color: #8b6a14;
+  font-size: 20px;
+  font-weight: 400;
+  margin-bottom: 26px;
+  font-family: "Playfair Display", Georgia, serif;
+}
+
+.rh-about2__desc {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.9;
+  color: #333;
+  max-width: 600px;
+  font-weight: 400;
+}
+
+/* phone block */
+.rh-about2__phone {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  margin-top: 34px;
+}
+
+.rh-about2__phoneIcon {
+  color: #8b6a14; /* nâu-vàng như ảnh */
+  width: 70px;
+  height: 70px;
+  display: grid;
+  place-items: center;
+}
+
+.rh-about2__phoneText {
+  line-height: 1.2;
+}
+
+.rh-about2__phoneLabel {
+  font-size: 18px;
+  color: #111;
+  font-weight: 500;
+  margin-bottom: 10px;
+  font-family: "Playfair Display", Georgia, serif;
+}
+
+.rh-about2__phoneNumber {
+  font-size: 24px;
+  color: #8b6a14;
+  font-weight: 600;
+  letter-spacing: 1px;
+  font-family:
+    "Inter",
+    system-ui,
+    -apple-system,
+    sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+/* right images: 1 ảnh nhỏ ở giữa + 1 ảnh cao bên phải */
+.rh-about2__right {
+  position: relative;
+  min-height: 450px;
+}
+
+.rh-about2__img {
+  display: block;
+  object-fit: cover;
+  background: #eee;
+}
+
+.rh-about2__img--small {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 220px;
+  height: 310px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16);
+  z-index: 1;
+}
+
+.rh-about2__img--tall {
+  position: absolute;
+  right: 0;
+  top: 60px;
+  width: 220px;
+  height: 310px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16);
+  z-index: 2;
+}
+
+/* responsive */
+@media (max-width: 980px) {
+  .rh-about2__wrap {
+    grid-template-columns: 1fr;
+  }
+
+  /* right images: giống mẫu (chồng nhẹ, không đè nhiều) */
+  .rh-about2__right {
+    position: relative;
+    min-height: 520px; /* tăng khung để ảnh không bị ép */
+  }
+
+  /* ảnh lớn bên phải */
+  .rh-about2__img--tall {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 340px;
+    height: 460px;
+    z-index: 2;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16);
+  }
+
+  /* ảnh nhỏ lệch trái, thấp hơn */
+  .rh-about2__img--small {
+    position: absolute;
+    left: 40px; /* đẩy ra khỏi ảnh lớn */
+    top: 165px; /* xuống thấp để giống mẫu */
+    width: 420px;
+    height: 320px;
+    z-index: 1;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16);
+  }
+}
+
+/* ===== ROOMS & PRICE (beige) ===== */
+/* ===== ROOMS & PRICE (beige) ===== */
+.rh-roomsPrice {
+  background: #e9e2c6;
+  padding: 54px 0 62px;
+}
+
+.rh-roomsPrice__eyebrow {
+  color: #8b6a14;
+  font-size: 13px;
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.rh-roomsPrice__title {
+  margin: 0 0 26px;
+  font-size: 42px;
+  font-weight: 400;
+  color: #111;
+  font-family: "Playfair Display", Georgia, serif;
+  letter-spacing: 1px;
+}
+
+/* GRID: 6 cột phụ để chia đều 2 ảnh hàng dưới */
+.rh-roomsGrid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 34px;
+  align-items: stretch;
+}
+
+/* Room Card */
+.rh-roomCard {
+  position: relative;
+  grid-column: span 2;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.rh-roomCard:hover {
+  transform: translateY(-4px);
+}
+
+.rh-roomCard--wide {
+  grid-column: span 3;
+}
+
+.rh-roomCard:nth-child(5) {
+  grid-column: span 3;
+}
+
+.rh-roomCard__img {
+  width: 100%;
+  height: 420px;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.rh-roomCard--wide .rh-roomCard__img,
+.rh-roomCard:nth-child(5) .rh-roomCard__img {
+  height: 360px;
+}
+
+/* Book button - góc trên bên phải */
+.rh-roomCard__bookBtn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: transparent;
+  color: #fff;
+  padding: 12px 20px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 2.5px;
+  text-decoration: none;
+  border: 2px solid #fff;
+  transition: all 0.3s ease;
+  z-index: 2;
+  font-family: "Playfair Display", Georgia, serif;
+}
+
+.rh-roomCard__bookBtn:hover {
+  background: #fff;
+  color: #111;
+}
+
+/* Info overlay - góc dưới bên trái */
+.rh-roomCard__info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  padding: 28px 32px;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.7) 0%,
+    rgba(0, 0, 0, 0.4) 70%,
+    transparent 100%
+  );
+  width: 100%;
+  z-index: 1;
+}
+
+.rh-roomCard__price {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 2.5px;
+  margin-bottom: 10px;
+  font-family: "Playfair Display", Georgia, serif;
+}
+
+.rh-roomCard__name {
+  color: #fff;
+  font-size: 34px;
+  font-weight: 300;
+  font-family: "Playfair Display", Georgia, serif;
+  line-height: 1.2;
+  letter-spacing: 0.5px;
+}
+
+/* ===== EXTRA SERVICES SECTION ===== */
+.rh-services {
+  background: #1f1f1f;
+  padding: 64px 0 40px;
+  color: #fff;
+}
+
+.rh-services__grid {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr 1fr;
+  gap: 34px;
+  align-items: start;
+}
+
+.rh-services__eyebrow {
+  color: rgba(201, 162, 74, 0.9);
+  letter-spacing: 4px;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.rh-services__title {
+  margin: 0 0 18px;
+  font-size: 46px;
+  font-weight: 400;
+  color: #fff;
+}
+
+.rh-services__desc {
+  margin: 0 0 26px;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.75;
+  max-width: 340px;
+}
+
+.rh-services__phone {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-top: 18px;
+}
+
+.rh-services__phoneIcon {
+  color: rgba(201, 162, 74, 0.9);
+  width: 62px;
+  height: 62px;
+  display: grid;
+  place-items: center;
+}
+
+.rh-services__phoneLabel {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.rh-services__phoneNumber {
+  color: rgba(201, 162, 74, 0.95);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: 0.4px;
+}
+
+/* Card */
+.rh-serviceCard {
+  background: transparent;
+}
+
+.rh-serviceCard__img img {
+  width: 100%;
+  height: 240px;
+  object-fit: cover;
+  display: block;
+}
+
+.rh-serviceCard__body {
+  background: #f6f2e6;
+  color: #111;
+  padding: 28px 28px 26px;
+  min-height: 320px;
+}
+
+.rh-serviceCard__title {
+  margin: 0 0 22px;
+  font-size: 34px;
+  font-weight: 500;
+}
+
+.rh-serviceCard__price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.rh-serviceCard__priceNum {
+  font-size: 52px;
+  font-weight: 500;
+  color: #a8812b;
+}
+
+.rh-serviceCard__priceUnit {
+  font-size: 16px;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.rh-serviceCard__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.rh-serviceCard__list li {
+  padding-left: 26px;
+  position: relative;
+  margin: 12px 0;
+  line-height: 1.5;
+}
+
+.rh-serviceCard__list li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: #a8812b;
+  font-weight: 700;
+}
+
+/* dots */
+.rh-services__dots {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 26px;
+}
+
+.rh-services__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.rh-services__dot.is-active {
+  background: rgba(201, 162, 74, 0.9);
+}
+
+/* responsive */
+@media (max-width: 1100px) {
+  .rh-services__grid {
+    grid-template-columns: 1fr;
+  }
+  .rh-services__desc {
+    max-width: 100%;
+  }
+  .rh-serviceCard__img img {
+    height: 260px;
+  }
+}
+
+/* ===== EXTRA SERVICES (Dịch vụ bổ sung) ===== */
+.rh-services {
+  background: #1a1a1a;
+  padding: 64px 0 72px;
+}
+
+.rh-services__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 36px;
+  align-items: start;
+}
+
+/* LEFT TEXT */
+.rh-services__left {
+  padding-right: 20px;
+}
+
+.rh-services__eyebrow {
+  color: #8b6a14;
+  font-size: 12px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.rh-services__title {
+  margin: 0 0 24px;
+  font-size: 44px;
+  font-weight: 400;
+  color: #fff;
+  font-family: "Playfair Display", Georgia, serif;
+  line-height: 1.3;
+  letter-spacing: 1px;
+}
+
+.rh-services__desc {
+  margin: 0 0 36px;
+  font-size: 15px;
+  line-height: 1.9;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 400;
+}
+
+.rh-services__phone {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.rh-services__phoneIcon {
+  color: #8b6a14;
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+}
+
+.rh-services__phoneLabel {
+  font-size: 14px;
+  color: #8b6a14;
+  font-weight: 500;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+  font-family: "Playfair Display", Georgia, serif;
+}
+
+.rh-services__phoneNumber {
+  font-size: 22px;
+  color: #8b6a14;
+  font-weight: 600;
+  letter-spacing: 1px;
+  font-family: "Inter", system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+/* SERVICE CARD */
+.rh-serviceCard {
+  background: #fff;
+  overflow: hidden;
+}
+
+.rh-serviceCard__img {
+  width: 100%;
+  height: 180px;
+  overflow: hidden;
+}
+
+.rh-serviceCard__img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.rh-serviceCard__body {
+  padding: 24px 22px 28px;
+}
+
+.rh-serviceCard__title {
+  margin: 0 0 18px;
+  font-size: 28px;
+  font-weight: 400;
+  color: #111;
+  font-family: "Playfair Display", Georgia, serif;
+  letter-spacing: 0.5px;
+}
+
+.rh-serviceCard__price {
+  margin-bottom: 20px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.rh-serviceCard__priceNum {
+  font-size: 48px;
+  font-weight: 400;
+  color: #8b6a14;
+  line-height: 1;
+  font-family: "Playfair Display", Georgia, serif;
+}
+
+.rh-serviceCard__priceUnit {
+  font-size: 15px;
+  color: #666;
+  font-weight: 300;
+  font-family: "Playfair Display", Georgia, serif;
+}
+
+.rh-serviceCard__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rh-serviceCard__list li {
+  font-size: 15px;
+  line-height: 2;
+  color: #555;
+  padding-left: 22px;
+  position: relative;
+  font-weight: 400;
+}
+
+.rh-serviceCard__list li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: #8b6a14;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 980px) {
+  .rh-services__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== AMENITIES (Các tiện ích khách sạn) ===== */
+.rh-amenities {
+  background: #fff;
+  padding: 78px 0 86px;
+}
+
+.rh-amenities__eyebrow {
+  color: #8b6a14;
+  font-size: 12px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.rh-amenities__title {
+  margin: 0 0 44px;
+  font-size: 44px;
+  font-weight: 400;
+  color: #111;
+  font-family: "Playfair Display", Georgia, serif;
+  line-height: 1.2;
+  letter-spacing: 1px;
+}
+
+.rh-amenities__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+}
+
+/* Card: giống mẫu (viền mảnh, không bo, không shadow) */
+.rh-amenity {
+  position: relative;
+  text-align: left;
+  padding: 44px 40px 38px;
+  border: 1px solid #e5dcc8;
+  border-radius: 0;
+  background: #fff;
+  transition: border-color 0.2s ease;
+  min-height: 210px;
+  overflow: hidden;
+}
+
+.rh-amenity:hover {
+  border-color: #d9caa7;
+}
+
+/* icon: màu nâu */
+.rh-amenity__icon {
+  font-size: 52px;
+  margin-bottom: 20px;
+  color: #8b6a14;
+  opacity: 0.9;
+  line-height: 1;
+}
+
+/* Title trong card: serif */
+.rh-amenity__title {
+  margin: 0 0 14px;
+  font-size: 22px;
+  font-weight: 500;
+  color: #111;
+  font-family: "Playfair Display", Georgia, serif;
+  letter-spacing: 0.5px;
+}
+
+/* Desc nhỏ, thoáng */
+.rh-amenity__desc {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.9;
+  color: #555;
+  max-width: 320px;
+  font-weight: 400;
+}
+
+/* watermark mờ nằm bên phải */
+.rh-amenity__watermark {
+  position: absolute;
+  right: 26px;
+  top: 54%;
+  transform: translateY(-50%);
+  font-size: 120px;
+  opacity: 0.05;
+  color: #000;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .rh-amenities__title {
+    font-size: 42px;
+  }
+  .rh-amenities__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 700px) {
+  .rh-amenities__title {
+    font-size: 36px;
+  }
+  .rh-amenities__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== FEATURE BLOCKS (Spa/Gym/Pool) ===== */
+.rh-featureBlocks {
+  background: #fff;
+  padding: 0 0 60px;
+}
+
+.rh-featureBlocks__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border: 0;
+}
+
+/* mỗi ô */
+.rh-feature {
+  min-height: 300px;
+}
+
+/* ô text nền kem */
+.rh-feature--text {
+  background: #f6f2e6;
+  padding: 62px 56px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.rh-feature__title {
+  margin: 0 0 20px;
+  font-size: 36px;
+  font-weight: 400;
+  color: #111;
+  font-family: "Playfair Display", Georgia, serif;
+  letter-spacing: 0.5px;
+}
+
+.rh-feature__desc {
+  margin: 0 0 20px;
+  color: #555;
+  line-height: 1.9;
+  font-size: 15px;
+  max-width: 520px;
+  font-weight: 400;
+}
+
+.rh-feature__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 24px;
+  font-weight: 400;
+}
+
+.rh-feature__metaIcon {
+  opacity: 0.8;
+}
+
+/* button giống mẫu */
+.rh-feature__btn {
+  display: inline-block;
+  width: fit-content;
+  padding: 14px 28px;
+  background: #8b6a14;
+  color: #fff;
+  text-decoration: none;
+  letter-spacing: 2px;
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.rh-feature__btn:hover {
+  background: #6d5410;
+  transform: translateY(-2px);
+}
+
+/* ô ảnh */
+.rh-feature--image {
+  background: #ddd;
+}
+
+.rh-feature--image img {
+  width: 100%;
+  height: 100%;
+  min-height: 340px;
+  object-fit: cover;
+  display: block;
+}
+
+/* responsive: màn nhỏ thì xếp 1 cột */
+@media (max-width: 980px) {
+  .rh-featureBlocks__grid {
+    grid-template-columns: 1fr;
+  }
+  .rh-feature--text {
+    padding: 42px 26px;
+  }
+  .rh-feature--image img {
+    min-height: 260px;
+  }
+}
+
+/* ===== FOOTER ===== */
+.rh-footer {
+  background: #1f1f1f;
+  color: #fff;
+}
+
+.rh-footer__top {
+  display: grid;
+  grid-template-columns: 1.25fr 0.8fr 1fr;
+  gap: 64px;
+  padding: 52px 0 42px;
+}
+
+.rh-footer__brand {
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 18px;
+  letter-spacing: 0.5px;
+  margin-bottom: 16px;
+}
+
+.rh-footer__desc {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.85;
+  font-size: 13px;
+  max-width: 520px;
+}
+
+.rh-footer__title {
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+
+.rh-footer__links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rh-footer__links a {
+  color: rgba(255, 255, 255, 0.72);
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.rh-footer__links a:hover {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.rh-footer__line {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+  line-height: 1.7;
+  margin-bottom: 14px;
+}
+
+.rh-footer__phone {
+  display: block;
+  color: #fff;
+  text-decoration: none;
+  font-size: 18px;
+  font-weight: 600;
+  margin: 6px 0 10px;
+}
+
+.rh-footer__email {
+  display: block;
+  color: rgba(255, 255, 255, 0.72);
+  text-decoration: none;
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+
+.rh-footer__email:hover {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.rh-footer__social {
+  display: flex;
+  gap: 14px;
+}
+
+.rh-footer__social a {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  font-size: 14px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+}
+
+.rh-footer__social a:hover {
+  color: #fff;
+}
+
+.rh-footer__bottom {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 11px;
+  text-align: center;
+  padding: 14px 0;
+}
+
+/* responsive */
+@media (max-width: 980px) {
+  .rh-footer__top {
+    grid-template-columns: 1fr;
+    gap: 28px;
+    padding: 38px 0 28px;
+  }
+  .rh-footer__bottom {
+    text-align: left;
+  }
+}
+
+/* ===== ROOMS PAGE ===== */
+.rh-roomsHero {
+  position: relative;
+  min-height: 520px;
+  background-size: cover;
+  background-position: center;
+}
+.rh-roomsHero__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.18);
+}
+.rh-roomsHero__inner {
+  position: relative;
+  height: 520px;
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 26px;
+}
+.rh-roomsHero__search {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.rh-heroSearch {
+  width: min(980px, 96%);
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 180px;
+  background: #fff;
+  border: 1px solid #e9e1cf;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+.rh-heroSearch__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-right: 1px solid #eee;
+}
+.rh-heroSearch__item span {
+  color: #444;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.rh-heroSearch__item input,
+.rh-heroSearch__item select {
+  border: 0;
+  outline: none;
+  width: 100%;
+  font-size: 14px;
+}
+.rh-heroSearch__btn {
+  border: 0;
+  background: #caa54a;
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.rh-roomsHero__scroll {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+  display: grid;
+  place-items: center;
+}
+
+/* Gallery */
+/* Gallery */
+.rh-roomsGallery {
+  background: #f3f0df;
+  padding: 34px 0 46px;
+}
+
+.rh-roomsGallery__top {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.rh-roomsGallery__bottom {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 18px;
+}
+
+.rh-roomsGallery img {
+  width: 100%;
+  height: 320px;
+  object-fit: cover; /* quan trọng: cắt cho đẹp */
+  object-position: center;
+  display: block;
+  border: 0;
+}
+
+/* Result head (dark bar) */
+.rh-roomsResultHead {
+  background: #1a1a1a;
+  color: #fff;
+  padding: 20px 0;
+  border-top: 1px solid rgba(201, 162, 74, 0.3);
+}
+.rh-roomsResultHead__grid {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+}
+.rh-roomsResultHead__brand {
+  color: #c9a24a;
+  font-weight: 600;
+  font-size: 24px;
+  font-family: "Playfair Display", Georgia, serif;
+  letter-spacing: 1px;
+}
+.rh-roomsResultHead__info {
+  display: flex;
+  gap: 32px;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 14px;
+  font-weight: 400;
+}
+.rh-rhinfo__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Layout body */
+.rh-roomsResultBody {
+  background: #faf8f3;
+  padding: 50px 0 90px;
+}
+.rh-roomsLayout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 36px;
+  align-items: start;
+}
+
+/* Filter */
+.rh-roomFilter {
+  background: #fff;
+  border: 1px solid #d9caa7;
+  padding: 28px 24px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+}
+.rh-roomFilter__title {
+  font-weight: 600;
+  font-size: 20px;
+  margin-bottom: 20px;
+  color: #1a1a1a;
+  font-family: "Playfair Display", Georgia, serif;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+.rh-roomFilter__block {
+  border-top: 1px solid #ede5d5;
+  padding-top: 18px;
+  margin-top: 18px;
+}
+.rh-roomFilter__label {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 14px;
+  color: #2a2a2a;
+  letter-spacing: 0.4px;
+  font-family: "Playfair Display", Georgia, serif;
+}
+.rh-check {
+  display: flex;
+  gap: 10px;
+  font-size: 14px;
+  margin: 10px 0;
+  color: #555;
+  align-items: center;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.rh-check:hover {
+  color: #8b6a14;
+}
+.rh-check input[type="checkbox"] {
+  cursor: pointer;
+  width: 17px;
+  height: 17px;
+  accent-color: #8b6a14;
+}
+.rh-priceRange {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 10px;
+  align-items: center;
+}
+.rh-priceRange input {
+  width: 100%;
+  height: 40px;
+  border: 1px solid #d9caa7;
+  padding: 0 12px;
+  background: #fafaf8;
+  font-size: 14px;
+  color: #333;
+  border-radius: 6px;
+  font-family: "Inter", system-ui, sans-serif;
+}
+.rh-priceRange span {
+  color: #999;
+  font-weight: 500;
+}
+.rh-roomFilter__range {
+  width: 100%;
+  margin-top: 14px;
+  cursor: pointer;
+  accent-color: #8b6a14;
+}
+.rh-roomFilter__empty {
+  color: #999;
+  font-size: 13px;
+}
+
+/* Filter Apply Button */
+.rh-filterApplyBtn {
+  width: 100%;
+  margin-top: 20px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #d4a017 0%, #c9a24a 100%);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(212, 160, 23, 0.2);
+}
+
+.rh-filterApplyBtn:hover {
+  background: linear-gradient(135deg, #c9a24a 0%, #b89139 100%);
+  box-shadow: 0 4px 12px rgba(212, 160, 23, 0.3);
+  transform: translateY(-1px);
+}
+
+.rh-filterApplyBtn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(212, 160, 23, 0.2);
+}
+
+/* Right list topbar */
+.rh-roomList__topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 0 6px 24px;
+}
+.rh-roomList__count {
+  color: #2a2a2a;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: "Playfair Display", Georgia, serif;
+  letter-spacing: 0.3px;
+}
+.rh-roomList__sort {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: #555;
+  font-size: 14px;
+  font-weight: 500;
+}
+.rh-sortBtn {
+  background: #8b6a14;
+  color: #fff;
+  border: 0;
+  padding: 11px 22px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  letter-spacing: 0.5px;
+  border-radius: 6px;
+  white-space: nowrap;
+  font-weight: 600;
+  font-family: "Inter", system-ui, sans-serif;
+}
+.rh-sortBtn:hover {
+  background: #6d5410;
+  box-shadow: 0 4px 12px rgba(139, 106, 20, 0.25);
+}
+
+/* Room item */
+.rh-roomItem {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  background: #fff;
+  border: 2px solid #e8dfc8;
+  margin-bottom: 24px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  min-height: 230px;
+}
+.rh-roomItem:hover {
+  box-shadow: 0 8px 24px rgba(139, 106, 20, 0.15);
+  transform: translateY(-4px);
+  border-color: #8b6a14;
+}
+.rh-roomItem__thumb {
+  overflow: hidden;
+  background: #f5f1e8;
+}
+.rh-roomItem__thumb img {
+  width: 100%;
+  height: 230px;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+.rh-roomItem:hover .rh-roomItem__thumb img {
+  /* Bỏ hiệu ứng zoom */
+}
+.rh-roomItem__content {
+  padding: 22px 26px;
+  display: flex;
+  flex-direction: column;
+  min-height: 230px;
+  background: linear-gradient(to bottom, #ffffff 0%, #fdfcfa 100%);
+}
+.rh-roomItem__name {
+  color: #8b6a14;
+  font-weight: 600;
+  font-size: 23px;
+  margin-bottom: 10px;
+  font-family: "Playfair Display", Georgia, serif;
+  letter-spacing: 0.8px;
+  min-height: 32px;
+  line-height: 1.2;
+}
+.rh-roomItem__meta {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 14px;
+  font-weight: 500;
+  min-height: 18px;
+  letter-spacing: 0.2px;
+}
+.rh-roomItem__tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: auto;
+  min-height: 70px;
+  align-content: flex-start;
+}
+.rh-tag {
+  font-size: 11px;
+  border: 1px solid #d9caa7;
+  padding: 6px 12px;
+  background: #faf8f3;
+  color: #555;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  height: fit-content;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+.rh-tag:hover {
+  background: #8b6a14;
+  border-color: #8b6a14;
+  color: #fff;
+}
+.rh-roomItem__divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, #d9caa7, transparent);
+  margin: 16px 0;
+}
+.rh-roomItem__bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  min-height: 46px;
+}
+.rh-roomItem__price {
+  color: #8b6a14;
+  font-size: 15px;
+  font-weight: 500;
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  flex-shrink: 0;
+}
+.rh-roomItem__price strong {
+  font-size: 28px;
+  font-weight: 700;
+  font-family: "Playfair Display", Georgia, serif;
+  letter-spacing: 0.5px;
+  font-variant-numeric: tabular-nums;
+}
+.rh-roomItem__price span {
+  font-size: 13px;
+  color: #999;
+  white-space: nowrap;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+.rh-roomItem__btn {
+  text-decoration: none;
+  background: linear-gradient(135deg, #8b6a14 0%, #6d5410 100%);
+  color: #fff;
+  padding: 12px 26px;
+  font-size: 13px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  box-shadow: 0 4px 12px rgba(139, 106, 20, 0.2);
+}
+.rh-roomItem__btn:hover {
+  background: linear-gradient(135deg, #6d5410 0%, #5a4410 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(139, 106, 20, 0.35);
+}
+
+/* Responsive */
+@media (max-width: 980px) {
+  .rh-heroSearch {
+    grid-template-columns: 1fr 1fr;
+  }
+  .rh-roomsGallery__top {
+    grid-template-columns: 1fr;
+  }
+  .rh-roomsGallery__bottom {
+    grid-template-columns: 1fr;
+  }
+  .rh-roomsLayout {
+    grid-template-columns: 1fr;
+  }
+  .rh-roomItem {
+    grid-template-columns: 1fr;
+  }
+  .rh-roomItem__thumb img {
+    height: 220px;
+  }
+  .rh-roomsResultHead__grid {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* ===== ROOM DETAIL PAGE ===== */
+
+/* Detail Page Navbar */
+.rh-detailNav {
+  background: #1a1a1a;
+  border-bottom: 1px solid rgba(139, 106, 20, 0.3);
+}
+
+.rh-detailNav__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 0;
+  gap: 24px;
+}
+
+/* Breadcrumb bar - tối giản và sang trọng */
+.rh-bcrumb {
+  background: linear-gradient(to right, #f8f6f0 0%, #faf8f2 100%);
+  border-bottom: 1px solid #e8dfc8;
+}
+
+.rh-bcrumb__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0;
+  gap: 16px;
+}
+
+.rh-backBtn {
+  background: #fff;
+  border: 1px solid #d9caa7;
+  border-radius: 4px;
+  padding: 10px 18px;
+  text-decoration: none;
+  color: #8b6a14;
+  font-weight: 500;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  letter-spacing: 0;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.rh-backBtn:hover {
+  background: #8b6a14;
+  border-color: #8b6a14;
+  color: #fff;
+}
+
+.rh-bcrumb__trail {
+  color: #666;
+  font-weight: 400;
+  font-size: 14px;
+  letter-spacing: 0;
+  font-family: "Inter", system-ui, sans-serif;
+  display: flex;
+  align-items: center;
+}
+
+.rh-bcrumb__link {
+  color: #666;
+  text-decoration: none;
+  transition: color 0.2s ease;
+  font-weight: 400;
+}
+
+.rh-bcrumb__link:hover {
+  color: #8b6a14;
+}
+
+.rh-bcrumb__sep {
+  opacity: 0.4;
+  margin: 0 10px;
+}
+
+.rh-bcrumb__current {
+  color: #333;
+  font-weight: 500;
+}
+
+/* Room Detail Section */
+.rh-roomDetail {
+  padding: 40px 0 80px;
+  background: linear-gradient(to bottom, #fafaf8 0%, #f5f3ed 100%);
+}
+
+.rh-roomDetail__grid {
+  display: grid;
+  grid-template-columns: 1.6fr 0.9fr;
+  gap: 40px;
+  align-items: start;
+}
+
+/* Gallery - tối giản và tinh tế */
+.rh-gallery {
+  position: relative;
+}
+
+.rh-gallery__main {
+  background: #f5f5f5;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.rh-gallery__main:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.rh-gallery__main img {
+  width: 100%;
+  height: 420px;
+  object-fit: cover;
+  display: block;
+  transition: opacity 0.3s ease;
+}
+
+.rh-gallery__main:hover img {
+  opacity: 0.95;
+}
+
+/* Zoom icon - tinh tế hơn */
+.rh-gallery__zoomIcon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50px;
+  height: 50px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 20px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.rh-gallery__main:hover .rh-gallery__zoomIcon {
+  opacity: 1;
+}
+
+/* Thumbnails - đơn giản hơn */
+.rh-gallery__thumbs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.rh-thumb {
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #fff;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.rh-thumb:hover {
+  border-color: #8b6a14;
+}
+
+.rh-thumb.is-active {
+  border-color: #8b6a14;
+  border-width: 2px;
+}
+
+.rh-thumb img {
+  width: 100%;
+  height: 80px;
+  object-fit: cover;
+  display: block;
+}
+
+/* Room intro - tối giản */
+.rh-roomIntro {
+  margin-top: 24px;
+  padding: 28px;
+  background: linear-gradient(135deg, #fff 0%, #fdfcfa 100%);
+  border: 1px solid #e8dfc8;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(139, 106, 20, 0.04);
+}
+
+.rh-roomIntro__title {
+  margin: 0 0 16px;
+  font-size: 28px;
+  color: #8b6a14;
+  font-family: "Inter", system-ui, sans-serif;
+  letter-spacing: -0.5px;
+  font-weight: 600;
+}
+
+.rh-roomIntro__desc {
+  margin: 0;
+  color: #666;
+  line-height: 1.7;
+  font-size: 15px;
+  font-weight: 400;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+/* Card styling - đơn giản và tinh tế */
+.rh-card {
+  margin-top: 32px;
+  border: 1px solid #e8dfc8;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #fff 0%, #fdfcfa 100%);
+  padding: 24px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(139, 106, 20, 0.04);
+}
+
+.rh-card:hover {
+  box-shadow: 0 4px 16px rgba(139, 106, 20, 0.08);
+}
+
+.rh-card__header {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f0e8d8;
+}
+
+.rh-card__title {
+  font-weight: 600;
+  font-size: 18px;
+  color: #8b6a14;
+  font-family: "Inter", system-ui, sans-serif;
+  letter-spacing: -0.3px;
+}
+
+/* Amenity chips - tối giản */
+.rh-amenChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rh-chip {
+  background: linear-gradient(135deg, #faf8f3 0%, #f5f2e8 100%);
+  border: 1px solid #e8dfc8;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 400;
+  transition: all 0.2s ease;
+  cursor: default;
+  font-family: "Inter", system-ui, sans-serif;
+  color: #555;
+}
+
+.rh-chip:hover {
+  background: linear-gradient(135deg, #8b6a14 0%, #6d5410 100%);
+  border-color: #8b6a14;
+  color: #fff;
+}
+
+/* Policy list - đơn giản */
+.rh-policyList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rh-policyItem {
+  background: linear-gradient(135deg, #faf8f3 0%, #f8f6f0 100%);
+  border: 1px solid #e8dfc8;
+  border-radius: 6px;
+  padding: 16px;
+  transition: all 0.2s ease;
+}
+
+.rh-policyItem:hover {
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(139, 106, 20, 0.06);
+}
+
+.rh-policyItem__head {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #1a1a1a;
+  font-size: 14px;
+  letter-spacing: 0;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.rh-policyItem__body {
+  color: #666;
+  font-size: 14px;
+  line-height: 1.6;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+/* Booking box - sang trọng và chuyên nghiệp */
+.rh-bookBox {
+  position: sticky;
+  top: 20px;
+  border: 1px solid #e8dfc8;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #fff 0%, #fdfcfa 100%);
+  padding: 24px;
+  box-shadow: 0 4px 16px rgba(139, 106, 20, 0.1);
+  transition: all 0.2s ease;
+}
+
+.rh-bookBox:hover {
+  box-shadow: 0 6px 24px rgba(139, 106, 20, 0.15);
+}
+
+.rh-bookBox__price {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  border-radius: 6px;
+  padding: 16px;
+  text-align: center;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+}
+
+.rh-bookBox__amount {
+  font-weight: 700;
+  font-size: 24px;
+  color: #fff;
+  font-family: "Inter", system-ui, sans-serif;
+  letter-spacing: -0.5px;
+}
+
+.rh-bookBox__unit {
+  font-weight: 400;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0;
+  text-transform: none;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+/* Form styling - tối giản và chuyên nghiệp */
+.rh-bookForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rh-input {
+  display: block;
+}
+
+.rh-input__label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #333;
+  letter-spacing: 0;
+  text-transform: none;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.rh-input input,
+.rh-input select {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  outline: none;
+  background: #fff;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.rh-input input:focus,
+.rh-input select:focus {
+  border-color: #8b6a14;
+  box-shadow: 0 0 0 3px rgba(139, 106, 20, 0.08);
+}
+
+.rh-input input:hover,
+.rh-input select:hover {
+  border-color: #bbb;
+}
+
+/* Summary - đơn giản */
+.rh-bookBox__summary {
+  margin-top: 20px;
+  border-top: 1px solid #f0e8d8;
+  padding-top: 16px;
+}
+
+.rh-sumRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 14px;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.rh-sumRow span {
+  color: #666;
+  font-weight: 400;
+}
+
+.rh-sumRow b {
+  color: #8b6a14;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* CTA Button - sang trọng */
+.rh-bookBox__cta {
+  margin-top: 20px;
+  width: 100%;
+  border: none;
+  background: linear-gradient(135deg, #8b6a14 0%, #6d5410 100%);
+  color: #fff;
+  font-weight: 600;
+  padding: 14px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  letter-spacing: 0;
+  text-transform: none;
+  transition: all 0.2s ease;
+  font-family: "Inter", system-ui, sans-serif;
+  box-shadow: 0 4px 12px rgba(139, 106, 20, 0.25);
+}
+
+.rh-bookBox__cta:hover {
+  background: linear-gradient(135deg, #6d5410 0%, #5a4410 100%);
+  box-shadow: 0 6px 16px rgba(139, 106, 20, 0.35);
+}
+
+.rh-bookBox__cta:active {
+  transform: scale(0.98);
+}
+
+.rh-bookBox__note {
+  margin-top: 12px;
+  font-size: 12px;
+  color: #999;
+  text-align: center;
+  font-style: normal;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+/* Modal for image zoom */
+.rh-modal {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.95);
+  animation: fadeIn 0.3s ease;
+}
+
+.rh-modal.is-active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.rh-modal__content {
+  position: relative;
+  max-width: 90%;
+  max-height: 90%;
+  animation: zoomIn 0.3s ease;
+}
+
+@keyframes zoomIn {
+  from {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.rh-modal__img {
+  max-width: 100%;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.rh-modal__close {
+  position: absolute;
+  top: -50px;
+  right: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid #fff;
+  color: #fff;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 24px;
+  display: grid;
+  place-items: center;
+  transition: all 0.3s ease;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.rh-modal__close:hover {
+  background: #8b6a14;
+  border-color: #8b6a14;
+  transform: rotate(90deg);
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+  .rh-roomDetail__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rh-bookBox {
+    position: static;
+  }
+
+  .rh-gallery__main img {
+    height: 320px;
+  }
+
+  .rh-bcrumb__inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .rh-gallery__thumbs {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .rh-roomIntro__title {
+    font-size: 26px;
+  }
+
+  .rh-bookBox__amount {
+    font-size: 28px;
+  }
+}
+
+/* ===== PAYMENT PAGE ===== */
+
+/* Payment Top Nav */
+.rh-payTop {
+  background: #1a1a1a;
+  border-bottom: 1px solid rgba(139, 106, 20, 0.4);
+}
+
+.rh-nav--plain {
+  padding: 14px 0;
+}
+
+.rh-nav--plain .rh-brand__top {
+  color: #c9a24a;
+  font-size: 20px;
+  letter-spacing: 3px;
+}
+
+.rh-nav--plain .rh-brand__bot {
+  color: #c9a24a;
+  font-size: 10px;
+  letter-spacing: 2.5px;
+  margin-top: 6px;
+}
+
+.rh-nav--plain .rh-menu {
+  margin-top: 6px;
+}
+
+.rh-nav--plain .rh-menu__link {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+}
+
+.rh-nav--plain .rh-account {
+  margin-top: 2px;
+}
+
+.rh-nav--plain .rh-account__btn {
+  padding: 8px 14px;
+  font-size: 12px;
+}
+
+.rh-nav--plain .rh-account__icon {
+  font-size: 18px;
+}
+
+.rh-nav--plain .rh-account__text {
+  font-size: 12px;
+  letter-spacing: 0.3px;
+}
+
+/* Payment Page Layout */
+.rh-payPage {
+  background: linear-gradient(to bottom, #f8f6f0 0%, #f0ebe0 100%);
+  padding: 40px 0 80px;
+}
+
+.rh-payGrid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 32px;
+  align-items: start;
+}
+
+/* Căn chỉnh tiêu đề 2 cột */
+.rh-payCol,
+.rh-sumCol {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Payment Title */
+.rh-payTitle {
+  background: linear-gradient(135deg, #fff 0%, #fdfcfa 100%);
+  border: 1px solid #c9a24a;
+  border-left: 4px solid #8b6a14;
+  border-radius: 8px;
+  padding: 18px 22px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 12px rgba(139, 106, 20, 0.08);
+  min-height: 76px;
+}
+
+.rh-payTitle__icon {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.rh-payTitle__content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rh-payTitle__text {
+  font-size: 20px;
+  font-weight: 600;
+  color: #8b6a14;
+  font-family: "Inter", system-ui, sans-serif;
+  letter-spacing: -0.3px;
+}
+
+.rh-payTitle__sub {
+  font-size: 13px;
+  color: #666;
+  font-weight: 400;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+/* Payment Box */
+.rh-payBox {
+  background: #fff;
+  border: 1px solid #d9caa7;
+  border-radius: 8px;
+  padding: 28px;
+  box-shadow: 0 4px 20px rgba(139, 106, 20, 0.12);
+  transition: all 0.3s ease;
+}
+
+.rh-payBox:hover {
+  box-shadow: 0 6px 28px rgba(139, 106, 20, 0.18);
+}
+
+/* Payment Hint */
+.rh-payHint {
+  background: linear-gradient(135deg, #fefbf5 0%, #fdf8ed 100%);
+  border: 1px solid #e8dfc8;
+  border-left: 3px solid #c9a24a;
+  border-radius: 6px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  margin-bottom: 24px;
+  color: #6d5410;
+  font-family: "Inter", system-ui, sans-serif;
+  font-weight: 500;
+}
+
+.rh-payHint__icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+/* Payment Section */
+.rh-paySection {
+  margin-bottom: 24px;
+}
+
+.rh-paySection__heading {
+  font-weight: 600;
+  font-size: 16px;
+  margin-bottom: 16px;
+  color: #6d5410;
+  font-family: "Inter", system-ui, sans-serif;
+  letter-spacing: -0.3px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rh-paySection__icon {
+  font-size: 18px;
+}
+
+/* Info Card */
+.rh-infoCard {
+  border: 1px solid #d9caa7;
+  border-radius: 6px;
+  padding: 18px;
+  background: linear-gradient(135deg, #fefbf5 0%, #fdf8ed 100%);
+  transition: all 0.2s ease;
+}
+
+.rh-infoCard:hover {
+  background: #fff;
+  box-shadow: 0 3px 12px rgba(139, 106, 20, 0.1);
+  border-color: #c9a24a;
+}
+
+.rh-infoRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  gap: 16px;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.rh-infoLabel {
+  color: #666;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rh-infoIcon {
+  font-size: 16px;
+  opacity: 0.8;
+}
+
+.rh-infoValue {
+  font-weight: 600;
+  color: #1a1a1a;
+  font-size: 14px;
+}
+
+/* Payment Divider */
+.rh-payDivider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, #d9caa7, transparent);
+  margin: 24px 0;
+}
+
+/* Payment Method */
+.rh-payMethod {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  border: 1px solid #d9caa7;
+  border-radius: 8px;
+  padding: 16px 18px;
+  margin-bottom: 14px;
+  background: linear-gradient(135deg, #fefbf5 0%, #fdf8ed 100%);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.rh-payMethod:hover {
+  background: #fff;
+  border-color: #c9a24a;
+  box-shadow: 0 3px 12px rgba(139, 106, 20, 0.12);
+}
+
+.rh-payMethod input {
+  margin: 0;
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  accent-color: #8b6a14;
+  flex-shrink: 0;
+}
+
+.rh-payMethod__icon {
+  font-size: 28px;
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
+.rh-payMethod__body {
+  flex: 1;
+}
+
+.rh-payMethod__title {
+  font-weight: 600;
+  font-size: 15px;
+  color: #1a1a1a;
+  margin-bottom: 6px;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.rh-payMethod__sub {
+  font-size: 13px;
+  color: #666;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+/* Payment Agreement */
+.rh-payAgree {
+  margin: 20px 0 24px;
+}
+
+.rh-agree {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  font-size: 13px;
+  color: #555;
+  font-family: "Inter", system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.rh-agree input {
+  margin-top: 3px;
+  cursor: pointer;
+  width: 17px;
+  height: 17px;
+  accent-color: #8b6a14;
+  flex-shrink: 0;
+}
+
+.rh-agree:hover {
+  color: #333;
+}
+
+.rh-agree__link {
+  color: #8b6a14;
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.rh-agree__link:hover {
+  color: #6d5410;
+}
+
+/* Payment Button */
+.rh-payBtn {
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  padding: 16px 24px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #8b6a14 0%, #6d5410 100%);
+  color: #fff;
+  cursor: pointer;
+  font-size: 15px;
+  letter-spacing: 0.3px;
+  font-family: "Inter", system-ui, sans-serif;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(139, 106, 20, 0.3);
+  opacity: 0.5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.rh-payBtn__icon {
+  font-size: 18px;
+}
+
+.rh-payBtn.is-enabled {
+  opacity: 1;
+}
+
+.rh-payBtn.is-enabled:hover {
+  background: linear-gradient(135deg, #a67c1b 0%, #8b6a14 100%);
+  box-shadow: 0 6px 20px rgba(139, 106, 20, 0.4);
+  transform: translateY(-1px);
+}
+
+.rh-payBtn.is-enabled:active {
+  transform: translateY(0);
+}
+
+.rh-payBtn:disabled {
+  cursor: not-allowed;
+}
+
+/* Back Button */
+.rh-backBtn2 {
+  margin-top: 14px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  border: 1px solid #c9a24a;
+  border-radius: 8px;
+  padding: 13px 24px;
+  font-weight: 500;
+  color: #8b6a14;
+  background: #fff;
+  font-size: 14px;
+  font-family: "Inter", system-ui, sans-serif;
+  transition: all 0.3s ease;
+}
+
+.rh-backBtn2:hover {
+  background: #8b6a14;
+  border-color: #8b6a14;
+  color: #fff;
+}
+
+/* Summary Column */
+.rh-sumCol {
+  position: sticky;
+  top: 20px;
+}
+
+.rh-sumTitle {
+  background: linear-gradient(135deg, #fff 0%, #fdfcfa 100%);
+  border: 1px solid #c9a24a;
+  border-left: 4px solid #8b6a14;
+  border-radius: 8px;
+  padding: 18px 20px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  font-family: "Inter", system-ui, sans-serif;
+  color: #8b6a14;
+  font-size: 18px;
+  letter-spacing: -0.3px;
+  box-shadow: 0 2px 12px rgba(139, 106, 20, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 76px;
+}
+
+.rh-sumTitle__icon {
+  font-size: 22px;
+}
+
+.rh-sumBox {
+  background: #fff;
+  border: 1px solid #d9caa7;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(139, 106, 20, 0.12);
+  transition: all 0.3s ease;
+}
+
+.rh-sumBox:hover {
+  box-shadow: 0 6px 28px rgba(139, 106, 20, 0.18);
+}
+
+.rh-sumRoomImage {
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+}
+
+.rh-sumRoomImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.rh-sumHeader {
+  padding: 20px 28px;
+  border-bottom: 1px solid #f0ebe0;
+}
+
+.rh-sumRoomName {
+  font-weight: 600;
+  font-size: 18px;
+  color: #6d5410;
+  font-family: "Inter", system-ui, sans-serif;
+  letter-spacing: -0.3px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.rh-sumRoomIcon {
+  font-size: 20px;
+}
+
+.rh-sumRoomNo {
+  color: #8b6a14;
+  font-size: 14px;
+  font-family: "Inter", system-ui, sans-serif;
+  font-weight: 500;
+  padding-left: 28px;
+}
+
+.rh-sumMeta {
+  padding: 0 28px;
+  padding-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rh-sumLine {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.rh-sumLine span {
+  color: #666;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rh-sumLineIcon {
+  font-size: 16px;
+  opacity: 0.8;
+}
+
+.rh-sumLine b {
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+.rh-sumDivider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, #d9caa7, transparent);
+  margin: 24px 0;
+}
+
+.rh-sumCost {
+  padding: 0 28px;
+}
+
+.rh-costRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  gap: 16px;
+  font-size: 14px;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.rh-costRow span {
+  color: #666;
+  font-weight: 500;
+}
+
+.rh-costRow b {
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+.rh-sumTotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 17px;
+  font-weight: 600;
+  font-family: "Inter", system-ui, sans-serif;
+  padding: 18px 28px;
+  background: linear-gradient(135deg, #fefbf5 0%, #fdf8ed 100%);
+  margin-top: 8px;
+  border-top: 1px solid #e8dfc8;
+}
+
+.rh-sumTotal span {
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rh-sumTotalIcon {
+  font-size: 20px;
+}
+
+.rh-sumTotal b {
+  color: #8b6a14;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+  .rh-payGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .rh-sumCol {
+    position: static;
+    order: -1;
+  }
+}
+
+@media (max-width: 768px) {
+  .rh-payPage {
+    padding: 24px 0 40px;
+  }
+
+  .rh-payBox {
+    padding: 20px;
+  }
+
+  .rh-sumBox {
+    padding: 20px;
+  }
+}
+
+/* ===== SUCCESS PAGE ===== */
+
+.rh-successPage {
+  background: #f5f1e8;
+  padding: 60px 0 100px;
+}
+
+/* Success Hero */
+.rh-successHero {
+  text-align: center;
+  margin-bottom: 60px;
+  padding-bottom: 40px;
+  border-bottom: 1px solid #d9caa7;
+}
+
+.rh-successCheck {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  background: #8b6a14;
+  color: #fff;
+  border-radius: 50%;
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 12px rgba(139, 106, 20, 0.25);
+}
+
+.rh-successTitle {
+  margin: 0 0 16px;
+  font-size: 32px;
+  font-weight: 400;
+  color: #1a1a1a;
+  font-family: "Playfair Display", Georgia, serif;
+  letter-spacing: 0.5px;
+}
+
+.rh-successSubtitle {
+  margin: 0;
+  font-size: 15px;
+  color: #555;
+  font-weight: 400;
+  line-height: 1.6;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Success Content */
+.rh-successContent {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* Confirm Box */
+.rh-confirmBox {
+  background: #fff;
+  border: 2px solid #c9a24a;
+  border-radius: 4px;
+  padding: 32px;
+  margin-bottom: 40px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(139, 106, 20, 0.08);
+}
+
+.rh-confirmBox__label {
+  font-size: 13px;
+  color: #8b6a14;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+.rh-confirmBox__code {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.rh-codeText {
+  font-size: 28px;
+  font-weight: 700;
+  color: #6d5410;
+  font-family: "Inter", system-ui, sans-serif;
+  letter-spacing: 2px;
+}
+
+.rh-copyCodeBtn {
+  background: #f8f6f0;
+  border: 1px solid #c9a24a;
+  border-radius: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 18px;
+}
+
+.rh-copyCodeBtn:hover {
+  background: #8b6a14;
+  border-color: #8b6a14;
+  color: #fff;
+}
+
+.rh-confirmBox__note {
+  font-size: 13px;
+  color: #555;
+}
+
+/* Details Grid */
+.rh-detailsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+.rh-detailsCol {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Detail Card */
+.rh-detailCard {
+  background: #fff;
+  border: 1px solid #d9caa7;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(139, 106, 20, 0.06);
+}
+
+.rh-detailCard__title {
+  background: #f0ebe0;
+  padding: 16px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+  border-bottom: 1px solid #d9caa7;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.rh-detailCard__body {
+  padding: 24px;
+}
+
+.rh-detailRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  gap: 16px;
+  border-bottom: 1px solid #f0ebe0;
+}
+
+.rh-detailRow:last-child {
+  border-bottom: none;
+}
+
+.rh-detailLabel {
+  font-size: 14px;
+  color: #555;
+  font-weight: 500;
+}
+
+.rh-detailValue {
+  font-size: 14px;
+  color: #1a1a1a;
+  font-weight: 600;
+  text-align: right;
+}
+
+.rh-detailDivider {
+  height: 1px;
+  background: #d9caa7;
+  margin: 16px 0;
+}
+
+.rh-detailRow--total {
+  padding-top: 16px;
+  border-top: 2px solid #c9a24a;
+  border-bottom: none;
+}
+
+.rh-detailRow--total .rh-detailLabel {
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.rh-detailRow--total .rh-detailValue {
+  font-size: 18px;
+  font-weight: 700;
+  color: #6d5410;
+}
+
+/* Paid Badge */
+.rh-paidBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #d4edda;
+  color: #155724;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 16px;
+  border: 1px solid #c3e6cb;
+}
+
+/* Email Notice */
+.rh-emailNotice {
+  background: #fff;
+  border: 1px solid #d9caa7;
+  border-left: 4px solid #8b6a14;
+  border-radius: 4px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 40px;
+  font-size: 14px;
+  color: #555;
+  box-shadow: 0 2px 8px rgba(139, 106, 20, 0.06);
+}
+
+.rh-emailNotice__icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  color: #8b6a14;
+}
+
+.rh-emailNotice strong {
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+/* Success Footer */
+.rh-successFooter {
+  text-align: center;
+  padding-top: 40px;
+  border-top: 1px solid #d9caa7;
+}
+
+.rh-btnHome {
+  display: inline-block;
+  background: #8b6a14;
+  color: #fff;
+  padding: 14px 40px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(139, 106, 20, 0.2);
+}
+
+.rh-btnHome:hover {
+  background: #6d5410;
+  box-shadow: 0 4px 12px rgba(139, 106, 20, 0.3);
+}
+
+.rh-contactInfo {
+  font-size: 14px;
+  color: #555;
+}
+
+.rh-contactInfo a {
+  color: #8b6a14;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.rh-contactInfo a:hover {
+  text-decoration: underline;
+  color: #6d5410;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .rh-successPage {
+    padding: 40px 0 60px;
+  }
+
+  .rh-successHero {
+    margin-bottom: 40px;
+    padding-bottom: 30px;
+  }
+
+  .rh-successTitle {
+    font-size: 26px;
+  }
+
+  .rh-confirmBox {
+    padding: 24px;
+  }
+
+  .rh-codeText {
+    font-size: 22px;
+  }
+
+  .rh-detailsGrid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .rh-detailCard__body {
+    padding: 20px;
+  }
+}
+
+/* ===== MY BOOKINGS PAGE ===== */
+
+.rh-myBookingsPage {
+  background: #faf8f2;
+  padding: 50px 0 80px;
+  min-height: 70vh;
+}
+
+/* Page Header */
+.rh-pageHeader {
+  margin-bottom: 40px;
+}
+
+.rh-pageTitle {
+  margin: 0;
+  font-size: 36px;
+  font-weight: 400;
+  color: #1a1a1a;
+  font-family: "Playfair Display", Georgia, serif;
+  letter-spacing: 0.5px;
+}
+
+/* Bookings List */
+.rh-bookingsList {
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Booking Card */
+.rh-bookingCard {
+  background: #fff;
+  border: 1px solid #d9caa7;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.rh-bookingCard:hover {
+  box-shadow: 0 3px 12px rgba(139, 106, 20, 0.08);
+}
+
+/* Header */
+.rh-bookingCard__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e8dfc8;
+}
+
+.rh-bookingCard__info {
+  flex: 1;
+}
+
+.rh-bookingCard__room {
+  margin: 0 0 6px;
+  font-size: 20px;
+  font-weight: 400;
+  color: #1a1a1a;
+  font-family: "Playfair Display", Georgia, serif;
+  letter-spacing: 0.3px;
+}
+
+.rh-bookingCard__code {
+  font-size: 13px;
+  color: #666;
+  font-weight: 400;
+}
+
+/* Status Badge */
+.rh-bookingCard__badge {
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 3px;
+  letter-spacing: 0.3px;
+}
+
+.rh-bookingCard__badge--upcoming {
+  background: #e8f4f8;
+  color: #0d5f7f;
+}
+
+.rh-bookingCard__badge--pending {
+  background: #fff8e1;
+  color: #f57c00;
+}
+
+.rh-bookingCard__badge--checkedin {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.rh-bookingCard__badge--completed {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.rh-bookingCard__badge--cancelled {
+  background: #fce4e4;
+  color: #c62828;
+}
+
+/* Body */
+.rh-bookingCard__body {
+  padding: 20px 24px;
+}
+
+.rh-bookingCard__row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.rh-bookingCard__col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rh-bookingCard__label {
+  font-size: 12px;
+  color: #999;
+  font-weight: 400;
+}
+
+.rh-bookingCard__value {
+  font-size: 14px;
+  color: #1a1a1a;
+  font-weight: 500;
+}
+
+.rh-bookingCard__value--price {
+  color: #8b6a14;
+  font-weight: 600;
+}
+
+/* Footer */
+.rh-bookingCard__footer {
+  display: flex;
+  gap: 20px;
+  padding: 16px 24px;
+  border-top: 1px solid #e8dfc8;
+  background: #faf8f2;
+}
+
+.rh-bookingCard__link {
+  font-size: 14px;
+  color: #8b6a14;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.rh-bookingCard__link:hover {
+  color: #6d5410;
+  text-decoration: underline;
+}
+
+.rh-bookingCard__link--cancel {
+  color: #c62828;
+}
+
+.rh-bookingCard__link--cancel:hover {
+  color: #8b1f1f;
+}
+
+/* Empty State */
+.rh-emptyState {
+  text-align: center;
+  padding: 80px 20px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.rh-emptyState__text {
+  margin: 0 0 24px;
+  font-size: 16px;
+  color: #666;
+  line-height: 1.6;
+}
+
+.rh-emptyState__btn {
+  display: inline-block;
+  background: #8b6a14;
+  color: #fff;
+  padding: 12px 28px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  letter-spacing: 0.3px;
+}
+
+.rh-emptyState__btn:hover {
+  background: #6d5410;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .rh-myBookingsPage {
+    padding: 40px 0 60px;
+  }
+
+  .rh-pageTitle {
+    font-size: 28px;
+  }
+
+  .rh-bookingCard__header {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px 20px;
+  }
+
+  .rh-bookingCard__body {
+    padding: 16px 20px;
+  }
+
+  .rh-bookingCard__row {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .rh-bookingCard__footer {
+    padding: 12px 20px;
+    flex-wrap: wrap;
+  }
+}
+
+/* ===== LOGIN & REGISTER PAGE ===== */
+
+.rh-loginPage {
+  position: relative;
+  background-image: url("/assets/bg-login.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  padding: 80px 0 120px;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+}
+
+.rh-loginPage__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(139, 106, 20, 0.7) 0%,
+    rgba(26, 26, 26, 0.8) 100%
+  );
+  z-index: 1;
+}
+
+.rh-loginPage .rh-container {
+  position: relative;
+  z-index: 2;
+}
+
+.rh-loginBox {
+  position: relative;
+  max-width: 520px;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(20px);
+  border: 2px solid rgba(201, 162, 74, 0.3);
+  padding: 56px 48px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+/* Brand Logo */
+.rh-loginBox__brand {
+  text-align: center;
+  margin-bottom: 32px;
+  line-height: 1;
+}
+
+.rh-loginBox__brandTop {
+  color: #8b6a14;
+  font-weight: 700;
+  letter-spacing: 5px;
+  font-size: 28px;
+  font-family: "Playfair Display", Georgia, serif;
+  margin-bottom: 8px;
+}
+
+.rh-loginBox__brandBot {
+  color: #666;
+  font-weight: 300;
+  font-size: 11px;
+  letter-spacing: 4px;
+  font-family: "Playfair Display", Georgia, serif;
+}
+
+.rh-loginBox__header {
+  text-align: center;
+  margin-bottom: 40px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #e8dfc8;
+}
+
+.rh-loginBox__title {
+  margin: 0 0 10px;
+  font-size: 36px;
+  font-weight: 400;
+  color: #1a1a1a;
+  font-family: "Playfair Display", Georgia, serif;
+  letter-spacing: 1px;
+}
+
+.rh-loginBox__subtitle {
+  margin: 0;
+  font-size: 15px;
+  color: #8b6a14;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+}
+
+.rh-loginBox__error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #fce4e4 0%, #fdd8d8 100%);
+  border: 1px solid #f5a5a5;
+  color: #c62828;
+  padding: 14px 18px;
+  margin-bottom: 28px;
+  font-size: 14px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(198, 40, 40, 0.1);
+}
+
+.rh-loginBox__errorIcon {
+  font-size: 18px;
+}
+
+/* Form */
+.rh-loginForm__group {
+  margin-bottom: 24px;
+}
+
+.rh-loginForm__label {
+  display: block;
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.rh-loginForm__inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.rh-loginForm__icon {
+  position: absolute;
+  left: 16px;
+  font-size: 18px;
+  color: #8b6a14;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.rh-loginForm__input {
+  width: 100%;
+  padding: 14px 16px 14px 48px;
+  border: 2px solid #e8dfc8;
+  font-size: 15px;
+  color: #333;
+  transition: all 0.3s ease;
+  font-family: "Inter", system-ui, sans-serif;
+  background: #fafaf8;
+  border-radius: 6px;
+}
+
+.rh-loginForm__input:focus {
+  outline: none;
+  border-color: #8b6a14;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(139, 106, 20, 0.1);
+}
+
+.rh-loginForm__input::placeholder {
+  color: #aaa;
+}
+
+/* Options */
+.rh-loginForm__options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.rh-loginForm__remember {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #555;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.rh-loginForm__remember:hover {
+  color: #8b6a14;
+}
+
+.rh-loginForm__remember input[type="checkbox"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  accent-color: #8b6a14;
+}
+
+.rh-loginForm__forgot {
+  font-size: 14px;
+  color: #8b6a14;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.rh-loginForm__forgot:hover {
+  color: #6d5410;
+  text-decoration: underline;
+}
+
+/* Submit Button */
+.rh-loginForm__submit {
+  width: 100%;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #8b6a14 0%, #6d5410 100%);
+  color: #fff;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  letter-spacing: 1px;
+  font-family: "Inter", system-ui, sans-serif;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(139, 106, 20, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-transform: uppercase;
+}
+
+.rh-loginForm__submit:hover {
+  background: linear-gradient(135deg, #6d5410 0%, #5a4510 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(139, 106, 20, 0.4);
+}
+
+.rh-loginForm__submitIcon {
+  font-size: 20px;
+  transition: transform 0.3s ease;
+}
+
+.rh-loginForm__submit:hover .rh-loginForm__submitIcon {
+  transform: translateX(4px);
+}
+
+/* Divider */
+.rh-loginForm__divider {
+  text-align: center;
+  margin: 32px 0;
+  position: relative;
+}
+
+.rh-loginForm__divider::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #d9caa7 50%,
+    transparent 100%
+  );
+}
+
+.rh-loginForm__divider span {
+  position: relative;
+  background: rgba(255, 255, 255, 0.98);
+  padding: 0 20px;
+  font-size: 12px;
+  color: #999;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* Register Link */
+.rh-loginForm__register {
+  text-align: center;
+  font-size: 15px;
+  color: #555;
+}
+
+.rh-loginForm__register a {
+  color: #8b6a14;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  border-bottom: 2px solid transparent;
+}
+
+.rh-loginForm__register a:hover {
+  color: #6d5410;
+  border-bottom-color: #8b6a14;
+}
+
+/* Decorative Element */
+.rh-loginBox__decoration {
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(
+    circle,
+    rgba(201, 162, 74, 0.15) 0%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .rh-loginPage {
+    padding: 60px 0 80px;
+  }
+
+  .rh-loginBox {
+    padding: 40px 28px;
+  }
+
+  .rh-loginBox__brandTop {
+    font-size: 24px;
+  }
+
+  .rh-loginBox__title {
+    font-size: 28px;
+  }
+
+  .rh-loginForm__options {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .rh-otpOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+  .rh-otpModal {
+    width: min(520px, calc(100% - 32px));
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.25);
+  }
+  .rh-otpModal__title {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .rh-otpModal__sub {
+    font-size: 14px;
+    color: #666;
+  }
+}
+
+/* 1) NAV: chống chồng lấn khi thu nhỏ */
+@media (max-width: 980px) {
+  .rh-nav {
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .rh-brand {
+    order: 1;
+  }
+
+  .rh-account {
+    order: 2;
+    margin-top: 0;
+    margin-left: auto;
+  }
+
+  .rh-menu {
+    order: 3;
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 14px;
+  }
+}
+
+/* 2) HERO SEARCH: màn nhỏ thì đưa search xuống dạng block để không đè content */
+@media (max-width: 700px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  .rh-container {
+    width: calc(100% - 32px);
+  }
+
+  .rh-hero__inner {
+    padding: 18px 0 28px; /* bỏ chừa đáy quá lớn vì search không còn absolute */
+  }
+
+  .rh-hero__content {
+    margin-top: 42px;
+  }
+
+  .rh-hero__title {
+    font-size: 30px;
+    line-height: 1.35;
+    letter-spacing: 1px;
+  }
+
+  .rh-search {
+    position: static;
+    transform: none;
+    width: 100%;
+    margin: 20px auto 0;
+    grid-template-columns: 1fr; /* chắc chắn 1 cột trên mobile */
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .rh-search__field {
+    border-right: 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  }
+
+  .rh-account__btn {
+    padding: 8px 12px;
+  }
+}
+
+/* 3) ROOMS GRID (beige section): từ 6 cột -> 2 cột -> 1 cột */
+@media (max-width: 980px) {
+  .rh-roomsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+  }
+
+  .rh-roomCard {
+    grid-column: span 1;
+  }
+
+  .rh-roomCard--wide,
+  .rh-roomCard:nth-child(5) {
+    grid-column: span 2;
+  }
+
+  .rh-roomCard__img {
+    height: 320px;
+  }
+
+  .rh-roomCard--wide .rh-roomCard__img,
+  .rh-roomCard:nth-child(5) .rh-roomCard__img {
+    height: 320px;
+  }
+}
+
+@media (max-width: 620px) {
+  .rh-roomsGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .rh-roomCard,
+  .rh-roomCard--wide,
+  .rh-roomCard:nth-child(5) {
+    grid-column: span 1;
+  }
+
+  .rh-roomCard__img {
+    height: 280px;
+  }
+
+  .rh-roomCard__bookBtn {
+    top: 14px;
+    right: 14px;
+    padding: 10px 14px;
+  }
+
+  .rh-roomCard__info {
+    padding: 22px 20px;
+  }
+
+  .rh-roomCard__name {
+    font-size: 26px;
+  }
+
+  .rh-roomsPrice__title {
+    font-size: 34px;
+  }
+}
+
+/* 4) ABOUT images: màn rất nhỏ thì bỏ absolute để không tràn/chồng */
+@media (max-width: 640px) {
+  .rh-about2__right {
+    min-height: auto;
+  }
+
+  .rh-about2__img--small,
+  .rh-about2__img--tall {
+    position: static;
+    width: 100%;
+    height: 260px;
+    margin-top: 16px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16);
+  }
+
+  .rh-about2__img--small {
+    height: 240px;
+  }
+}
+
+.rh-roomList__sort select.rh-sortBtn {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  padding: 10px 44px 10px 16px;
+  min-width: 168px;
+
+  background-color: #8b6a14;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+
+  /* caret (mũi tên) */
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgba(255, 255, 255, 0.95) 50%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.95) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) 50%,
+    calc(100% - 12px) 50%;
+  background-size:
+    6px 6px,
+    6px 6px;
+  background-repeat: no-repeat;
+
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
+}
+
+.rh-roomList__sort select.rh-sortBtn:hover {
+  filter: brightness(1.04);
+}
+
+.rh-roomList__sort select.rh-sortBtn:focus {
+  outline: none;
+  box-shadow:
+    0 0 0 3px rgba(139, 106, 20, 0.22),
+    0 10px 22px rgba(0, 0, 0, 0.12);
+}
+
+.rh-roomFilter .rh-search__btn {
+  width: 100%;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.1);
+}
+
+.rh-roomFilter .rh-search__btn:hover {
+  filter: brightness(1.04);
+}
+
+.rh-roomFilter .rh-search__btn:active {
+  transform: translateY(1px);
+}
+
+.rh-roomsGrid--even .rh-roomCard {
+  grid-column: span 2;
+}
+
+.rh-roomsGrid--even .rh-roomCard:nth-child(5) {
+  grid-column: span 2;
+}
+
+.rh-roomsGrid--even .rh-roomCard__img {
+  height: 420px;
+}
+
+.rh-roomsGrid--even .rh-roomCard:nth-child(5) .rh-roomCard__img {
+  height: 420px;
+}
+
+.rh-scrollTop {
+  position: fixed !important;
+  right: 28px !important;
+  bottom: 28px !important;
+  left: auto !important;
+  top: auto !important;
+
+  width: 58px;
+  height: 58px;
+  min-width: 58px;
+  min-height: 58px;
+  padding: 0;
+  margin: 0;
+
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+
+  background: linear-gradient(180deg, #caa44d 0%, #9a761f 100%);
+  color: #ffffff;
+  text-decoration: none;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.24);
+
+  cursor: pointer;
+  z-index: 9999;
+
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(12px) scale(0.96);
+
+  transition:
+    opacity 0.25s ease,
+    visibility 0.25s ease,
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    background 0.25s ease;
+}
+
+.rh-scrollTop.is-visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.rh-scrollTop:hover {
+  background: linear-gradient(180deg, #d4b25d 0%, #a88223 100%);
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
+}
+
+.rh-scrollTop:active {
+  transform: translateY(0) scale(0.97);
+}
+
+.rh-scrollTop:focus-visible {
+  box-shadow:
+    0 0 0 4px rgba(202, 164, 77, 0.22),
+    0 14px 34px rgba(0, 0, 0, 0.24);
+}
+
+.rh-scrollTop__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1;
+  transform: translateY(-1px);
+  user-select: none;
+}
+
+@media (max-width: 768px) {
+  .rh-scrollTop {
+    right: 16px !important;
+    bottom: 16px !important;
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+    min-height: 52px;
+  }
+
+  .rh-scrollTop__icon {
+    font-size: 22px;
+  }
+}

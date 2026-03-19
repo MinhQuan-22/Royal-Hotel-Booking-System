@@ -1,0 +1,37 @@
+@using Microsoft.AspNetCore.Http
+
+@{
+    var email = Context.Session.GetString("USER_EMAIL");
+    var name = Context.Session.GetString("USER_NAME") ?? "";
+    var role = Context.Session.GetString("USER_ROLE") ?? "";
+    var isLoggedIn = !string.IsNullOrWhiteSpace(email);
+    var isAdmin = role.ToLower() == "admin";
+}
+
+<div class="rh-account">
+@if (isLoggedIn)
+{
+    <button class="rh-account__btn" type="button" data-dropdown="account">
+        <span class="rh-account__icon">👤</span>
+        <span class="rh-account__text">Chào mừng,<br /><b>@name</b></span>
+        <span class="rh-account__caret">▾</span>
+    </button>
+
+    <div class="rh-account__menu" data-dropdown-menu="account">
+        @if (isAdmin)
+        {
+            <a class="rh-account__item" asp-controller="Admin" asp-action="Index">Admin Management</a>
+        }
+
+        <a class="rh-account__item" asp-controller="Booking" asp-action="MyBookings">Lịch sử đặt phòng</a>
+        <a class="rh-account__item" asp-controller="Account" asp-action="Logout">Đăng xuất</a>
+    </div>
+}
+else
+{
+    <a class="rh-account__btn" asp-controller="Account" asp-action="Login" style="text-decoration:none;">
+        <span class="rh-account__icon">👤</span>
+        <span class="rh-account__text">Đăng nhập</span>
+    </a>
+}
+</div>

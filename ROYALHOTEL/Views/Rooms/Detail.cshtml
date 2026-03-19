@@ -1,0 +1,353 @@
+@using System.Globalization
+@using ROYALHOTEL.Models
+@using ROYALHOTEL.Helpers
+@model Room
+
+@{
+    ViewData["Title"] = "Chi tiết phòng";
+    var vi = CultureInfo.GetCultureInfo("vi-VN");
+
+    var checkIn = (string?)ViewBag.CheckIn;
+    var checkOut = (string?)ViewBag.CheckOut;
+    var guests = (int)(ViewBag.Guests ?? 1);
+    var isAvailable = ViewBag.IsAvailable == null ? true : (bool)ViewBag.IsAvailable;
+    var availabilityMessage = (string?)ViewBag.AvailabilityMessage;
+    var detailErrorMessage = TempData["DetailErrorMessage"]?.ToString();
+
+    var imgs = (Model.Images ?? new List<RoomImage>()).OrderBy(i => i.SortOrder).ToList();
+    var mainImage = Model.CoverImageUrl ?? imgs.FirstOrDefault()?.ImageUrl ?? "/assets/rooms/room1.png";
+
+    var img1 = imgs.ElementAtOrDefault(0)?.ImageUrl ?? mainImage;
+    var img2 = imgs.ElementAtOrDefault(1)?.ImageUrl ?? mainImage;
+    var img3 = imgs.ElementAtOrDefault(2)?.ImageUrl ?? mainImage;
+    var img4 = imgs.ElementAtOrDefault(3)?.ImageUrl ?? mainImage;
+
+    var priceText = Model.BasePricePerNight.ToString("N0", vi);
+    var priceJs = Model.BasePricePerNight.ToString(CultureInfo.InvariantCulture);
+
+    var checkInVal = checkIn ?? "";
+    var checkOutVal = checkOut ?? "";
+
+    var filterAmenities = ((IEnumerable<Amenity>)(ViewBag.FilterAmenities ?? new List<Amenity>())).ToList();
+    var displayAmenities = RoomAmenityViewHelper.GetDisplayAmenities(Model, filterAmenities);
+}
+
+<nav class="rh-detailNav">
+    <div class="rh-container rh-detailNav__inner">
+        <div class="rh-brand">
+            <div class="rh-brand__top">ROYAL</div>
+            <div class="rh-brand__bot">LUXURY HOTEL</div>
+        </div>
+
+        <div class="rh-menu">
+            <a class="rh-menu__link" asp-controller="Home" asp-action="Index">Trang chủ</a>
+            <a class="rh-menu__link" href="#">Giới thiệu</a>
+            <a class="rh-menu__link is-active" asp-controller="Rooms" asp-action="Index">Phòng &amp; giá</a>
+            <a class="rh-menu__link" href="#">Liên hệ</a>
+        </div>
+
+        @await Html.PartialAsync("_AccountAvatar")
+    </div>
+</nav>
+
+<section class="rh-bcrumb">
+    <div class="rh-container rh-bcrumb__inner">
+        <a class="rh-backBtn" asp-controller="Rooms" asp-action="Index"
+           asp-route-checkIn="@(checkIn)" asp-route-checkOut="@(checkOut)" asp-route-guests="@(guests)">
+            ← <span>Quay lại</span>
+        </a>
+
+        <div class="rh-bcrumb__trail">
+            <a class="rh-bcrumb__link" asp-controller="Rooms" asp-action="Index"
+               asp-route-checkIn="@(checkIn)" asp-route-checkOut="@(checkOut)" asp-route-guests="@(guests)">Phòng</a>
+            <span class="rh-bcrumb__sep"> › </span>
+            <span class="rh-bcrumb__current">@Model.Name</span>
+        </div>
+    </div>
+</section>
+
+<section class="rh-roomDetail">
+    <div class="rh-container rh-roomDetail__grid">
+
+        <div class="rh-roomDetail__left">
+            <div class="rh-gallery">
+                <div class="rh-gallery__main" onclick="openImageModal(this)">
+                    <img src="@mainImage" alt="@Model.Name" />
+                    <div class="rh-gallery__zoomIcon">🔍</div>
+                </div>
+
+                <div class="rh-gallery__thumbs">
+                    <button class="rh-thumb is-active" type="button" onclick="changeMainImage(this, '@img1')">
+                        <img src="@img1" alt="thumb 1" />
+                    </button>
+                    <button class="rh-thumb" type="button" onclick="changeMainImage(this, '@img2')">
+                        <img src="@img2" alt="thumb 2" />
+                    </button>
+                    <button class="rh-thumb" type="button" onclick="changeMainImage(this, '@img3')">
+                        <img src="@img3" alt="thumb 3" />
+                    </button>
+                    <button class="rh-thumb" type="button" onclick="changeMainImage(this, '@img4')">
+                        <img src="@img4" alt="thumb 4" />
+                    </button>
+                </div>
+            </div>
+
+            <div class="rh-roomIntro">
+                <h2 class="rh-roomIntro__title">@Model.Name</h2>
+                <p class="rh-roomIntro__desc">@Model.Description</p>
+            </div>
+
+            <div class="rh-card">
+                <div class="rh-card__header">
+                    <div class="rh-card__title">Tiện ích phòng</div>
+                </div>
+
+                <div class="rh-amenChips">
+                    @foreach (var a in displayAmenities)
+                    {
+                        <span class="rh-chip">@($"{a.IconClass} {a.Name}".Trim())</span>
+                    }
+                </div>
+            </div>
+
+            <div class="rh-card">
+                <div class="rh-card__header">
+                    <div class="rh-card__title">Chính sách &amp; Thông tin cần biết</div>
+                </div>
+
+                @await Html.PartialAsync("_RoomPolicy")
+            </div>
+        </div>
+
+        <aside class="rh-roomDetail__right">
+            <div class="rh-bookBox">
+                <div class="rh-bookBox__price">
+                    <span class="rh-bookBox__amount">@priceText</span>
+                    <span class="rh-bookBox__unit">VNĐ / đêm</span>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(availabilityMessage))
+                {
+                    <div style="margin-bottom:12px; padding:12px; border-radius:10px; background:#fff4db; color:#9a6700; border:1px solid #f0c36d;">
+                        @availabilityMessage
+                    </div>
+                }
+                else if (!string.IsNullOrWhiteSpace(detailErrorMessage))
+                {
+                    <div style="margin-bottom:12px; padding:12px; border-radius:10px; background:#ffe7e7; color:#b42318; border:1px solid #f1b0b0;">
+                        @detailErrorMessage
+                    </div>
+                }
+
+                <form class="rh-bookForm" method="post" asp-controller="Booking" asp-action="Create">
+                    @Html.AntiForgeryToken()
+
+                    <input type="hidden" name="RoomId" value="@Model.Id" />
+
+                    <label class="rh-input">
+                        <span class="rh-input__label">Check In</span>
+                        <input type="date" id="detailCheckIn" name="CheckInDate" value="@checkInVal" required />
+                    </label>
+
+                    <label class="rh-input">
+                        <span class="rh-input__label">Check Out</span>
+                        <input type="date" id="detailCheckOut" name="CheckOutDate" value="@checkOutVal" required />
+                    </label>
+
+                    <label class="rh-input">
+                        <span class="rh-input__label">Số người</span>
+                        <select id="detailGuests" name="Guests" required>
+                            <option value="" disabled selected="@(guests < 1 ? "selected" : (string?)null)">Chọn số người</option>
+                            @for (int i = 1; i <= Model.MaxGuests; i++)
+                            {
+                                <option value="@i" selected="@(guests == i ? "selected" : (string?)null)">
+                                    @i người
+                                </option>
+                            }
+                        </select>
+                    </label>
+
+                    <div class="rh-bookBox__note">Phòng này tối đa @Model.MaxGuests khách</div>
+
+                    <label class="rh-input">
+                        <span class="rh-input__label">Họ và tên</span>
+                        <input type="text" name="GuestName" placeholder="Nhập họ tên" required />
+                    </label>
+
+                    <label class="rh-input">
+                        <span class="rh-input__label">Email</span>
+                        <input type="email" name="GuestEmail" placeholder="example@email.com" required />
+                    </label>
+
+                    <label class="rh-input">
+                        <span class="rh-input__label">Số điện thoại</span>
+                        <input type="tel" name="GuestPhone" placeholder="09xxxxxxxx" required />
+                    </label>
+
+                    <div class="rh-bookBox__summary">
+                        <div class="rh-sumRow">
+                            <span>Số đêm:</span>
+                            <b id="nightCount">-</b>
+                        </div>
+                        <div class="rh-sumRow">
+                            <span>Tổng tạm tính:</span>
+                            <b id="totalPrice">-</b>
+                        </div>
+                    </div>
+
+                    <button class="rh-bookBox__cta"
+                            type="submit"
+                            disabled="@(isAvailable == false ? "disabled" : null)">
+                        Đặt phòng ngay
+                    </button>
+
+                    <div class="rh-bookBox__note">Bạn sẽ chuyển đến trang thanh toán</div>
+                </form>
+            </div>
+        </aside>
+
+    </div>
+</section>
+
+<div class="rh-modal" id="imageModal" onclick="closeImageModal()">
+    <div class="rh-modal__content" onclick="event.stopPropagation()">
+        <button type="button" class="rh-modal__close" onclick="closeImageModal()">×</button>
+        <img class="rh-modal__img" id="modalImage" src="" alt="Room Image" />
+    </div>
+</div>
+
+<script>
+    function changeMainImage(thumb, imageSrc) {
+        const mainImg = document.querySelector('.rh-gallery__main img');
+        mainImg.src = imageSrc;
+        document.querySelectorAll('.rh-thumb').forEach(t => t.classList.remove('is-active'));
+        thumb.classList.add('is-active');
+    }
+
+    function openImageModal(element) {
+        const imgSrc = element.querySelector('img').src;
+        const modal = document.getElementById('imageModal');
+        const modalImg = document.getElementById('modalImage');
+        modalImg.src = imgSrc;
+        modal.classList.add('is-active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeImageModal() {
+        const modal = document.getElementById('imageModal');
+        modal.classList.remove('is-active');
+        document.body.style.overflow = '';
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeImageModal();
+    });
+
+    const checkInInput = document.getElementById('detailCheckIn');
+    const checkOutInput = document.getElementById('detailCheckOut');
+    const guestsInput = document.getElementById('detailGuests');
+    const pricePerNight = @Html.Raw(priceJs);
+    const roomId = @Model.Id;
+
+    function calculatePrice() {
+        const checkIn = new Date(checkInInput.value);
+        const checkOut = new Date(checkOutInput.value);
+
+        const checkInValid = !isNaN(checkIn.getTime());
+        const checkOutValid = !isNaN(checkOut.getTime());
+
+        if (checkInValid && checkOutValid && checkOut > checkIn) {
+            const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+            const total = nights * pricePerNight;
+            document.getElementById('nightCount').textContent = nights + ' đêm';
+            document.getElementById('totalPrice').textContent = total.toLocaleString('vi-VN') + ' VNĐ';
+        } else {
+            document.getElementById('nightCount').textContent = '-';
+            document.getElementById('totalPrice').textContent = '-';
+        }
+    }
+
+    function saveFormData() {
+        const guestName = document.querySelector('input[name="GuestName"]').value;
+        const guestEmail = document.querySelector('input[name="GuestEmail"]').value;
+        const guestPhone = document.querySelector('input[name="GuestPhone"]').value;
+
+        if (guestName || guestEmail || guestPhone) {
+            localStorage.setItem('bookingFormData', JSON.stringify({
+                guestName: guestName,
+                guestEmail: guestEmail,
+                guestPhone: guestPhone
+            }));
+        }
+    }
+
+    function restoreFormData() {
+        const savedData = localStorage.getItem('bookingFormData');
+        if (savedData) {
+            try {
+                const data = JSON.parse(savedData);
+                if (data.guestName) document.querySelector('input[name="GuestName"]').value = data.guestName;
+                if (data.guestEmail) document.querySelector('input[name="GuestEmail"]').value = data.guestEmail;
+                if (data.guestPhone) document.querySelector('input[name="GuestPhone"]').value = data.guestPhone;
+            } catch (e) {
+                console.error('Error restoring form data:', e);
+            }
+        }
+    }
+
+    function refreshAvailability() {
+        const ci = checkInInput.value;
+        const co = checkOutInput.value;
+        const guests = guestsInput.value || 1;
+
+        if (!ci || !co) return;
+
+        saveFormData();
+
+        const url = new URL(window.location.href);
+        url.pathname = `/Rooms/Detail/${roomId}`;
+        url.searchParams.set('checkIn', ci);
+        url.searchParams.set('checkOut', co);
+        url.searchParams.set('guests', guests);
+
+        window.location.href = url.toString();
+    }
+
+    checkInInput.addEventListener('change', function () {
+        calculatePrice();
+
+        if (!this.value) return;
+        const d = new Date(this.value);
+        d.setDate(d.getDate() + 1);
+        checkOutInput.setAttribute('min', d.toISOString().split('T')[0]);
+
+        if (checkOutInput.value) {
+            refreshAvailability();
+        }
+    });
+
+    checkOutInput.addEventListener('change', function () {
+        calculatePrice();
+        if (checkInInput.value) {
+            refreshAvailability();
+        }
+    });
+
+    guestsInput.addEventListener('change', function () {
+        if (checkInInput.value && checkOutInput.value) {
+            refreshAvailability();
+        }
+    });
+
+    const today = new Date().toISOString().split('T')[0];
+    checkInInput.setAttribute('min', today);
+    checkOutInput.setAttribute('min', today);
+
+    calculatePrice();
+
+    restoreFormData();
+
+    document.querySelector('.rh-bookForm').addEventListener('submit', function() {
+        localStorage.removeItem('bookingFormData');
+    });
+</script>

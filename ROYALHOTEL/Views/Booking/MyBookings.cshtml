@@ -1,0 +1,173 @@
+@using System.Globalization
+@model List<ROYALHOTEL.Models.Booking>
+
+@{
+    ViewData["Title"] = "Lịch sử đặt phòng";
+    var vi = CultureInfo.GetCultureInfo("vi-VN");
+
+    string GetStatusText(string status)
+    {
+        return status switch
+        {
+            "Pending" => "Chờ thanh toán",
+            "Confirmed" => "Đã xác nhận",
+            "CheckedIn" => "Đã check-in",
+            "CheckedOut" => "Đã check-out",
+            "Cancelled" => "Đã hủy",
+            _ => status
+        };
+    }
+
+    string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Pending" => "rh-bookingCard__badge--pending",
+            "Confirmed" => "rh-bookingCard__badge--upcoming",
+            "CheckedIn" => "rh-bookingCard__badge--checkedin",
+            "CheckedOut" => "rh-bookingCard__badge--completed",
+            "Cancelled" => "rh-bookingCard__badge--cancelled",
+            _ => ""
+        };
+    }
+
+    bool CanCancel(string status)
+    {
+        return status == "Pending" || status == "Confirmed";
+    }
+}
+
+<!-- TOP NAV -->
+<section class="rh-payTop">
+    <div class="rh-container">
+        <header class="rh-nav rh-nav--plain">
+            <div class="rh-brand">
+                <div class="rh-brand__top">ROYAL</div>
+                <div class="rh-brand__bot">LUXURY HOTEL</div>
+            </div>
+
+            <nav class="rh-menu">
+                <a class="rh-menu__link" asp-controller="Home" asp-action="Index">Trang chủ</a>
+                <a class="rh-menu__link" href="#">Giới thiệu</a>
+                <a class="rh-menu__link" asp-controller="Rooms" asp-action="Index">Phòng &amp; giá</a>
+                <a class="rh-menu__link" href="#">Liên hệ</a>
+            </nav>
+
+            @await Html.PartialAsync("_AccountAvatar")
+            
+        </header>
+    </div>
+</section>
+
+<!-- MY BOOKINGS PAGE -->
+<section class="rh-myBookingsPage">
+    <div class="rh-container">
+        
+        <!-- Page Header -->
+        <div class="rh-pageHeader">
+            <h1 class="rh-pageTitle">Lịch sử đặt phòng</h1>
+        </div>
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div style="margin-bottom:20px; padding:12px; border-radius:8px; background:#d4edda; color:#155724; border:1px solid #c3e6cb;">
+                @TempData["SuccessMessage"]
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div style="margin-bottom:20px; padding:12px; border-radius:8px; background:#f8d7da; color:#721c24; border:1px solid #f5c6cb;">
+                @TempData["ErrorMessage"]
+            </div>
+        }
+
+        @if (Model == null || !Model.Any())
+        {
+            <!-- Empty State -->
+            <div class="rh-emptyState">
+                <p class="rh-emptyState__text">Bạn chưa có lịch sử đặt phòng</p>
+                <a href="@Url.Action("Index", "Rooms")" class="rh-emptyState__btn">Khám phá phòng</a>
+            </div>
+        }
+        else
+        {
+            <!-- Bookings List -->
+            <div class="rh-bookingsList">
+                
+                @foreach (var booking in Model)
+                {
+                    var nights = (booking.CheckOut - booking.CheckIn).Days;
+                    var roomName = booking.Room?.Name ?? "Phòng";
+                    var roomCode = booking.Room?.Code ?? "";
+                    var statusText = GetStatusText(booking.Status);
+                    var badgeClass = GetStatusBadgeClass(booking.Status);
+                    var canCancel = CanCancel(booking.Status);
+
+                    <div class="rh-bookingCard">
+                        <div class="rh-bookingCard__header">
+                            <div class="rh-bookingCard__info">
+                                <h3 class="rh-bookingCard__room">@roomName @(string.IsNullOrWhiteSpace(roomCode) ? "" : $"- {roomCode}")</h3>
+                                <span class="rh-bookingCard__code">Mã: @booking.BookingCode</span>
+                            </div>
+                            <span class="rh-bookingCard__badge @badgeClass">@statusText</span>
+                        </div>
+
+                        <div class="rh-bookingCard__body">
+                            <div class="rh-bookingCard__row">
+                                <div class="rh-bookingCard__col">
+                                    <span class="rh-bookingCard__label">Check-in</span>
+                                    <span class="rh-bookingCard__value">@booking.CheckIn.ToString("dd/MM/yyyy"), 14:00</span>
+                                </div>
+                                <div class="rh-bookingCard__col">
+                                    <span class="rh-bookingCard__label">Check-out</span>
+                                    <span class="rh-bookingCard__value">@booking.CheckOut.ToString("dd/MM/yyyy"), 12:00</span>
+                                </div>
+                                <div class="rh-bookingCard__col">
+                                    <span class="rh-bookingCard__label">Thời gian lưu trú</span>
+                                    <span class="rh-bookingCard__value">@nights đêm, @booking.Guests khách</span>
+                                </div>
+                                <div class="rh-bookingCard__col">
+                                    <span class="rh-bookingCard__label">@(booking.Status == "Cancelled" ? "Tổng tiền" : "Tổng thanh toán")</span>
+                                    <span class="rh-bookingCard__value rh-bookingCard__value--price">@((booking.TotalAmount ?? 0).ToString("N0", vi)) VNĐ</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="rh-bookingCard__footer">
+                            <a asp-controller="Booking" asp-action="BookingDetail" asp-route-bookingCode="@booking.BookingCode" class="rh-bookingCard__link">Xem chi tiết</a>
+                            
+                            @if (canCancel)
+                            {
+                                <form method="post" asp-controller="Booking" asp-action="Cancel" style="display:inline;" onsubmit="return confirm('Bạn có chắc muốn hủy booking này?');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="bookingId" value="@booking.Id" />
+                                    <button type="submit" class="rh-bookingCard__link rh-bookingCard__link--cancel" style="background:none; border:none; cursor:pointer; padding:0;">Hủy đặt phòng</button>
+                                </form>
+                            }
+                        </div>
+                    </div>
+                }
+
+            </div>
+        }
+
+    </div>
+</section>
+
+<script>
+    function toggleDropdown() {
+        const menu = document.getElementById('accountMenu');
+        menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    }
+
+    // Đóng dropdown khi click bên ngoài
+    document.addEventListener('click', function(event) {
+        const account = document.querySelector('.rh-account');
+        const menu = document.getElementById('accountMenu');
+        
+        if (!account.contains(event.target)) {
+            menu.style.display = 'none';
+        }
+    });
+</script>

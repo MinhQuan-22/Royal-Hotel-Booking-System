@@ -1,0 +1,350 @@
+﻿@model ROYALHOTEL.Models.HomePageVM
+@{
+  ViewData["Title"] = "Trang chủ";
+}
+
+<section class="rh-hero" style="background-image:url('/assets/home/hero.jpg')">
+    <div class="rh-hero__overlay"></div>
+
+    <div class="rh-container rh-hero__inner">
+
+        <header class="rh-nav">
+            <div class="rh-brand">
+                <div class="rh-brand__top">ROYAL</div>
+                <div class="rh-brand__bot">LUXURY HOTEL</div>
+            </div>
+
+            <nav class="rh-menu">
+                <a class="rh-menu__link" asp-controller="Home" asp-action="Index">Trang chủ</a>
+                <a class="rh-menu__link" href="#">Giới thiệu</a>
+                <a class="rh-menu__link" asp-controller="Rooms" asp-action="Index">Phòng &amp; giá</a>
+                <a class="rh-menu__link" href="#">Liên hệ</a>
+            </nav>
+
+            @await Html.PartialAsync("_AccountAvatar")
+            
+        </header>
+
+        <div class="rh-hero__content">
+            <div class="rh-hero__kicker">TẬN HƯỞNG TRẢI NGHIỆM SANG TRỌNG</div>
+            <h1 class="rh-hero__title">ROYAL HOTEL &amp; BEST RESORT</h1>
+
+            <a class="rh-hero__btn" href="#">Phòng &amp; Giá</a>
+        </div>
+
+        <form class="rh-search" method="get" asp-controller="Rooms" asp-action="Index">
+            <div class="rh-search__field">
+                <input type="date" name="checkIn" placeholder="Ngày đến" required />
+            </div>
+            <div class="rh-search__field">
+                <input type="date" name="checkOut" placeholder="Ngày đi" required />
+            </div>
+            <div class="rh-search__field">
+                <select name="guests" required>
+                    <option value="" selected>Số người</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                </select>
+                <span class="rh-search__suffix">▾</span>
+            </div>
+            <button class="rh-search__btn" type="submit">Đặt phòng</button>
+        </form>
+
+    </div>
+</section>
+
+<!-- ABOUT / INTRO (ngay dưới banner) -->
+<section class="rh-section rh-about2">
+    <div class="rh-container rh-about2__wrap">
+
+        <div class="rh-about2__left">
+            <div class="rh-about2__title">ROYAL LUXURY HOTEL</div>
+            <div class="rh-about2__subtitle">Tận hưởng trải nghiệm sang trọng</div>
+
+            <p class="rh-about2__desc">
+                The Royal Luxury Hotel cung cấp đầy đủ những dịch vụ tiện ích, có thủ tục kiểm tra nhanh chóng,
+                wi-fi công cộng miễn phí phủ sóng toàn bộ khách sạn... Điểm nổi bật của The Royal Luxury Hotel là
+                nhà hàng cung cấp được cả ẩm thực phương Đông và phương Tây được xây dựng và phục vụ trên tầng cao nhất.
+                Quý khách có thể vừa thưởng thức bữa tối ngon miệng vừa ngắm bầu trời đầy sao và thành phố khi về đêm.
+                Ngoài ra, du khách có thể tận hưởng những dịch vụ khác như spa, phòng gym ngay trong khu vực khách sạn.
+                Thật tuyệt vời khi mà, những thói quen rèn luyện sức khỏe, chăm sóc bản thân của bạn vẫn được duy trì
+                đều đặn trong những kỳ nghỉ dài ngày.
+            </p>
+
+            <div class="rh-about2__phone">
+                <div class="rh-about2__phoneIcon" aria-hidden="true">
+                    <!-- icon điện thoại dạng line (SVG) -->
+                    <svg width="54" height="54" viewBox="0 0 64 64" fill="none">
+                        <path d="M22.7 8.6c1.6-1.6 4.1-1.6 5.7 0l5.6 5.6c1.5 1.5 1.6 3.9.2 5.5l-3.6 4.3c-.8 1-.9 2.5-.2 3.6 3.2 4.8 7.3 8.9 12.1 12.1 1.1.7 2.6.6 3.6-.2l4.3-3.6c1.7-1.4 4-1.3 5.5.2l5.6 5.6c1.6 1.6 1.6 4.1 0 5.7l-3.6 3.6c-2.5 2.5-6.3 3.3-9.6 2.1-18.1-6.5-32.3-20.7-38.8-38.8-1.2-3.3-.4-7.1 2.1-9.6l3.6-3.6Z"
+                              stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" />
+                    </svg>
+                </div>
+
+                <div class="rh-about2__phoneText">
+                    <div class="rh-about2__phoneLabel">Đặt chỗ</div>
+                    <div class="rh-about2__phoneNumber">0788660087</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="rh-about2__right">
+            <img class="rh-about2__img rh-about2__img--small" src="/assets/home/Home1.jpg" alt="Home 1" />
+            <img class="rh-about2__img rh-about2__img--tall" src="/assets/home/Home2.jpg" alt="Home 2" />
+        </div>
+
+    </div>
+</section>
+
+<!-- ROOMS & PRICE (beige section) -->
+<section class="rh-roomsPrice" id="rooms-price">
+  <div class="rh-container">
+    <div class="rh-roomsPrice__eyebrow">ROYAL LUXURY HOTEL</div>
+    <h2 class="rh-roomsPrice__title">PHÒNG &amp; GIÁ</h2>
+
+    @using System.Globalization
+    @using ROYALHOTEL.Models
+
+    @{
+        var vi = CultureInfo.GetCultureInfo("vi-VN");
+        var featuredRooms = ((IEnumerable<Room>)(ViewBag.FeaturedRooms ?? new List<Room>())).ToList();
+        var gridClass = featuredRooms.Count >= 6 ? "rh-roomsGrid rh-roomsGrid--even" : "rh-roomsGrid";
+    }
+
+    <div class="@gridClass">
+        @for (var i = 0; i < featuredRooms.Count; i++)
+        {
+            var r = featuredRooms[i];
+
+            var cardClass = (featuredRooms.Count == 5 && i == 3)
+                ? "rh-roomCard rh-roomCard--wide"
+                : "rh-roomCard";
+
+            var img = r.CoverImageUrl
+                      ?? r.Images?.OrderBy(x => x.SortOrder).FirstOrDefault()?.ImageUrl
+                      ?? "/assets/home/Room1.jpg";
+
+            var displayName = !string.IsNullOrWhiteSpace(r.RoomType)
+                ? r.RoomType.Trim()
+                : r.Name;
+
+            <div class="@cardClass">
+                <img class="rh-roomCard__img" src="@img" alt="@displayName" />
+                <a asp-controller="Rooms" asp-action="Detail" asp-route-id="@r.Id"
+                  class="rh-roomCard__bookBtn">ĐẶT PHÒNG</a>
+
+                <div class="rh-roomCard__info">
+                    <div class="rh-roomCard__price">@r.BasePricePerNight.ToString("N0", vi) / ĐÊM</div>
+                    <div class="rh-roomCard__name">@displayName</div>
+                </div>
+            </div>
+        }
+    </div>
+  </div>
+</section>
+
+<!-- EXTRA SERVICES (Dịch vụ bổ sung) -->
+<section class="rh-services">
+  <div class="rh-container rh-services__grid">
+
+    <!-- LEFT TEXT -->
+    <div class="rh-services__left">
+      <div class="rh-services__eyebrow">GIÁ TỐT NHẤT</div>
+      <h2 class="rh-services__title">Dịch vụ bổ sung</h2>
+
+      <p class="rh-services__desc">
+        Giá tốt nhất cho kỳ nghỉ thư giãn của bạn. Chúng tôi cung cấp dịch vụ tốt nhất cho khách hàng,
+        mang đến những trải nghiệm khó quên cho khách hàng
+      </p>
+
+      <div class="rh-services__phone">
+        <div class="rh-services__phoneIcon" aria-hidden="true">
+          <!-- phone svg -->
+          <svg width="46" height="46" viewBox="0 0 64 64" fill="none">
+            <path d="M22.7 8.6c1.6-1.6 4.1-1.6 5.7 0l5.6 5.6c1.5 1.5 1.6 3.9.2 5.5l-3.6 4.3c-.8 1-.9 2.5-.2 3.6 3.2 4.8 7.3 8.9 12.1 12.1 1.1.7 2.6.6 3.6-.2l4.3-3.6c1.7-1.4 4-1.3 5.5.2l5.6 5.6c1.6 1.6 1.6 4.1 0 5.7l-3.6 3.6c-2.5 2.5-6.3 3.3-9.6 2.1-18.1-6.5-32.3-20.7-38.8-38.8-1.2-3.3-.4-7.1 2.1-9.6l3.6-3.6Z"
+                  stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+          </svg>
+        </div>
+
+        <div>
+          <div class="rh-services__phoneLabel">Đặt chỗ</div>
+          <div class="rh-services__phoneNumber">0242 242 0777</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARD 1 -->
+    <article class="rh-serviceCard">
+      <div class="rh-serviceCard__img">
+        <img src="/assets/home/service-airport.jpg" alt="Đưa đón sân bay" />
+      </div>
+      <div class="rh-serviceCard__body">
+        <h3 class="rh-serviceCard__title">Đưa đón sân bay</h3>
+
+        <div class="rh-serviceCard__price">
+          <span class="rh-serviceCard__priceNum">50</span>
+          <span class="rh-serviceCard__priceUnit">/ daily</span>
+        </div>
+
+        <ul class="rh-serviceCard__list">
+          <li>Đưa đón tận nơi</li>
+          <li>Giá cả hợp lý</li>
+          <li>Lái xe nhiệt tình cẩn thận</li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- CARD 2 -->
+    <article class="rh-serviceCard">
+      <div class="rh-serviceCard__img">
+        <img src="/assets/home/service-breakfast.jpg" alt="Ăn sáng tại phòng" />
+      </div>
+      <div class="rh-serviceCard__body">
+        <h3 class="rh-serviceCard__title">Ăn sáng tại phòng</h3>
+
+        <div class="rh-serviceCard__price">
+          <span class="rh-serviceCard__priceNum">30</span>
+          <span class="rh-serviceCard__priceUnit">/ daily</span>
+        </div>
+
+        <ul class="rh-serviceCard__list">
+          <li>Thực đơn phong phú</li>
+          <li>Các món ăn có lợi cho sức khỏe</li>
+          <li>Có thực đơn cho trẻ em</li>
+        </ul>
+      </div>
+    </article>
+
+  </div>
+
+</section>
+
+<!-- AMENITIES (Các tiện ích khách sạn) -->
+<section class="rh-amenities">
+  <div class="rh-container">
+    <div class="rh-amenities__eyebrow">DỊCH VỤ KHÁCH</div>
+    <h2 class="rh-amenities__title">Các tiện ích khách sạn</h2>
+
+    <div class="rh-amenities__grid">
+      
+      <!-- Amenity 1 -->
+      <article class="rh-amenity">
+        <div class="rh-amenity__icon">🚗</div>
+        <h3 class="rh-amenity__title">Đưa đón sân bay</h3>
+        <p class="rh-amenity__desc">
+          Chúng tôi sẽ đón từ sân bay trong khi bạn thoải mái trên chuyến đi của mình, mọi người yêu thích sự im nhặng.
+        </p>
+      </article>
+
+      <!-- Amenity 2 -->
+      <article class="rh-amenity">
+        <div class="rh-amenity__icon">🍽️</div>
+        <h3 class="rh-amenity__title">Dịch vụ phòng</h3>
+        <p class="rh-amenity__desc">
+          Chúng tôi sẽ giúp mang lại trải nghiệm lưu trú cùng như sự hài lòng tại đây ! cách tốt nhất của du khách.
+        </p>
+      </article>
+
+      <!-- Amenity 3 -->
+      <article class="rh-amenity">
+        <div class="rh-amenity__icon">🏊</div>
+        <h3 class="rh-amenity__title">Hồ bơi</h3>
+        <p class="rh-amenity__desc">
+          Bể bơi 4 mùa được điều chỉnh nhiệt độ nước để dù khách có thể thỏa sức bơi lội vào bất kỳ thời điểm nào trong năm.
+        </p>
+      </article>
+
+      <!-- Amenity 4 -->
+      <article class="rh-amenity">
+        <div class="rh-amenity__icon">📶</div>
+        <h3 class="rh-amenity__title">Wifi</h3>
+        <p class="rh-amenity__desc">
+          Khách sạn cung cấp WiFi miễn phí trong toàn bộ khuôn viên ngay cả khi ở bất đầu xe của khách sạn.
+        </p>
+      </article>
+
+      <!-- Amenity 5 -->
+      <article class="rh-amenity">
+        <div class="rh-amenity__icon">🍳</div>
+        <h3 class="rh-amenity__title">Bữa ăn sáng</h3>
+        <p class="rh-amenity__desc">
+          Buffet sáng tại The Cappa Luxury Hotel với gần 40 món ăn sáng kiểu Á được thay đổi hàng ngày đó đầu bếp chuyên nghiệp chế biến.
+        </p>
+      </article>
+
+      <!-- Amenity 6 -->
+      <article class="rh-amenity">
+        <div class="rh-amenity__icon">🌸</div>
+        <h3 class="rh-amenity__title">Spa</h3>
+        <p class="rh-amenity__desc">
+          Tại đây, bạn được thả mình vào những trải nghiệm spa độc đáo, được chất lượng nghỉ thuật tinh túy của phương Đông và phương Tây.
+        </p>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- FEATURE BLOCKS (Spa / Gym / Pool) -->
+<section class="rh-featureBlocks">
+  <div class="rh-container rh-featureBlocks__grid">
+
+    <!-- Row 1 -->
+    <div class="rh-feature rh-feature--text">
+      <h3 class="rh-feature__title">Trung tâm spa</h3>
+      <p class="rh-feature__desc">
+        Ngoài việc tham quan những danh lam thắng cảnh đẹp mê hồn hay tập trung khám phá những nét đặc trưng
+        văn hóa của một thành phố đáng sống và yên bình, du khách sẽ được đội ngũ chuyên gia tư vấn về sức khỏe
+        và sắc đẹp.
+      </p>
+      <div class="rh-feature__meta">
+        <span class="rh-feature__metaIcon">⏱</span>
+        <span>Hàng ngày: 7 giờ sáng đến 9 giờ tối</span>
+      </div>
+      <a class="rh-feature__btn" href="#">XEM THÊM</a>
+    </div>
+
+    <div class="rh-feature rh-feature--image">
+      <img src="/assets/home/spa.jpg" alt="Spa" />
+    </div>
+
+    <!-- Row 2 -->
+    <div class="rh-feature rh-feature--image">
+      <img src="/assets/home/gym.jpg" alt="Gym" />
+    </div>
+
+    <div class="rh-feature rh-feature--text">
+      <h3 class="rh-feature__title">Trung tâm thể dục</h3>
+      <p class="rh-feature__desc">
+        Nơi đây được trang bị hệ thống máy móc hiện đại, đảm bảo những yêu cầu khắt khe nhất cùng màn hình tivi LCD
+        giúp bạn vừa luyện tập theo ý thích, vừa xem những bản tin hay chương trình truyền hình mà mình muốn.
+      </p>
+      <div class="rh-feature__meta">
+        <span class="rh-feature__metaIcon">⏱</span>
+        <span>Hàng ngày: 6 giờ sáng đến 9 giờ tối</span>
+      </div>
+      <a class="rh-feature__btn" href="#">XEM THÊM</a>
+    </div>
+
+    <!-- Row 3 -->
+    <div class="rh-feature rh-feature--text">
+      <h3 class="rh-feature__title">Câu lạc bộ sức khỏe &amp; Hồ bơi</h3>
+      <p class="rh-feature__desc">
+        Bể bơi được điều chỉnh nhiệt độ nước để du khách có thể thỏa sức bơi lội vào bất kỳ thời điểm nào trong năm,
+        kể cả vào mùa đông khi hầu hết các bể bơi khác đều đóng cửa.
+      </p>
+      <div class="rh-feature__meta">
+        <span class="rh-feature__metaIcon">⏱</span>
+        <span>Hàng ngày: 10 giờ sáng đến 7 giờ tối</span>
+      </div>
+      <a class="rh-feature__btn" href="#">XEM THÊM</a>
+    </div>
+
+    <div class="rh-feature rh-feature--image">
+      <img src="/assets/home/pool.jpg" alt="Pool" />
+    </div>
+
+  </div>
+</section>

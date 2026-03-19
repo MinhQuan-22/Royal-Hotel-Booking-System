@@ -1,0 +1,265 @@
+@using System.Globalization
+@model ROYALHOTEL.Models.Booking
+
+@{
+    ViewData["Title"] = "Thanh toán";
+    var vi = CultureInfo.GetCultureInfo("vi-VN");
+
+       var roomName = Model.Room?.Name ?? "Phòng";
+    var roomCode = Model.Room?.Code ?? "N/A";
+    var roomImage = Model.Room?.CoverImageUrl ?? "/assets/rooms/room1.png";
+    var checkInText = Model.CheckIn.ToString("dd/MM/yyyy");
+    var checkOutText = Model.CheckOut.ToString("dd/MM/yyyy");
+    var nights = (Model.CheckOut - Model.CheckIn).Days;
+    var pricePerNight = Model.PricePerNight ?? 0;
+    var totalAmount = Model.TotalAmount ?? 0;
+
+    
+}
+
+<!-- TOP NAV -->
+<section class="rh-payTop">
+    <div class="rh-container">
+        <header class="rh-nav rh-nav--plain">
+            <div class="rh-brand">
+                <div class="rh-brand__top">ROYAL</div>
+                <div class="rh-brand__bot">LUXURY HOTEL</div>
+            </div>
+
+            <nav class="rh-menu">
+                <a class="rh-menu__link" asp-controller="Home" asp-action="Index">Trang chủ</a>
+                <a class="rh-menu__link" href="#">Giới thiệu</a>
+                <a class="rh-menu__link" asp-controller="Rooms" asp-action="Index">Phòng &amp; giá</a>
+                <a class="rh-menu__link" href="#">Liên hệ</a>
+            </nav>
+
+            @await Html.PartialAsync("_AccountAvatar")
+        </header>
+    </div>
+</section>
+
+<!-- PAGE -->
+<section class="rh-payPage">
+    <div class="rh-container rh-payGrid">
+
+        <!-- LEFT: PAYMENT -->
+        <div class="rh-payCol">
+            <div class="rh-payTitle">
+                <span class="rh-payTitle__icon">💳</span>
+                <div class="rh-payTitle__content">
+                    <span class="rh-payTitle__text">Thanh toán</span>
+                    <span class="rh-payTitle__sub">Hoàn tất đặt phòng của bạn</span>
+                </div>
+            </div>
+
+            <div class="rh-payBox">
+                <div class="rh-payHint">
+                    <span class="rh-payHint__icon">ℹ️</span>
+                    <span>Vui lòng kiểm tra thông tin và chọn phương thức thanh toán</span>
+                </div>            
+
+                @if (TempData["ErrorMessage"] != null)
+                {
+                    <div class="rh-payAlert rh-payAlert--error">
+                        @TempData["ErrorMessage"]
+                    </div>
+                }
+
+                <div class="rh-paySection">
+                    <div class="rh-paySection__heading">
+                        <span class="rh-paySection__icon">👤</span>
+                        <span>Thông tin người đặt</span>
+                    </div>
+
+                    <div class="rh-infoCard">
+                        <div class="rh-infoRow">
+                            <span class="rh-infoLabel">
+                                <span class="rh-infoIcon">👤</span>
+                                Họ và tên:
+                            </span>
+                            <span class="rh-infoValue">@Model.GuestName</span>
+                        </div>
+                        <div class="rh-infoRow">
+                            <span class="rh-infoLabel">
+                                <span class="rh-infoIcon">📧</span>
+                                Email:
+                            </span>
+                            <span class="rh-infoValue">@Model.GuestEmail</span>
+                        </div>
+                        <div class="rh-infoRow">
+                            <span class="rh-infoLabel">
+                                <span class="rh-infoIcon">📱</span>
+                                Số điện thoại:
+                            </span>
+                            <span class="rh-infoValue">@Model.GuestPhone</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rh-payDivider"></div>
+
+                <form class="rh-payForm" method="post" asp-controller="Booking" asp-action="Pay">
+                    @Html.AntiForgeryToken()
+
+                    <input type="hidden" name="bookingId" value="@Model.Id" />
+                    <input type="hidden" name="paymentMethod" id="paymentMethod" value="bank_transfer" />
+
+                    <div class="rh-paySection">
+                        <div class="rh-paySection__heading">
+                            <span class="rh-paySection__icon">💳</span>
+                            <span>Phương thức thanh toán</span>
+                        </div>
+
+                        <label class="rh-payMethod">
+                            <input type="radio" name="pm" value="bank_transfer" checked
+                                   onchange="setPaymentMethod(this.value)" />
+                            <div class="rh-payMethod__icon">🏦</div>
+                            <div class="rh-payMethod__body">
+                                <div class="rh-payMethod__title">Chuyển khoản ngân hàng</div>
+                                <div class="rh-payMethod__sub">ZaloPay, VNPAY, Chuyển khoản QR</div>
+                            </div>
+                        </label>
+
+                        <label class="rh-payMethod">
+                            <input type="radio" name="pm" value="card"
+                                   onchange="setPaymentMethod(this.value)" />
+                            <div class="rh-payMethod__icon">💳</div>
+                            <div class="rh-payMethod__body">
+                                <div class="rh-payMethod__title">Thẻ tín dụng / Ghi nợ</div>
+                                <div class="rh-payMethod__sub">Visa, MasterCard, JCB</div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="rh-payAgree">
+                        <label class="rh-agree">
+                            <input type="checkbox" id="agreeTerms" name="agreeTerms" />
+                            <span>Tôi đồng ý với <a href="#" class="rh-agree__link">điều khoản &amp; điều kiện</a> của khách sạn</span>
+                        </label>
+                    </div>
+
+                    <button class="rh-payBtn" type="submit" id="btnPay" disabled>
+                        <span class="rh-payBtn__icon">🔒</span>
+                        <span>Xác nhận &amp; Thanh toán</span>
+                    </button>
+
+                    <a class="rh-backBtn2" asp-controller="Rooms" asp-action="Detail" asp-route-id="@Model.RoomId">
+                        <span>←</span>
+                        <span>Quay lại</span>
+                    </a>
+                </form>
+            </div>
+        </div>
+
+        <!-- RIGHT: SUMMARY -->
+        <aside class="rh-sumCol">
+            <div class="rh-sumTitle">
+                <span class="rh-sumTitle__icon">📋</span>
+                <span>Tóm tắt đặt phòng</span>
+            </div>
+
+            <div class="rh-sumBox">
+                <div class="rh-sumRoomImage">
+                    <img src="@roomImage" alt="@roomName" />
+                </div>
+
+                <div class="rh-sumHeader">
+                <div class="rh-sumRoomName">
+                    <span class="rh-sumRoomIcon">🏨</span>
+                    <span>@roomName</span>
+                </div>
+                <div class="rh-sumRoomNo">Mã phòng: @roomCode</div>
+                <div class="rh-sumRoomNo">Mã giữ chỗ: @Model.BookingCode</div>
+            </div>
+
+                <div class="rh-sumMeta">
+                    <div class="rh-sumLine">
+                        <span>
+                            <span class="rh-sumLineIcon">📅</span>
+                            Check in:
+                        </span>
+                        <b>@checkInText</b>
+                    </div>
+                    <div class="rh-sumLine">
+                        <span>
+                            <span class="rh-sumLineIcon">📅</span>
+                            Check out:
+                        </span>
+                        <b>@checkOutText</b>
+                    </div>
+                    <div class="rh-sumLine">
+                        <span>
+                            <span class="rh-sumLineIcon">🌙</span>
+                            Số đêm:
+                        </span>
+                        <b>@nights</b>
+                    </div>
+                    <div class="rh-sumLine">
+                        <span>
+                            <span class="rh-sumLineIcon">👥</span>
+                            Số người:
+                        </span>
+                        <b>@Model.Guests</b>
+                    </div>
+                </div>
+
+                <div class="rh-sumDivider"></div>
+
+                <div class="rh-sumCost">
+                    <div class="rh-costRow">
+                        <span>@pricePerNight.ToString("N0", vi) VNĐ x @nights đêm</span>
+                        <b>@totalAmount.ToString("N0", vi) VNĐ</b>
+                    </div>
+                    <div class="rh-costRow">
+                        <span>Thuế &amp; Phí dịch vụ</span>
+                        <b>0 VNĐ</b>
+                    </div>
+                </div>
+
+                <div class="rh-sumDivider"></div>
+
+                <div class="rh-sumTotal">
+                    <span>
+                        <span class="rh-sumTotalIcon">💰</span>
+                        Tổng cộng:
+                    </span>
+                    <b>@totalAmount.ToString("N0", vi) VNĐ</b>
+                </div>
+            </div>
+        </aside>
+
+    </div>
+</section>
+
+<style>
+    .rh-payAlert {
+        padding: 12px 14px;
+        border-radius: 12px;
+        margin-bottom: 16px;
+        font-weight: 600;
+    }
+
+    .rh-payAlert--error {
+        background: #ffe7e7;
+        color: #b42318;
+        border: 1px solid #f1b0b0;
+    }
+</style>
+
+<script>
+    function setPaymentMethod(val) {
+        document.getElementById('paymentMethod').value = val;
+    }
+
+    const agree = document.getElementById('agreeTerms');
+    const btn = document.getElementById('btnPay');
+
+    function togglePayButton() {
+        const ok = agree.checked;
+        btn.disabled = !ok;
+        btn.classList.toggle('is-enabled', ok);
+    }
+
+    agree.addEventListener('change', togglePayButton);
+    togglePayButton();
+</script>

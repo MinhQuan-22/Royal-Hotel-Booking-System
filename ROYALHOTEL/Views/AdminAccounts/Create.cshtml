@@ -1,0 +1,82 @@
+@model ROYALHOTEL.ViewModels.AdminCreateAccountViewModel
+
+@{
+    ViewData["Title"] = "Create Account";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="admin-form-page">
+    <div class="admin-toolbar">
+        <div class="admin-toolbar__left">
+            <h2 class="admin-section-title">Create Account</h2>
+            <p class="admin-section-subtitle">Create a new user or admin account.</p>
+        </div>
+    </div>
+
+    <div class="admin-form-layout">
+        <div class="admin-form-card admin-form-card--main">
+            <form asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="admin-form-grid">
+                    <div class="admin-form-group">
+                        <label asp-for="FullName" class="form-label">Full Name</label>
+                        <input asp-for="FullName" class="form-control" />
+                        <span asp-validation-for="FullName" class="text-danger"></span>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label asp-for="Email" class="form-label">Email</label>
+                        <input asp-for="Email" class="form-control" />
+                        <span asp-validation-for="Email" class="text-danger"></span>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label asp-for="Phone" class="form-label">Phone</label>
+                        <input asp-for="Phone" class="form-control" />
+                        <span asp-validation-for="Phone" class="text-danger"></span>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label asp-for="Role" class="form-label">Role</label>
+                        <select asp-for="Role" class="form-control">
+                            <option value="user">user</option>
+                            <option value="admin">admin</option>
+                        </select>
+                        <span asp-validation-for="Role" class="text-danger"></span>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label asp-for="Status" class="form-label">Status</label>
+                        <select asp-for="Status" class="form-control">
+                            <option value="active">active</option>
+                            <option value="locked">locked</option>
+                        </select>
+                        <span asp-validation-for="Status" class="text-danger"></span>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label asp-for="Password" class="form-label">Password</label>
+                        <input asp-for="Password" class="form-control" />
+                        <span asp-validation-for="Password" class="text-danger"></span>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label asp-for="ConfirmPassword" class="form-label">Confirm Password</label>
+                        <input asp-for="ConfirmPassword" class="form-control" />
+                        <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="admin-form-actions">
+                    <button type="submit" class="btn btn-primary">Create Account</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

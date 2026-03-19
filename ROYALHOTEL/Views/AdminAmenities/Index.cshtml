@@ -1,0 +1,112 @@
+@model List<ROYALHOTEL.ViewModels.AdminAmenityItemViewModel>
+
+@{
+    ViewData["Title"] = "Amenity Management";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    var keyword = ViewBag.Keyword as string;
+}
+
+<div class="admin-toolbar">
+    <div class="admin-toolbar__left">
+        <h2 class="admin-section-title">Manage Amenities</h2>
+        <p class="admin-section-subtitle">Create, edit, and manage hotel amenities.</p>
+    </div>
+
+    <div class="admin-toolbar__right">
+        <a asp-controller="AdminAmenities" asp-action="Create" class="btn btn-success admin-btn-add">
+            + Create Amenity
+        </a>
+    </div>
+</div>
+
+<div class="admin-filter-card">
+    <form method="get" class="admin-filter-form">
+        <div class="admin-filter-form__group">
+            <input type="text"
+                   name="keyword"
+                   value="@keyword"
+                   class="form-control"
+                   placeholder="Search by key, name, icon, or category..." />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Search</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">Clear</a>
+    </form>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success mt-3">@TempData["Success"]</div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger mt-3">@TempData["Error"]</div>
+}
+
+<div class="admin-table-card">
+    <div class="admin-table-card__head">
+        <div>
+            <h3>Amenity List</h3>
+            <span>@Model.Count amenity(s)</span>
+        </div>
+    </div>
+
+    <div class="admin-table-responsive">
+        <table class="table admin-room-table align-middle">
+            <thead>
+                <tr>
+                    <th style="width: 80px;">ID</th>
+                    <th style="width: 180px;">Key</th>
+                    <th>Name</th>
+                    <th style="width: 160px;">Icon</th>
+                    <th style="width: 160px;">Category</th>
+                    <th style="width: 180px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Any())
+                {
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td class="admin-room-id">#@item.Id</td>
+                            <td><span class="admin-room-code">@item.AmenityKey</span></td>
+                            <td><div class="admin-room-name">@item.Name</div></td>
+                            <td>@(string.IsNullOrWhiteSpace(item.IconClass) ? "-" : item.IconClass)</td>
+                            <td>@(string.IsNullOrWhiteSpace(item.Category) ? "-" : item.Category)</td>
+                            <td>
+                                <div class="admin-actions">
+                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm admin-btn admin-btn-edit">
+                                        Edit
+                                    </a>
+
+                                    <form asp-action="Delete"
+                                          asp-route-id="@item.Id"
+                                          method="post"
+                                          onsubmit="return confirm('Are you sure you want to delete this amenity?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm admin-btn admin-btn-delete">
+                                            Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="6">
+                            <div class="admin-empty-state">
+                                <h4>No amenities found</h4>
+                                <p>There is no amenity data matching your filter.</p>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
