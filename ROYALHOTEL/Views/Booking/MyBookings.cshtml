@@ -48,13 +48,12 @@
 
             <nav class="rh-menu">
                 <a class="rh-menu__link" asp-controller="Home" asp-action="Index">Trang chủ</a>
-                <a class="rh-menu__link" href="#">Giới thiệu</a>
+                <a class="rh-menu__link" asp-controller="Home" asp-action="About">Giới thiệu</a>
                 <a class="rh-menu__link" asp-controller="Rooms" asp-action="Index">Phòng &amp; giá</a>
-                <a class="rh-menu__link" href="#">Liên hệ</a>
+                <a class="rh-menu__link" asp-controller="Home" asp-action="Contact">Liên hệ</a>
             </nav>
 
             @await Html.PartialAsync("_AccountAvatar")
-            
         </header>
     </div>
 </section>
@@ -62,7 +61,7 @@
 <!-- MY BOOKINGS PAGE -->
 <section class="rh-myBookingsPage">
     <div class="rh-container">
-        
+
         <!-- Page Header -->
         <div class="rh-pageHeader">
             <h1 class="rh-pageTitle">Lịch sử đặt phòng</h1>
@@ -94,7 +93,7 @@
         {
             <!-- Bookings List -->
             <div class="rh-bookingsList">
-                
+
                 @foreach (var booking in Model)
                 {
                     var nights = (booking.CheckOut - booking.CheckIn).Days;
@@ -136,7 +135,7 @@
 
                         <div class="rh-bookingCard__footer">
                             <a asp-controller="Booking" asp-action="BookingDetail" asp-route-bookingCode="@booking.BookingCode" class="rh-bookingCard__link">Xem chi tiết</a>
-                            
+
                             @if (canCancel)
                             {
                                 <form method="post" asp-controller="Booking" asp-action="Cancel" style="display:inline;" onsubmit="return confirm('Bạn có chắc muốn hủy booking này?');">
@@ -158,14 +157,17 @@
 <script>
     function toggleDropdown() {
         const menu = document.getElementById('accountMenu');
-        menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+        if (menu) {
+            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+        }
     }
 
-    // Đóng dropdown khi click bên ngoài
-    document.addEventListener('click', function(event) {
+    document.addEventListener('click', function (event) {
         const account = document.querySelector('.rh-account');
         const menu = document.getElementById('accountMenu');
-        
+
+        if (!account || !menu) return;
+
         if (!account.contains(event.target)) {
             menu.style.display = 'none';
         }

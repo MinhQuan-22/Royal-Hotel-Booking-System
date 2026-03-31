@@ -1,0 +1,26 @@
+@using ROYALHOTEL.Services.Accounts
+
+<section class="rh-payTop">
+    <div class="rh-container">
+        <header class="rh-nav rh-nav--plain">
+            <div class="rh-brand">
+                <div class="rh-brand__top">ROYAL</div>
+                <div class="rh-brand__bot">LUXURY HOTEL</div>
+            </div>
+
+            <nav class="rh-menu">
+                <a class="rh-menu__link" asp-controller="Home" asp-action="Index">Trang chủ</a>
+                <a class="rh-menu__link" href="#">Giới thiệu</a>
+                <a class="rh-menu__link" asp-controller="Rooms" asp-action="Index">Phòng &amp; giá</a>
+                <a class="rh-menu__link" href="#">Liên hệ</a>
+            </nav>
+
+            <div class="rh-account">
+                <a class="rh-account__btn" asp-controller="Account" asp-action="Login" style="text-decoration: none;">
+                    <span class="rh-account__icon">👤</span>
+                    <span class="rh-account__text">Đăng nhập</span>
+                </a>
+            </div>
+        </header>
+    </div>
+</section>

@@ -1,0 +1,314 @@
+@model List<ROYALHOTEL.Models.PricingRule>
+
+@{
+    ViewData["Title"] = "Pricing Rules";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="admin-toolbar">
+    <div class="admin-toolbar__left">
+        <h2 class="admin-section-title">Manage Pricing Rules</h2>
+        <p class="admin-section-subtitle">
+            Configure weekend, holiday, and promotion pricing without redeploy.
+        </p>
+    </div>
+
+    <div class="admin-toolbar__right">
+        <a asp-action="Create" class="btn btn-success admin-btn-add">
+            + Create Pricing Rule
+        </a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success mt-3">@TempData["Success"]</div>
+}
+
+<div class="admin-table-card">
+    <div class="admin-table-card__head">
+        <div>
+            <h3>Pricing Rule List</h3>
+            <span>@Model.Count rule(s)</span>
+        </div>
+    </div>
+
+    <div class="admin-table-responsive">
+        <table class="table admin-room-table align-middle">
+            <thead>
+                <tr>
+                    <th style="width: 60px;">ID</th>
+                    <th style="min-width: 200px;">Name</th>
+                    <th style="width: 110px;">Type</th>
+                    <th style="width: 120px;">Room Type</th>
+                    <th style="width: 160px;">Date Range</th>
+                    <th style="width: 120px;">Weekend Mask</th>
+                    <th style="width: 100px;">Multiplier</th>
+                    <th style="width: 80px;">Priority</th>
+                    <th style="width: 100px;">Status</th>
+                    <th style="width: 120px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Any())
+                {
+                    @foreach (var item in Model)
+                    {
+                        var ruleTypeClass = item.RuleType == "promotion"
+                            ? "admin-status admin-status--checkedout"
+                            : item.RuleType == "holiday"
+                                ? "admin-status admin-status--confirmed"
+                                : "admin-status admin-status--completed";
+
+                        var statusClass = item.IsActive
+                            ? "admin-status admin-status--active"
+                            : "admin-status admin-status--inactive";
+
+                        var dateRangeText = (item.StartDate.HasValue || item.EndDate.HasValue)
+                            ? $"{item.StartDate?.ToString("dd/MM/yyyy") ?? "-"} - {item.EndDate?.ToString("dd/MM/yyyy") ?? "-"}"
+                            : "-";
+
+                        <tr>
+                            <td class="admin-room-id">#@item.Id</td>
+                            <td>
+                                <div class="admin-room-name">@item.Name</div>
+                                <div class="admin-room-desc">
+                                    @(string.IsNullOrWhiteSpace(item.Notes) ? "No notes." : item.Notes)
+                                </div>
+                            </td>
+                            <td>
+                                <span class="@ruleTypeClass">@item.RuleType</span>
+                            </td>
+                            <td>
+                                <span class="admin-pill admin-pill--type">
+                                    @(string.IsNullOrWhiteSpace(item.RoomType) ? "All rooms" : item.RoomType)
+                                </span>
+                            </td>
+                            <td>@dateRangeText</td>
+                            <td>@(string.IsNullOrWhiteSpace(item.DayOfWeekMask) ? "-" : item.DayOfWeekMask)</td>
+                            <td class="admin-room-price">@item.Multiplier.ToString("0.0000")</td>
+                            <td>@item.Priority</td>
+                            <td>
+                                <span class="@statusClass">
+                                    @(item.IsActive ? "Active" : "Inactive")
+                                </span>
+                            </td>
+                            <td>
+                                <!-- Dropdown Actions -->
+                                <div class="rh-act-dropdown" data-dropdown>
+                                    <button type="button" class="rh-act-trigger" aria-haspopup="true" aria-expanded="false">
+                                        Actions <span class="rh-act-chevron">▾</span>
+                                    </button>
+                                    <div class="rh-act-menu" role="menu">
+                                        <a asp-action="Edit"
+                                           asp-route-id="@item.Id"
+                                           class="rh-act-item rh-act-item--edit"
+                                           role="menuitem">
+                                            Edit
+                                        </a>
+                                        <a asp-action="History"
+                                           asp-route-id="@item.Id"
+                                           class="rh-act-item rh-act-item--history"
+                                           role="menuitem">
+                                            History
+                                        </a>
+                                        <form asp-action="Delete"
+                                              asp-route-id="@item.Id"
+                                              method="post"
+                                              onsubmit="return confirm('Are you sure you want to delete this pricing rule?');"
+                                              style="margin:0;">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="rh-act-item rh-act-item--delete" role="menuitem">
+                                                Delete
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="10">
+                            <div class="admin-empty-state">
+                                <h4>No pricing rules found</h4>
+                                <p>Create your first pricing rule to manage dynamic room pricing.</p>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+/* ── Table Responsive Improvements ── */
+.admin-table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.admin-room-table {
+    min-width: 1200px;
+    table-layout: auto;
+}
+
+.admin-room-table td {
+    vertical-align: middle;
+    padding: 14px 12px;
+}
+
+/* Name column - allow text to wrap naturally */
+.admin-room-table td:nth-child(2) {
+    max-width: 300px;
+    min-width: 200px;
+}
+
+/* ── Dropdown Actions ── */
+.rh-act-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.rh-act-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 16px;
+    height: 38px;
+    border-radius: 10px;
+    border: 1px solid #c9a646;
+    background: linear-gradient(180deg, #d8b357 0%, #b88b25 100%);
+    color: #fff;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: box-shadow .2s ease, transform .2s ease;
+}
+
+.rh-act-trigger:hover {
+    box-shadow: 0 8px 18px rgba(184,139,37,.28);
+    transform: translateY(-1px);
+}
+
+.rh-act-chevron {
+    font-size: 11px;
+    transition: transform .2s ease;
+}
+
+.rh-act-dropdown.is-open .rh-act-chevron {
+    transform: rotate(180deg);
+}
+
+.rh-act-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    z-index: 1050;
+    min-width: 148px;
+    background: #fff;
+    border: 1px solid #e8d5a0;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.13);
+    padding: 6px;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.rh-act-dropdown.is-open .rh-act-menu {
+    display: flex;
+}
+
+/* shared item base - Tất cả Edit/History/Delete giống hệt nhau */
+.rh-act-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 7px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    text-align: left;
+    white-space: nowrap;
+    
+    /* Màu sắc giống History ban đầu */
+    color: #8c6a16;
+    background: #fffaf0;
+    border: 1px solid #c9a646;
+    transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+
+.rh-act-item:hover {
+    background: linear-gradient(180deg,#d8b357 0%,#b88b25 100%);
+    color: #fff;
+    border-color: #b88b25;
+    text-decoration: none;
+}
+
+/* Responsive adjustments */
+@@media (max-width: 1400px) {
+    .admin-room-table {
+        min-width: 1100px;
+    }
+    
+    .admin-room-table td:nth-child(2) {
+        max-width: 250px;
+    }
+}
+
+@@media (max-width: 1200px) {
+    .admin-room-table {
+        min-width: 1000px;
+    }
+    
+    .admin-room-table td:nth-child(2) {
+        max-width: 200px;
+    }
+    
+    .admin-room-table td {
+        padding: 12px 10px;
+        font-size: 13px;
+    }
+}
+</style>
+
+<script>
+(function () {
+    // Toggle dropdown khi nhấn nút trigger
+    document.addEventListener('click', function (e) {
+        const trigger = e.target.closest('[data-dropdown] .rh-act-trigger');
+
+        // Đóng mọi dropdown đang mở
+        document.querySelectorAll('.rh-act-dropdown.is-open').forEach(function (dd) {
+            if (!dd.contains(e.target)) {
+                dd.classList.remove('is-open');
+                dd.querySelector('.rh-act-trigger').setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        if (trigger) {
+            const dropdown = trigger.closest('[data-dropdown]');
+            const isOpen = dropdown.classList.toggle('is-open');
+            trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        }
+    });
+
+    // Đóng dropdown khi nhấn phím Escape
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.rh-act-dropdown.is-open').forEach(function (dd) {
+                dd.classList.remove('is-open');
+                dd.querySelector('.rh-act-trigger').setAttribute('aria-expanded', 'false');
+            });
+        }
+    });
+})();
+</script>

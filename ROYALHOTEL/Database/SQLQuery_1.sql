@@ -371,9 +371,6 @@ COMMIT TRAN;
 GO
 
 
-USE RoyalHotelDb;
-GO
-
 -- 1) Thêm PricePerNight nếu chưa có
 IF COL_LENGTH('dbo.Bookings', 'PricePerNight') IS NULL
 BEGIN
@@ -504,4 +501,172 @@ END
 GO
 
 SELECT 'Status column added successfully!' AS Result;
+GO
+
+-- AddPricingRules
+
+IF OBJECT_ID('dbo.PricingRules', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.PricingRules
+    (
+        Id INT IDENTITY(1,1) PRIMARY KEY,
+        Name NVARCHAR(200) NOT NULL,
+        RuleType NVARCHAR(20) NOT NULL,
+        RoomType NVARCHAR(50) NULL,
+        StartDate DATE NULL,
+        EndDate DATE NULL,
+        DayOfWeekMask NVARCHAR(50) NULL,
+        Multiplier DECIMAL(10,4) NOT NULL,
+        Priority INT NOT NULL CONSTRAINT DF_PricingRules_Priority DEFAULT(100),
+        IsActive BIT NOT NULL CONSTRAINT DF_PricingRules_IsActive DEFAULT(1),
+        Notes NVARCHAR(500) NULL,
+        CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_PricingRules_CreatedAt DEFAULT(SYSDATETIME()),
+        UpdatedAt DATETIME2 NOT NULL CONSTRAINT DF_PricingRules_UpdatedAt DEFAULT(SYSDATETIME()),
+        CreatedBy NVARCHAR(200) NULL,
+        UpdatedBy NVARCHAR(200) NULL
+    );
+
+    ALTER TABLE dbo.PricingRules
+    ADD CONSTRAINT CK_PricingRules_RuleType
+    CHECK (RuleType IN ('weekend','holiday','promotion'));
+
+    CREATE INDEX IX_PricingRules_Active_Type_RoomType_Priority
+        ON dbo.PricingRules(IsActive, RuleType, RoomType, Priority);
+END
+GO
+
+IF OBJECT_ID('dbo.PricingRuleHistories', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.PricingRuleHistories
+    (
+        Id BIGINT IDENTITY(1,1) PRIMARY KEY,
+        PricingRuleId INT NULL,
+        ActionType NVARCHAR(20) NOT NULL,
+        RuleName NVARCHAR(200) NOT NULL,
+        RuleType NVARCHAR(20) NOT NULL,
+        RoomType NVARCHAR(50) NULL,
+        StartDate DATE NULL,
+        EndDate DATE NULL,
+        DayOfWeekMask NVARCHAR(50) NULL,
+        Multiplier DECIMAL(10,4) NOT NULL,
+        Priority INT NOT NULL,
+        IsActive BIT NOT NULL,
+        Notes NVARCHAR(500) NULL,
+        ChangedAt DATETIME2 NOT NULL CONSTRAINT DF_PricingRuleHistories_ChangedAt DEFAULT(SYSDATETIME()),
+        ChangedBy NVARCHAR(200) NULL
+    );
+
+    CREATE INDEX IX_PricingRuleHistories_RuleId_ChangedAt
+        ON dbo.PricingRuleHistories(PricingRuleId, ChangedAt);
+END
+GO
+
+-- Seed rule mặc định nếu chưa có
+IF NOT EXISTS (SELECT 1 FROM dbo.PricingRules WHERE RuleType = 'weekend' AND RoomType IS NULL)
+BEGIN
+    INSERT INTO dbo.PricingRules
+    (
+        Name, RuleType, RoomType, DayOfWeekMask, Multiplier, Priority, IsActive, Notes, CreatedBy, UpdatedBy
+    )
+    VALUES
+    (
+        N'Giá cuối tuần mặc định', 'weekend', NULL, 'Sat,Sun', 1.1500, 300, 1,
+        N'Áp dụng toàn hệ thống cho thứ 7 và chủ nhật', 'system', 'system'
+    );
+END
+GO
+
+
+-- SeedPricingRules.sql
+
+-- ============================================================
+-- 1) WEEKEND RULE (Thứ 7 + Chủ nhật, áp dụng mọi loại phòng)
+-- ============================================================
+IF NOT EXISTS (
+    SELECT 1 FROM dbo.PricingRules
+    WHERE RuleType = 'weekend' AND RoomType IS NULL AND IsActive = 1
+)
+BEGIN
+    INSERT INTO dbo.PricingRules
+        (Name, RuleType, RoomType, DayOfWeekMask, StartDate, EndDate, Multiplier, Priority, IsActive, Notes, CreatedBy, UpdatedBy)
+    VALUES
+        (N'Giá cuối tuần', 'weekend', NULL, 'Sat,Sun', NULL, NULL, 1.1500, 200, 1,
+         N'Tăng 15% vào thứ 7 và chủ nhật cho tất cả loại phòng', 'system', 'system');
+END
+GO
+
+-- ============================================================
+-- 2) HOLIDAY RULES (Ngày lễ Việt Nam, áp dụng mọi loại phòng)
+--    Mỗi năm admin cần tạo rule mới nếu muốn — hoặc dùng rule không giới hạn năm 
+--    bằng cách cấu hình lại StartDate/EndDate hằng năm.
+--    Script này tạo rule mặc định cho năm 2026.
+-- ============================================================
+
+-- Tết Dương lịch 1/1
+IF NOT EXISTS (
+    SELECT 1 FROM dbo.PricingRules
+    WHERE RuleType = 'holiday' AND RoomType IS NULL
+      AND StartDate = '2026-01-01' AND EndDate = '2026-01-01'
+)
+BEGIN
+    INSERT INTO dbo.PricingRules
+        (Name, RuleType, RoomType, DayOfWeekMask, StartDate, EndDate, Multiplier, Priority, IsActive, Notes, CreatedBy, UpdatedBy)
+    VALUES
+        (N'Tết Dương lịch 2026', 'holiday', NULL, NULL, '2026-01-01', '2026-01-01', 1.2500, 100, 1,
+         N'Ngày Tết Dương lịch 1/1, tăng 25%', 'system', 'system');
+END
+GO
+
+-- Giỗ Tổ Hùng Vương 10/3 âm lịch (2026 = 7/4 dương)
+IF NOT EXISTS (
+    SELECT 1 FROM dbo.PricingRules
+    WHERE RuleType = 'holiday' AND RoomType IS NULL
+      AND StartDate = '2026-04-07' AND EndDate = '2026-04-07'
+)
+BEGIN
+    INSERT INTO dbo.PricingRules
+        (Name, RuleType, RoomType, DayOfWeekMask, StartDate, EndDate, Multiplier, Priority, IsActive, Notes, CreatedBy, UpdatedBy)
+    VALUES
+        (N'Giỗ Tổ Hùng Vương 2026', 'holiday', NULL, NULL, '2026-04-07', '2026-04-07', 1.2000, 100, 1,
+         N'Giỗ Tổ Hùng Vương 10/3 âm lịch, tăng 20%', 'system', 'system');
+END
+GO
+
+-- Ngày Giải phóng 30/4 + Quốc tế Lao động 1/5 (nghỉ lễ liên tiếp)
+IF NOT EXISTS (
+    SELECT 1 FROM dbo.PricingRules
+    WHERE RuleType = 'holiday' AND RoomType IS NULL
+      AND StartDate = '2026-04-30' AND EndDate = '2026-05-01'
+)
+BEGIN
+    INSERT INTO dbo.PricingRules
+        (Name, RuleType, RoomType, DayOfWeekMask, StartDate, EndDate, Multiplier, Priority, IsActive, Notes, CreatedBy, UpdatedBy)
+    VALUES
+        (N'Lễ 30/4 - 1/5 năm 2026', 'holiday', NULL, NULL, '2026-04-30', '2026-05-01', 1.3000, 100, 1,
+         N'Ngày Giải phóng và Quốc tế Lao động, tăng 30%', 'system', 'system');
+END
+GO
+
+-- Quốc khánh 2/9
+IF NOT EXISTS (
+    SELECT 1 FROM dbo.PricingRules
+    WHERE RuleType = 'holiday' AND RoomType IS NULL
+      AND StartDate = '2026-09-02' AND EndDate = '2026-09-02'
+)
+BEGIN
+    INSERT INTO dbo.PricingRules
+        (Name, RuleType, RoomType, DayOfWeekMask, StartDate, EndDate, Multiplier, Priority, IsActive, Notes, CreatedBy, UpdatedBy)
+    VALUES
+        (N'Quốc khánh 2/9 năm 2026', 'holiday', NULL, NULL, '2026-09-02', '2026-09-02', 1.2500, 100, 1,
+         N'Ngày Quốc khánh 2/9, tăng 25%', 'system', 'system');
+END
+GO
+
+-- ============================================================
+-- 3) KIỂM TRA KẾT QUẢ
+-- ============================================================
+SELECT Id, Name, RuleType, RoomType, DayOfWeekMask, StartDate, EndDate,
+       Multiplier, Priority, IsActive, Notes
+FROM dbo.PricingRules
+ORDER BY Priority, RuleType, StartDate;
 GO

@@ -1,30 +1,28 @@
 @using System.Globalization
 @using ROYALHOTEL.Models
 @using ROYALHOTEL.Helpers
-@model List<Room>
+@using ROYALHOTEL.Services.Rooms
+@model RoomIndexPageData
 
 @{
     ViewData["Title"] = "Phòng";
     var vi = CultureInfo.GetCultureInfo("vi-VN");
 
-    var checkIn = (string?)ViewBag.CheckIn;
-    var checkOut = (string?)ViewBag.CheckOut;
-    var guests = (int)(ViewBag.Guests ?? 0);
-    var sort = (string?)ViewBag.Sort ?? "price_asc";
+    var checkIn = Model.CheckIn;
+    var checkOut = Model.CheckOut;
+    var guests = Model.Guests;
+    var sort = Model.Sort;
 
-    var rooms = Model ?? new List<Room>();
-
-    var featuredRooms = (IEnumerable<Room>)(ViewBag.FeaturedRooms ?? new List<Room>());
-    var featured = featuredRooms.ToList();
-
-    var filterAmenities = ((IEnumerable<Amenity>)(ViewBag.FilterAmenities ?? new List<Amenity>())).ToList();
-
-    var allRoomTypes = (IEnumerable<string>)(ViewBag.AllRoomTypes ?? new List<string>());
-    var selectedTypes = (IEnumerable<string>)(ViewBag.SelectedRoomTypes ?? new List<string>());
+    var rooms = Model.Rooms;
+    var featured = Model.FeaturedRooms;
+    var featuredPricingMap = (IDictionary<int, RoomPricingSummary>)Model.FeaturedPricingMap;
+    var roomPricingMap = (IDictionary<int, RoomPricingSummary>)Model.RoomPricingMap;
+    var filterAmenities = Model.FilterAmenities;
+    var allRoomTypes = (IEnumerable<string>)Model.AllRoomTypes;
+    var selectedTypes = (IEnumerable<string>)Model.SelectedRoomTypes;
     var selectedAmenities = Context.Request.Query["amenities"].ToList();
-
-    var minPrice = (decimal)(ViewBag.MinPrice ?? 0m);
-    var maxPrice = (decimal)(ViewBag.MaxPrice ?? 100_000_000m);
+    var minPrice = Model.MinPrice;
+    var maxPrice = Model.MaxPrice;
 }
 
 <!-- HERO BANNER -->
@@ -41,9 +39,9 @@
 
             <nav class="rh-menu">
                 <a class="rh-menu__link" asp-controller="Home" asp-action="Index">Trang chủ</a>
-                <a class="rh-menu__link" href="#">Giới thiệu</a>
-                <a class="rh-menu__link" asp-controller="Rooms" asp-action="Index">Phòng &amp; giá</a>
-                <a class="rh-menu__link" href="#">Liên hệ</a>
+                <a class="rh-menu__link" asp-controller="Home" asp-action="About">Giới thiệu</a>
+                <a class="rh-menu__link is-active" asp-controller="Rooms" asp-action="Index">Phòng &amp; giá</a>
+                <a class="rh-menu__link" asp-controller="Home" asp-action="Contact">Liên hệ</a>
             </nav>
 
             @await Html.PartialAsync("_AccountAvatar")
@@ -97,16 +95,16 @@
                     ? r.RoomType.Trim()
                     : r.Name;
 
+                var featuredPricing = featuredPricingMap.TryGetValue(r.Id, out var featuredSummary)
+                    ? featuredSummary
+                    : RoomPricingSummary.FromBase(r.BasePricePerNight);
+
                 <div class="@cardClass">
                     <img class="rh-roomCard__img" src="@img" alt="@displayName" />
-                    <a asp-controller="Rooms" asp-action="Detail"
-                       asp-route-id="@r.Id"
-                       asp-route-checkIn="@(checkIn)"
-                       asp-route-checkOut="@(checkOut)"
-                       asp-route-guests="@(guests)"
+                    <a href="#" onclick="event.preventDefault();"
                        class="rh-roomCard__bookBtn">ĐẶT PHÒNG</a>
                     <div class="rh-roomCard__info">
-                        <div class="rh-roomCard__price">@r.BasePricePerNight.ToString("N0", vi) / ĐÊM</div>
+                        <div class="rh-roomCard__price">@featuredPricing.DisplayPricePerNight.ToString("N0", vi) / ĐÊM</div>
                         <div class="rh-roomCard__name">@displayName</div>
                     </div>
                 </div>
@@ -121,8 +119,20 @@
         <div class="rh-roomsResultHead__brand">RoyalHotel</div>
 
         <div class="rh-roomsResultHead__info">
-            <div class="rh-rhinfo__item">📍 123 Nguyễn Huệ, Quận 1, Tp.Hồ Chí Minh</div>
-            <div class="rh-rhinfo__item">🕒 Check-in: 14:00 | Check-out: 12:00</div>
+            <div class="rh-rhinfo__item">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 6px;">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+                123 Nguyễn Huệ, Quận 1, Tp.Hồ Chí Minh
+            </div>
+            <div class="rh-rhinfo__item">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 6px;">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12,6 12,12 16,14"></polyline>
+                </svg>
+                Check-in: 14:00 | Check-out: 12:00
+            </div>
         </div>
     </div>
 </section>
@@ -227,13 +237,28 @@
                         .Where(t => !string.IsNullOrWhiteSpace(t))
                         .ToList();
 
+                    var roomPricing = roomPricingMap.TryGetValue(r.Id, out var roomSummary)
+                        ? roomSummary
+                        : RoomPricingSummary.FromBase(r.BasePricePerNight);
+
                     <article class="rh-roomItem">
                         <div class="rh-roomItem__thumb">
                             <img src="@thumb" alt="@r.Name">
                         </div>
                         <div class="rh-roomItem__content">
                             <div class="rh-roomItem__name">@r.Name</div>
-                            <div class="rh-roomItem__meta">👤 Tối đa @r.MaxGuests người • 🛏️ 1 giường đôi</div>
+                            <div class="rh-roomItem__meta">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 4px;">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                                Tối đa @r.MaxGuests người • 
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin: 0 4px;">
+                                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                                </svg>
+                                1 giường đôi
+                            </div>
 
                             <div class="rh-roomItem__tags">
                                 @foreach (var t in tagTexts)
@@ -246,7 +271,7 @@
 
                             <div class="rh-roomItem__bottom">
                                 <div class="rh-roomItem__price">
-                                    <strong>@r.BasePricePerNight.ToString("N0", vi)</strong> <span>VNĐ/đêm</span>
+                                    <strong>@roomPricing.DisplayPricePerNight.ToString("N0", vi)</strong> <span>VNĐ/đêm</span>
                                 </div>
 
                                 <a class="rh-roomItem__btn"
@@ -277,5 +302,27 @@
         range.addEventListener('input', () => {
             minI.value = range.value;
         });
+
+        // Smooth scroll to results after filter apply
+        const filterForm = document.getElementById('roomFilterForm');
+        if (filterForm) {
+            // Check if we just submitted the form (has query params)
+            const urlParams = new URLSearchParams(window.location.search);
+            const hasFilters = urlParams.has('minPrice') || urlParams.has('maxPrice') || 
+                             urlParams.has('roomTypes') || urlParams.has('amenities');
+            
+            if (hasFilters && window.location.hash !== '#applied') {
+                // Scroll to results section smoothly
+                setTimeout(() => {
+                    const resultsSection = document.querySelector('.rh-roomsResultBody');
+                    if (resultsSection) {
+                        resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 100);
+                
+                // Add hash to prevent repeated scrolling on page refresh
+                window.history.replaceState(null, '', window.location.pathname + window.location.search + '#applied');
+            }
+        }
     })();
 </script>

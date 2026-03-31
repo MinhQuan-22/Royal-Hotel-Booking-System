@@ -14,6 +14,9 @@ public class RoyalHotelDbContext : DbContext
     public DbSet<Booking> Bookings => Set<Booking>();
     public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
 
+    public DbSet<PricingRule> PricingRules => Set<PricingRule>();
+    public DbSet<PricingRuleHistory> PricingRuleHistories => Set<PricingRuleHistory>();
+
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<PasswordResetOtp> PasswordResetOtps => Set<PasswordResetOtp>();
 
@@ -45,6 +48,82 @@ public class RoyalHotelDbContext : DbContext
         modelBuilder.Entity<Room>()
             .Property(x => x.BasePricePerNight)
             .HasPrecision(18, 2);
+
+        // =========================
+        // PricingRule
+        // =========================
+        modelBuilder.Entity<PricingRule>(e =>
+        {
+            e.ToTable("PricingRules");
+
+            e.Property(x => x.Name)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            e.Property(x => x.RuleType)
+                .HasMaxLength(20)
+                .IsRequired();
+
+            e.Property(x => x.RoomType)
+                .HasMaxLength(50);
+
+            e.Property(x => x.DayOfWeekMask)
+                .HasMaxLength(50);
+
+            e.Property(x => x.Multiplier)
+                .HasPrecision(10, 4);
+
+            e.Property(x => x.Priority)
+                .HasDefaultValue(100);
+
+            e.Property(x => x.IsActive)
+                .HasDefaultValue(true);
+
+            e.Property(x => x.Notes)
+                .HasMaxLength(500);
+
+            e.Property(x => x.CreatedBy)
+                .HasMaxLength(200);
+
+            e.Property(x => x.UpdatedBy)
+                .HasMaxLength(200);
+
+            e.HasIndex(x => new { x.IsActive, x.RuleType, x.RoomType, x.Priority });
+        });
+
+        modelBuilder.Entity<PricingRuleHistory>(e =>
+        {
+            e.ToTable("PricingRuleHistories");
+
+            e.Property(x => x.ActionType)
+                .HasMaxLength(20)
+                .IsRequired();
+
+            e.Property(x => x.RuleName)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            e.Property(x => x.RuleType)
+                .HasMaxLength(20)
+                .IsRequired();
+
+            e.Property(x => x.RoomType)
+                .HasMaxLength(50);
+
+            e.Property(x => x.DayOfWeekMask)
+                .HasMaxLength(50);
+
+            e.Property(x => x.Multiplier)
+                .HasPrecision(10, 4);
+
+            e.Property(x => x.Notes)
+                .HasMaxLength(500);
+
+            e.Property(x => x.ChangedBy)
+                .HasMaxLength(200);
+
+            e.HasIndex(x => new { x.PricingRuleId, x.ChangedAt });
+        });
 
         // =========================
         // Booking

@@ -1,0 +1,178 @@
+@model ROYALHOTEL.Models.PricingRule
+
+@{
+    ViewData["Title"] = "Edit Pricing Rule";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
+    var roomTypeOptions = ViewBag.RoomTypeOptions as List<string> ?? new List<string>();
+    var ruleTypeOptions = ViewBag.RuleTypeOptions as List<string> ?? new List<string>();
+}
+
+<div class="admin-form-page">
+    <div class="admin-toolbar">
+        <div class="admin-toolbar__left">
+            <h2 class="admin-section-title">Edit Pricing Rule</h2>
+            <p class="admin-section-subtitle">
+                Update pricing rule information and status.
+            </p>
+        </div>
+    </div>
+
+    <div class="admin-form-layout">
+        <div class="admin-form-card admin-form-card--main">
+            <form asp-action="Edit" method="post">
+                @Html.AntiForgeryToken()
+                <input asp-for="Id" type="hidden" />
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="admin-form-grid">
+                    <div class="admin-form-group">
+                        <label asp-for="Name" class="form-label">Rule Name</label>
+                        <input asp-for="Name" class="form-control" />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label asp-for="RuleType" class="form-label">Rule Type</label>
+                        <select asp-for="RuleType" class="form-control" id="ruleTypeSelect">
+                            @foreach (var item in ruleTypeOptions)
+                            {
+                                <option value="@item">@item</option>
+                            }
+                        </select>
+                        <span asp-validation-for="RuleType" class="text-danger"></span>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label asp-for="RoomType" class="form-label">Room Type</label>
+                        <select asp-for="RoomType" class="form-control">
+                            <option value="">All room types</option>
+                            @foreach (var rt in roomTypeOptions)
+                            {
+                                <option value="@rt">@rt</option>
+                            }
+                        </select>
+                        <span asp-validation-for="RoomType" class="text-danger"></span>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label asp-for="Multiplier" class="form-label">Multiplier</label>
+                        <input asp-for="Multiplier" class="form-control" type="number" step="0.0001" min="0.0001" />
+                        <span asp-validation-for="Multiplier" class="text-danger"></span>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label asp-for="Priority" class="form-label">Priority</label>
+                        <input asp-for="Priority" class="form-control" type="number" min="1" />
+                        <span asp-validation-for="Priority" class="text-danger"></span>
+                    </div>
+
+                    <div class="admin-form-group weekend-only">
+                        <label asp-for="DayOfWeekMask" class="form-label">Weekend Mask</label>
+                        <input asp-for="DayOfWeekMask" class="form-control" placeholder="Sat,Sun" />
+                        <span asp-validation-for="DayOfWeekMask" class="text-danger"></span>
+                    </div>
+
+                    <div class="admin-form-group date-range-only">
+                        <label asp-for="StartDate" class="form-label">Start Date</label>
+                        <input asp-for="StartDate" class="form-control" type="date" />
+                        <span asp-validation-for="StartDate" class="text-danger"></span>
+                    </div>
+
+                    <div class="admin-form-group date-range-only">
+                        <label asp-for="EndDate" class="form-label">End Date</label>
+                        <input asp-for="EndDate" class="form-control" type="date" />
+                        <span asp-validation-for="EndDate" class="text-danger"></span>
+                    </div>
+
+                    <div class="admin-form-group admin-form-group--full">
+                        <label asp-for="Notes" class="form-label">Notes</label>
+                        <textarea asp-for="Notes" class="form-control" rows="4"></textarea>
+                        <span asp-validation-for="Notes" class="text-danger"></span>
+                    </div>
+
+                    <div class="admin-form-group admin-form-group--full">
+                        <div class="admin-switch">
+                            <input asp-for="IsActive" class="form-check-input" />
+                            <label asp-for="IsActive" class="form-check-label">Rule is active</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="admin-form-actions">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <a asp-action="History" asp-route-id="@Model.Id" class="btn btn-outline-secondary">View History</a>
+                    <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
+                </div>
+            </form>
+        </div>
+
+        <div class="admin-form-side">
+            <div class="admin-preview-card">
+                <div class="admin-preview-card__head">
+                    <h3>Rule Preview</h3>
+                    <span>Current pricing rule display</span>
+                </div>
+
+                <div class="admin-preview-card__body">
+                    <h4>@Model.Name</h4>
+
+                    <div class="admin-preview-meta">
+                        <span class="admin-pill admin-pill--type">@Model.RuleType</span>
+                        <span class="admin-pill admin-pill--guests">
+                            @(string.IsNullOrWhiteSpace(Model.RoomType) ? "All rooms" : Model.RoomType)
+                        </span>
+                    </div>
+
+                    <div class="admin-preview-price">
+                        Multiplier: @Model.Multiplier.ToString("0.0000")
+                    </div>
+
+                    <p>
+                        Priority: <strong>@Model.Priority</strong><br />
+                        Date Range:
+                        <strong>
+                            @(Model.StartDate?.ToString("dd/MM/yyyy") ?? "-")
+                            -
+                            @(Model.EndDate?.ToString("dd/MM/yyyy") ?? "-")
+                        </strong><br />
+                        Weekend Mask: <strong>@(string.IsNullOrWhiteSpace(Model.DayOfWeekMask) ? "-" : Model.DayOfWeekMask)</strong>
+                    </p>
+
+                    @if (Model.IsActive)
+                    {
+                        <span class="admin-status admin-status--active">Active</span>
+                    }
+                    else
+                    {
+                        <span class="admin-status admin-status--inactive">Inactive</span>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            const ruleType = document.getElementById('ruleTypeSelect');
+            const weekendOnly = document.querySelectorAll('.weekend-only');
+            const dateRangeOnly = document.querySelectorAll('.date-range-only');
+
+            function syncFields() {
+                const value = ruleType ? ruleType.value : '';
+
+                const isWeekend = value === 'weekend';
+                weekendOnly.forEach(x => x.style.display = isWeekend ? '' : 'none');
+                dateRangeOnly.forEach(x => x.style.display = isWeekend ? 'none' : '');
+            }
+
+            if (ruleType) {
+                ruleType.addEventListener('change', syncFields);
+                syncFields();
+            }
+        })();
+    </script>
+}

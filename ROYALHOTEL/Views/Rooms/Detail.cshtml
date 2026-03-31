@@ -1,35 +1,40 @@
 @using System.Globalization
 @using ROYALHOTEL.Models
 @using ROYALHOTEL.Helpers
-@model Room
+@using ROYALHOTEL.Services.Rooms
+@model RoomDetailPageData
 
 @{
     ViewData["Title"] = "Chi tiết phòng";
     var vi = CultureInfo.GetCultureInfo("vi-VN");
 
-    var checkIn = (string?)ViewBag.CheckIn;
-    var checkOut = (string?)ViewBag.CheckOut;
-    var guests = (int)(ViewBag.Guests ?? 1);
-    var isAvailable = ViewBag.IsAvailable == null ? true : (bool)ViewBag.IsAvailable;
-    var availabilityMessage = (string?)ViewBag.AvailabilityMessage;
+    var room = Model.Room;
+    var checkIn = Model.CheckIn;
+    var checkOut = Model.CheckOut;
+    var guests = Model.Guests;
+    var isAvailable = Model.IsAvailable;
+    var availabilityMessage = Model.AvailabilityMessage;
     var detailErrorMessage = TempData["DetailErrorMessage"]?.ToString();
 
-    var imgs = (Model.Images ?? new List<RoomImage>()).OrderBy(i => i.SortOrder).ToList();
-    var mainImage = Model.CoverImageUrl ?? imgs.FirstOrDefault()?.ImageUrl ?? "/assets/rooms/room1.png";
+    var imgs = (room.Images ?? new List<RoomImage>()).OrderBy(i => i.SortOrder).ToList();
+    var mainImage = room.CoverImageUrl ?? imgs.FirstOrDefault()?.ImageUrl ?? "/assets/rooms/room1.png";
 
     var img1 = imgs.ElementAtOrDefault(0)?.ImageUrl ?? mainImage;
     var img2 = imgs.ElementAtOrDefault(1)?.ImageUrl ?? mainImage;
     var img3 = imgs.ElementAtOrDefault(2)?.ImageUrl ?? mainImage;
     var img4 = imgs.ElementAtOrDefault(3)?.ImageUrl ?? mainImage;
 
-    var priceText = Model.BasePricePerNight.ToString("N0", vi);
-    var priceJs = Model.BasePricePerNight.ToString(CultureInfo.InvariantCulture);
+    var pricingSummary = Model.PricingSummary;
+
+    var priceText = pricingSummary.DisplayPricePerNight.ToString("N0", vi);
+    // priceJs: giá trung bình/đêm đã tính strategy phía server.
+    // JS dùng để ước lượng tổng tiền trước khi page reload với ngày mới.
+    var priceJs = pricingSummary.DisplayPricePerNight.ToString(CultureInfo.InvariantCulture);
 
     var checkInVal = checkIn ?? "";
     var checkOutVal = checkOut ?? "";
 
-    var filterAmenities = ((IEnumerable<Amenity>)(ViewBag.FilterAmenities ?? new List<Amenity>())).ToList();
-    var displayAmenities = RoomAmenityViewHelper.GetDisplayAmenities(Model, filterAmenities);
+    var displayAmenities = RoomAmenityViewHelper.GetDisplayAmenities(Model.Room, null);
 }
 
 <nav class="rh-detailNav">
@@ -41,9 +46,9 @@
 
         <div class="rh-menu">
             <a class="rh-menu__link" asp-controller="Home" asp-action="Index">Trang chủ</a>
-            <a class="rh-menu__link" href="#">Giới thiệu</a>
+            <a class="rh-menu__link" asp-controller="Home" asp-action="About">Giới thiệu</a>
             <a class="rh-menu__link is-active" asp-controller="Rooms" asp-action="Index">Phòng &amp; giá</a>
-            <a class="rh-menu__link" href="#">Liên hệ</a>
+            <a class="rh-menu__link" asp-controller="Home" asp-action="Contact">Liên hệ</a>
         </div>
 
         @await Html.PartialAsync("_AccountAvatar")
@@ -61,7 +66,7 @@
             <a class="rh-bcrumb__link" asp-controller="Rooms" asp-action="Index"
                asp-route-checkIn="@(checkIn)" asp-route-checkOut="@(checkOut)" asp-route-guests="@(guests)">Phòng</a>
             <span class="rh-bcrumb__sep"> › </span>
-            <span class="rh-bcrumb__current">@Model.Name</span>
+            <span class="rh-bcrumb__current">@room.Name</span>
         </div>
     </div>
 </section>
@@ -72,7 +77,7 @@
         <div class="rh-roomDetail__left">
             <div class="rh-gallery">
                 <div class="rh-gallery__main" onclick="openImageModal(this)">
-                    <img src="@mainImage" alt="@Model.Name" />
+                    <img src="@mainImage" alt="@room.Name" />
                     <div class="rh-gallery__zoomIcon">🔍</div>
                 </div>
 
@@ -93,8 +98,8 @@
             </div>
 
             <div class="rh-roomIntro">
-                <h2 class="rh-roomIntro__title">@Model.Name</h2>
-                <p class="rh-roomIntro__desc">@Model.Description</p>
+                <h2 class="rh-roomIntro__title">@room.Name</h2>
+                <p class="rh-roomIntro__desc">@room.Description</p>
             </div>
 
             <div class="rh-card">
@@ -142,7 +147,7 @@
                 <form class="rh-bookForm" method="post" asp-controller="Booking" asp-action="Create">
                     @Html.AntiForgeryToken()
 
-                    <input type="hidden" name="RoomId" value="@Model.Id" />
+                    <input type="hidden" name="RoomId" value="@room.Id" />
 
                     <label class="rh-input">
                         <span class="rh-input__label">Check In</span>
@@ -158,7 +163,7 @@
                         <span class="rh-input__label">Số người</span>
                         <select id="detailGuests" name="Guests" required>
                             <option value="" disabled selected="@(guests < 1 ? "selected" : (string?)null)">Chọn số người</option>
-                            @for (int i = 1; i <= Model.MaxGuests; i++)
+                            @for (int i = 1; i <= room.MaxGuests; i++)
                             {
                                 <option value="@i" selected="@(guests == i ? "selected" : (string?)null)">
                                     @i người
@@ -167,7 +172,7 @@
                         </select>
                     </label>
 
-                    <div class="rh-bookBox__note">Phòng này tối đa @Model.MaxGuests khách</div>
+                    <div class="rh-bookBox__note">Phòng này tối đa @room.MaxGuests khách</div>
 
                     <label class="rh-input">
                         <span class="rh-input__label">Họ và tên</span>
@@ -247,7 +252,7 @@
     const checkOutInput = document.getElementById('detailCheckOut');
     const guestsInput = document.getElementById('detailGuests');
     const pricePerNight = @Html.Raw(priceJs);
-    const roomId = @Model.Id;
+    const roomId = @room.Id;
 
     function calculatePrice() {
         const checkIn = new Date(checkInInput.value);

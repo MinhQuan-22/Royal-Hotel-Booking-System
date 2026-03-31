@@ -6,6 +6,9 @@ using ROYALHOTEL.Services.Rooms;
 using ROYALHOTEL.Services.Notifications;
 using ROYALHOTEL.Services.Events;
 using ROYALHOTEL.Security;
+using ROYALHOTEL.Commands.Common;
+using ROYALHOTEL.Commands.Bookings;
+using ROYALHOTEL.Services.Accounts;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +17,14 @@ builder.Services.AddDbContext<RoyalHotelDbContext>(opt =>
 
 builder.Services.AddScoped<IRoomRepository, EfRoomRepository>();
 builder.Services.AddScoped<RoomQueryService>();
+builder.Services.AddScoped<IRoomPageService, RoomPageService>();
+
+// DbPricingRuleStrategy: Đọc TẤT CẢ PricingRule active từ DB (weekend/holiday/promotion).
+// Admin chỉnh rule trên UI → phản ánh ngay ở request tiếp theo. Không hardcode trong code.
+builder.Services.AddScoped<IRoomPricingStrategy, DbPricingRuleStrategy>();
+
+builder.Services.AddScoped<RoomPricingService>();
+builder.Services.AddScoped<IPricingRuleAdminService, PricingRuleAdminService>();
 
 // Adapter Pattern: Register notification service
 builder.Services.AddScoped<IBookingNotificationService, EmailNotificationAdapter>();
@@ -32,10 +43,24 @@ builder.Services.AddScoped<IBookingService>(sp =>
     return new BookingValidationDecorator(coreService, context);
 });
 
+// Command Pattern: Register command dispatcher and handlers
+builder.Services.AddScoped<IAdminCommandDispatcher, AdminCommandDispatcher>();
+
+builder.Services.AddScoped<IAdminCommandHandler<ConfirmBookingCommand>, ConfirmBookingCommandHandler>();
+builder.Services.AddScoped<IAdminCommandHandler<CheckInBookingCommand>, CheckInBookingCommandHandler>();
+builder.Services.AddScoped<IAdminCommandHandler<CheckOutBookingCommand>, CheckOutBookingCommandHandler>();
+builder.Services.AddScoped<IAdminCommandHandler<CompleteBookingCommand>, CompleteBookingCommandHandler>();
+builder.Services.AddScoped<IAdminCommandHandler<CancelBookingCommand>, CancelBookingCommandHandler>();
+//
+
 builder.Services.AddDistributedMemoryCache();
 
 builder.Services.AddSession();
 builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
+builder.Services.AddScoped<IUserSessionService, UserSessionService>();
 
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
 builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>(); // Strategy

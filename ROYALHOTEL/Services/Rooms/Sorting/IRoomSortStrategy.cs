@@ -1,14 +1,20 @@
-using ROYALHOTEL.Models;
+namespace ROYALHOTEL.Services.Rooms;
 
 public interface IRoomSortStrategy
 {
-    IQueryable<Room> Apply(IQueryable<Room> query);
+    IEnumerable<RoomSearchItem> Apply(IEnumerable<RoomSearchItem> items);
 }
-public class PriceAscSort : IRoomSortStrategy
+
+public sealed class PriceAscSortStrategy : IRoomSortStrategy
 {
-    public IQueryable<Room> Apply(IQueryable<Room> query) => query.OrderBy(x => x.BasePricePerNight);
+    public IEnumerable<RoomSearchItem> Apply(IEnumerable<RoomSearchItem> items)
+        => items.OrderBy(x => x.Pricing.DisplayPricePerNight)
+                .ThenBy(x => x.Room.Id);
 }
-public class PriceDescSort : IRoomSortStrategy
+
+public sealed class PriceDescSortStrategy : IRoomSortStrategy
 {
-    public IQueryable<Room> Apply(IQueryable<Room> query) => query.OrderByDescending(x => x.BasePricePerNight);
+    public IEnumerable<RoomSearchItem> Apply(IEnumerable<RoomSearchItem> items)
+        => items.OrderByDescending(x => x.Pricing.DisplayPricePerNight)
+                .ThenBy(x => x.Room.Id);
 }

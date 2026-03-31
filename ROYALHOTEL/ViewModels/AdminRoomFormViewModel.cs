@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace ROYALHOTEL.ViewModels
 {
@@ -27,8 +28,13 @@ namespace ROYALHOTEL.ViewModels
         public bool IsActive { get; set; } = true;
 
         public string? Description { get; set; }
+        
 
         [StringLength(500)]
         public string? CoverImageUrl { get; set; }
+
+        public List<int> SelectedAmenityIds { get; set; } = new();
+
+        public List<SelectListItem> AmenityOptions { get; set; } = new();
     }
 }

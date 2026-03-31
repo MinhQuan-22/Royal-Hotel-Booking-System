@@ -4,6 +4,7 @@ using ROYALHOTEL.Models;
 using ROYALHOTEL.ViewModels.Booking;
 using ROYALHOTEL.Services.Payments;
 using ROYALHOTEL.Services.Events;
+using ROYALHOTEL.Services.Rooms;
 
 namespace ROYALHOTEL.Services.Booking;
 
@@ -11,13 +12,16 @@ public class CoreBookingService : IBookingService
 {
     private readonly RoyalHotelDbContext _context;
     private readonly IBookingEventPublisher _bookingEventPublisher;
+    private readonly RoomPricingService _roomPricingService;
 
     public CoreBookingService(
         RoyalHotelDbContext context,
-        IBookingEventPublisher bookingEventPublisher)
+        IBookingEventPublisher bookingEventPublisher,
+        RoomPricingService roomPricingService)
     {
         _context = context;
         _bookingEventPublisher = bookingEventPublisher;
+        _roomPricingService = roomPricingService;
     }
 
     public async Task<Models.Booking> CreateBookingAsync(CreateBookingRequest request, int? accountId = null)
@@ -29,9 +33,13 @@ public class CoreBookingService : IBookingService
         if (room == null)
             throw new InvalidOperationException("Phòng không tồn tại.");
 
-        var nights = (request.CheckOutDate - request.CheckInDate).Days;
-        var pricePerNight = room.BasePricePerNight;
-        var totalAmount = nights * pricePerNight;
+        var pricingSummary = _roomPricingService.Calculate(
+            room,
+            request.CheckInDate,
+            request.CheckOutDate);
+
+        var pricePerNight = pricingSummary.DisplayPricePerNight;
+        var totalAmount = pricingSummary.TotalAmount;
 
         var booking = new Models.Booking
         {
@@ -102,9 +110,9 @@ public class CoreBookingService : IBookingService
             return false;
         }
 
-        // Factory Method Pattern: Tạo processor phù hợp với payment method
-        var processor = PaymentProcessorFactory.Create(paymentMethod);
-        var transaction = await processor.ProcessAsync(booking);
+        // Factory Method Pattern: chọn Concrete Creator phù hợp
+        var factory = CreatePaymentFactory(paymentMethod);
+        var transaction = await factory.ProcessAsync(booking);
 
         // Nếu sau này có processor trả Failed thì không confirm booking
         if (!string.Equals(transaction.Status, "Paid", StringComparison.OrdinalIgnoreCase))
@@ -132,6 +140,17 @@ public class CoreBookingService : IBookingService
         }
 
         return true;
+    }
+
+    private PaymentProcessorFactory CreatePaymentFactory(string paymentMethod)
+    {
+        return paymentMethod switch
+        {
+            "bank_transfer" => new BankTransferPaymentFactory(),
+            "card" => new VisaPaymentFactory(),
+            "visa" => new VisaPaymentFactory(),
+            _ => throw new ArgumentException($"Unsupported payment method: {paymentMethod}")
+        };
     }
 
     private async Task<string> GenerateBookingCodeAsync()

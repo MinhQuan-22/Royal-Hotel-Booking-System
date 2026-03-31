@@ -25,9 +25,9 @@
 
             <nav class="rh-menu">
                 <a class="rh-menu__link" asp-controller="Home" asp-action="Index">Trang chủ</a>
-                <a class="rh-menu__link" href="#">Giới thiệu</a>
+                <a class="rh-menu__link" asp-controller="Home" asp-action="About">Giới thiệu</a>
                 <a class="rh-menu__link" asp-controller="Rooms" asp-action="Index">Phòng &amp; giá</a>
-                <a class="rh-menu__link" href="#">Liên hệ</a>
+                <a class="rh-menu__link" asp-controller="Home" asp-action="Contact">Liên hệ</a>
             </nav>
 
             @await Html.PartialAsync("_AccountAvatar")

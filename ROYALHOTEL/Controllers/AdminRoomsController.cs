@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using ROYALHOTEL.Data;
+using Microsoft.Data.SqlClient;
 using ROYALHOTEL.Models;
 using ROYALHOTEL.ViewModels;
 
@@ -21,6 +23,42 @@ namespace ROYALHOTEL.Controllers
             return role != null && role.ToLower() == "admin";
         }
 
+        private async Task LoadAmenityOptions(AdminRoomFormViewModel vm)
+        {
+            vm.AmenityOptions = await _context.Amenities
+                .OrderBy(a => a.Name)
+                .Select(a => new SelectListItem
+                {
+                    Value = a.Id.ToString(),
+                    Text = a.Name,
+                    Selected = vm.SelectedAmenityIds.Contains(a.Id)
+                })
+                .ToListAsync();
+        }
+
+        private void NormalizeRoomForm(AdminRoomFormViewModel vm)
+        {
+            vm.Code = vm.Code?.Trim() ?? string.Empty;
+            vm.Name = vm.Name?.Trim() ?? string.Empty;
+            vm.RoomType = vm.RoomType?.Trim() ?? string.Empty;
+            vm.Description = vm.Description?.Trim();
+            vm.CoverImageUrl = vm.CoverImageUrl?.Trim();
+        }
+
+        private static bool IsDuplicateKeyException(DbUpdateException ex)
+        {
+            if (ex.InnerException is SqlException sqlEx)
+            {
+                return sqlEx.Number == 2601 || sqlEx.Number == 2627;
+            }
+
+            if (ex.InnerException?.InnerException is SqlException nestedSqlEx)
+            {
+                return nestedSqlEx.Number == 2601 || nestedSqlEx.Number == 2627;
+            }
+
+            return false;
+        }
         public async Task<IActionResult> Index(string? keyword)
         {
             if (!IsAdmin())
@@ -47,14 +85,20 @@ namespace ROYALHOTEL.Controllers
         }
 
         [HttpGet]
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
             if (!IsAdmin())
             {
                 return RedirectToAction("Login", "Account");
             }
 
-            return View(new AdminRoomFormViewModel());
+            var vm = new AdminRoomFormViewModel
+            {
+                IsActive = true
+            };
+
+            await LoadAmenityOptions(vm);
+            return View(vm);
         }
 
         [HttpPost]
@@ -66,8 +110,20 @@ namespace ROYALHOTEL.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
+            NormalizeRoomForm(vm);
+
+            var codeExists = await _context.Rooms
+                .AnyAsync(r => r.Code == vm.Code);
+
+            if (codeExists)
+            {
+                ModelState.AddModelError(nameof(vm.Code),
+                    "This room code already exists. Please enter a different room code.");
+            }
+
             if (!ModelState.IsValid)
             {
+                await LoadAmenityOptions(vm);
                 return View(vm);
             }
 
@@ -84,12 +140,38 @@ namespace ROYALHOTEL.Controllers
             };
 
             _context.Rooms.Add(room);
-            await _context.SaveChangesAsync();
 
-            TempData["Success"] = "Room created successfully.";
-            return RedirectToAction(nameof(Index));
+            try
+            {
+                await _context.SaveChangesAsync();
+
+                if (vm.SelectedAmenityIds != null && vm.SelectedAmenityIds.Any())
+                {
+                    var roomAmenities = vm.SelectedAmenityIds
+                        .Distinct()
+                        .Select(amenityId => new RoomAmenity
+                        {
+                            RoomId = room.Id,
+                            AmenityId = amenityId
+                        })
+                        .ToList();
+
+                    _context.RoomAmenities.AddRange(roomAmenities);
+                    await _context.SaveChangesAsync();
+                }
+
+                TempData["Success"] = "Room created successfully.";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (DbUpdateException ex) when (IsDuplicateKeyException(ex))
+            {
+                ModelState.AddModelError(nameof(vm.Code),
+                    "This room code already exists. Please enter a different room code.");
+
+                await LoadAmenityOptions(vm);
+                return View(vm);
+            }
         }
-
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
@@ -98,7 +180,10 @@ namespace ROYALHOTEL.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
-            var room = await _context.Rooms.FirstOrDefaultAsync(r => r.Id == id);
+            var room = await _context.Rooms
+                .Include(r => r.RoomAmenities)
+                .FirstOrDefaultAsync(r => r.Id == id);
+
             if (room == null)
             {
                 return NotFound();
@@ -114,9 +199,13 @@ namespace ROYALHOTEL.Controllers
                 MaxGuests = room.MaxGuests,
                 IsActive = room.IsActive,
                 Description = room.Description,
-                CoverImageUrl = room.CoverImageUrl
+                CoverImageUrl = room.CoverImageUrl,
+                SelectedAmenityIds = room.RoomAmenities
+                    .Select(x => x.AmenityId)
+                    .ToList()
             };
 
+            await LoadAmenityOptions(vm);
             return View(vm);
         }
 
@@ -129,12 +218,27 @@ namespace ROYALHOTEL.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
+            NormalizeRoomForm(vm);
+
+            var codeExists = await _context.Rooms
+                .AnyAsync(r => r.Code == vm.Code && r.Id != vm.Id);
+
+            if (codeExists)
+            {
+                ModelState.AddModelError(nameof(vm.Code),
+                    "This room code already exists. Please enter a different room code.");
+            }
+
             if (!ModelState.IsValid)
             {
+                await LoadAmenityOptions(vm);
                 return View(vm);
             }
 
-            var room = await _context.Rooms.FirstOrDefaultAsync(r => r.Id == vm.Id);
+            var room = await _context.Rooms
+                .Include(r => r.RoomAmenities)
+                .FirstOrDefaultAsync(r => r.Id == vm.Id);
+
             if (room == null)
             {
                 return NotFound();
@@ -149,12 +253,38 @@ namespace ROYALHOTEL.Controllers
             room.Description = vm.Description;
             room.CoverImageUrl = vm.CoverImageUrl;
 
-            await _context.SaveChangesAsync();
+            _context.RoomAmenities.RemoveRange(room.RoomAmenities);
 
-            TempData["Success"] = "Room updated successfully.";
-            return RedirectToAction(nameof(Index));
+            if (vm.SelectedAmenityIds != null && vm.SelectedAmenityIds.Any())
+            {
+                var roomAmenities = vm.SelectedAmenityIds
+                    .Distinct()
+                    .Select(amenityId => new RoomAmenity
+                    {
+                        RoomId = room.Id,
+                        AmenityId = amenityId
+                    })
+                    .ToList();
+
+                _context.RoomAmenities.AddRange(roomAmenities);
+            }
+
+            try
+            {
+                await _context.SaveChangesAsync();
+
+                TempData["Success"] = "Room updated successfully.";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (DbUpdateException ex) when (IsDuplicateKeyException(ex))
+            {
+                ModelState.AddModelError(nameof(vm.Code),
+                    "This room code already exists. Please enter a different room code.");
+
+                await LoadAmenityOptions(vm);
+                return View(vm);
+            }
         }
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)

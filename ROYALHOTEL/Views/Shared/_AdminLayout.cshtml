@@ -3,7 +3,6 @@
 
 @{
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
-    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
     var userName = HttpContextAccessor.HttpContext?.Session.GetString("USER_NAME") ?? "Admin";
     Layout = null;
 }
@@ -21,48 +20,63 @@
 </head>
 <body>
     <div class="admin-shell">
-        <aside class="admin-sidebar">
-           <div class="admin-brand">
-    <h2>ROYAL</h2>
-    
-    <p>LUXURY HOTEL ADMIN</p>
-</div>
+        <div class="admin-sidebar-backdrop" id="adminSidebarBackdrop"></div>
 
-           <!-- <a asp-controller="Admin" asp-action="Index"
-   class="admin-nav-link @(currentController == "Admin" ? "active" : "")">
-    Dashboard
-</a> -->
+        <aside class="admin-sidebar" id="adminSidebar">
+            <div class="admin-brand">
+                <h2>ROYAL</h2>
+                <p>LUXURY HOTEL ADMIN</p>
+            </div>
 
-<a asp-controller="AdminRooms" asp-action="Index"
-   class="admin-nav-link @(currentController == "AdminRooms" ? "active" : "")">
-    Rooms
-</a>
+            <nav class="admin-nav">
+                <a asp-controller="AdminRooms" asp-action="Index"
+                   class="admin-nav-link @(currentController == "AdminRooms" ? "active" : "")">
+                    Rooms
+                </a>
 
-<a asp-controller="AdminBookings" asp-action="Index"
-   class="admin-nav-link @(currentController == "AdminBookings" ? "active" : "")">
-    Bookings
-</a>
+                <a asp-controller="AdminPricingRules" asp-action="Index"
+                   class="admin-nav-link @(currentController == "AdminPricingRules" ? "active" : "")">
+                    Pricing Rules
+                </a>
 
-<a asp-controller="AdminAccounts" asp-action="Index"
-   class="admin-nav-link @(currentController == "AdminAccounts" ? "active" : "")">
-    Accounts
-</a>
+                <a asp-controller="AdminBookings" asp-action="Index"
+                   class="admin-nav-link @(currentController == "AdminBookings" ? "active" : "")">
+                    Bookings
+                </a>
 
-<a asp-controller="AdminAmenities" asp-action="Index"
-   class="admin-nav-link @(currentController == "AdminAmenities" ? "active" : "")">
-    Amenities
-</a>
+                <a asp-controller="AdminAccounts" asp-action="Index"
+                   class="admin-nav-link @(currentController == "AdminAccounts" ? "active" : "")">
+                    Accounts
+                </a>
 
-<a asp-controller="Home" asp-action="Index" class="admin-nav-link">
-    Back to Website
-</a>
+                <a asp-controller="AdminAmenities" asp-action="Index"
+                   class="admin-nav-link @(currentController == "AdminAmenities" ? "active" : "")">
+                    Amenities
+                </a>
+
+                <a asp-controller="Home" asp-action="Index" class="admin-nav-link">
+                    Back to Website
+                </a>
             </nav>
         </aside>
 
         <main class="admin-main">
             <header class="admin-topbar">
-                <div>
-                    <h4 class="mb-0">@ViewData["Title"]</h4>
+                <div class="admin-topbar__left">
+                    <button type="button"
+                            class="admin-sidebar-toggle"
+                            id="adminSidebarToggle"
+                            aria-label="Open admin menu"
+                            aria-controls="adminSidebar"
+                            aria-expanded="false">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </button>
+
+                    <div>
+                        <h4 class="mb-0">@ViewData["Title"]</h4>
+                    </div>
                 </div>
 
                 <div class="admin-user">
@@ -77,6 +91,59 @@
     </div>
 
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        (function () {
+            const body = document.body;
+            const sidebar = document.getElementById('adminSidebar');
+            const toggle = document.getElementById('adminSidebarToggle');
+            const backdrop = document.getElementById('adminSidebarBackdrop');
+
+            if (!sidebar || !toggle || !backdrop) return;
+
+            function openSidebar() {
+                body.classList.add('admin-sidebar-open');
+                toggle.setAttribute('aria-expanded', 'true');
+            }
+
+            function closeSidebar() {
+                body.classList.remove('admin-sidebar-open');
+                toggle.setAttribute('aria-expanded', 'false');
+            }
+
+            function toggleSidebar() {
+                if (body.classList.contains('admin-sidebar-open')) {
+                    closeSidebar();
+                } else {
+                    openSidebar();
+                }
+            }
+
+            toggle.addEventListener('click', toggleSidebar);
+            backdrop.addEventListener('click', closeSidebar);
+
+            window.addEventListener('resize', function () {
+                if (window.innerWidth > 900) {
+                    closeSidebar();
+                }
+            });
+
+            sidebar.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', function () {
+                    if (window.innerWidth <= 900) {
+                        closeSidebar();
+                    }
+                });
+            });
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    closeSidebar();
+                }
+            });
+        })();
+    </script>
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

@@ -1,15 +1,16 @@
+using ROYALHOTEL.Models;
+
 namespace ROYALHOTEL.Services.Payments;
 
-public static class PaymentProcessorFactory
+public abstract class PaymentProcessorFactory
 {
-    public static IPaymentProcessor Create(string paymentMethod)
+    // Factory Method
+    public abstract IPaymentProcessor CreatePaymentProcessor();
+
+    // Business method dùng product được tạo ra
+    public virtual Task<PaymentTransaction> ProcessAsync(Models.Booking booking)
     {
-        return paymentMethod switch
-        {
-            "bank_transfer" => new BankTransferProcessor(),
-            "card" => new VisaProcessor(),
-            "visa" => new VisaProcessor(),
-            _ => throw new ArgumentException($"Unsupported payment method: {paymentMethod}")
-        };
+        var processor = CreatePaymentProcessor();
+        return processor.ProcessAsync(booking);
     }
 }

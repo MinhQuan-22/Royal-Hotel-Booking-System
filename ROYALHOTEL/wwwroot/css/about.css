@@ -1,0 +1,605 @@
+:root {
+    --gold: #c9a24a;
+    --gold-2: #d7b35f;
+    --dark: #2b2b2b;
+    --beige: #ebe3c9;
+    --white: #fff;
+    --about-text: #444;
+    --about-heading: #141b2d;
+}
+
+/* =========================
+   RESET RIÊNG CHO ABOUT PAGE
+========================= */
+.about-page * {
+    box-sizing: border-box;
+}
+
+.about-page {
+    font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+    color: var(--about-text);
+    background: #fff;
+}
+
+/* container chỉ áp dụng trong about */
+.about-page .container {
+    width: min(1100px, calc(100% - 48px));
+    margin: 0 auto;
+}
+
+.about-page .rh-container {
+    width: min(1100px, calc(100% - 48px));
+    margin: 0 auto;
+}
+
+/* =========================
+   BANNER + NAVBAR
+========================= */
+.about-banner {
+    position: relative;
+    min-height: 620px;
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    color: #fff;
+    overflow: hidden;
+}
+
+.about-banner-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+}
+
+.about-page .rh-hero__inner {
+    position: relative;
+    z-index: 2;
+    min-height: 620px;
+    padding: 22px 0 80px;
+    display: flex;
+    flex-direction: column;
+}
+
+.about-page .rh-nav {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+}
+
+.about-page .rh-brand {
+    line-height: 1;
+}
+
+.about-page .rh-brand__top {
+    color: var(--gold);
+    font-weight: 700;
+    letter-spacing: 4px;
+    font-size: 22px;
+    font-family: "Playfair Display", Georgia, serif;
+}
+
+.about-page .rh-brand__bot {
+    color: #fff;
+    font-weight: 300;
+    opacity: 0.95;
+    margin-top: 8px;
+    font-size: 11px;
+    letter-spacing: 3px;
+    font-family: "Playfair Display", Georgia, serif;
+}
+
+.about-page .rh-menu {
+    display: flex;
+    gap: 32px;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.about-page .rh-menu__link {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 400;
+    padding-bottom: 8px;
+    opacity: 0.95;
+    position: relative;
+    text-decoration: none;
+    transition: opacity 0.3s ease;
+}
+
+.about-page .rh-menu__link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 0;
+    height: 2px;
+    background: #fff;
+    transition: width 0.3s ease;
+}
+
+.about-page .rh-menu__link:hover::after,
+.about-page .rh-menu__link.is-active::after {
+    width: 100%;
+}
+
+.about-page .rh-menu__link:hover,
+.about-page .rh-menu__link.is-active {
+    opacity: 1;
+}
+
+/* chỉnh nút avatar nếu partial dùng class khác thì vẫn không ảnh hưởng */
+.about-page .rh-nav .rh-account,
+.about-page .rh-nav .account-avatar,
+.about-page .rh-nav .user-menu {
+    margin-top: 6px;
+}
+
+/* Hero text */
+.about-hero-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 50px 16px 20px;
+}
+
+.about-subtitle,
+.section-label {
+    display: inline-block;
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 14px;
+    font-weight: 500;
+}
+
+.about-hero-title {
+    margin: 0 0 18px;
+    font-size: 48px;
+    line-height: 1.4;
+    font-weight: 300;
+    color: #fff;
+    font-family: "Playfair Display", Georgia, serif;
+    letter-spacing: 2px;
+}
+
+.about-hero-desc {
+    max-width: 720px;
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.8;
+    color: rgba(255, 255, 255, 0.95);
+}
+
+/* =========================
+   INTRO
+========================= */
+.about-intro {
+    background: #fff;
+    padding: 90px 0;
+}
+
+.about-intro-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 70px;
+    align-items: center;
+}
+
+.about-intro-text h2,
+.about-heading h2,
+.about-commitment-box h2,
+.value-card h3,
+.stat-box h3 {
+    font-family: "Playfair Display", Georgia, serif;
+    letter-spacing: 0.5px;
+}
+
+.about-intro-text h2 {
+    font-size: 42px;
+    margin: 0 0 20px;
+    line-height: 1.3;
+    color: var(--about-heading);
+    font-weight: 400;
+}
+
+.about-intro-text p {
+    font-size: 15px;
+    line-height: 1.85;
+    color: var(--about-text);
+    margin: 0 0 16px;
+}
+
+.about-contact-box {
+    margin-top: 32px;
+    display: inline-flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.about-contact-icon {
+    width: 62px;
+    height: 62px;
+    border: 2px solid var(--gold);
+    border-radius: 50%;
+    color: var(--gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    flex-shrink: 0;
+}
+
+.about-contact-box span {
+    display: block;
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 6px;
+}
+
+.about-contact-box strong {
+    font-size: 22px;
+    color: var(--gold);
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.about-intro-images {
+    position: relative;
+    min-height: 520px;
+}
+
+.about-img {
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    background: #ddd;
+}
+
+.about-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.about-img-main {
+    width: 60%;
+    height: 380px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 2;
+}
+
+.about-img-sub {
+    width: 55%;
+    height: 320px;
+    position: absolute;
+    right: 0;
+    bottom: 18px;
+    z-index: 1;
+}
+
+/* =========================
+   VALUES
+========================= */
+.about-values {
+    background: var(--beige);
+    padding: 85px 0;
+}
+
+.about-heading {
+    margin-bottom: 48px;
+}
+
+.about-heading.center {
+    text-align: center;
+}
+
+.about-heading h2 {
+    font-size: 42px;
+    margin: 0;
+    line-height: 1.3;
+    color: var(--about-heading);
+    font-weight: 400;
+}
+
+.about-values-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 28px;
+}
+
+.value-card {
+    background: rgba(255, 255, 255, 0.7);
+    padding: 32px 24px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    min-height: 200px;
+    transition: all 0.3s ease;
+}
+
+.value-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    background: rgba(255, 255, 255, 0.82);
+}
+
+.value-card h3 {
+    color: var(--about-heading);
+    font-size: 20px;
+    margin: 0 0 14px;
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+.value-card p {
+    color: var(--about-text);
+    line-height: 1.8;
+    font-size: 14px;
+    margin: 0;
+}
+
+/* =========================
+   STATS
+========================= */
+.about-stats {
+    background: #fff;
+    padding: 85px 0;
+}
+
+.about-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 28px;
+    margin-top: 50px;
+}
+
+.stat-box {
+    background: #fff;
+    padding: 36px 20px;
+    text-align: center;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s ease;
+}
+
+.stat-box:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.stat-box h3 {
+    font-size: 42px;
+    color: var(--gold);
+    margin: 0 0 10px;
+    font-weight: 500;
+    line-height: 1;
+}
+
+.stat-box p {
+    margin: 0;
+    color: var(--about-text);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* =========================
+   COMMITMENT
+========================= */
+.about-commitment {
+    background: var(--beige);
+    padding: 85px 0 100px;
+}
+
+.about-commitment-box {
+    max-width: 880px;
+    margin: 0 auto;
+    text-align: center;
+    background: #fff;
+    padding: 60px 50px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.about-commitment-box h2 {
+    font-size: 36px;
+    margin: 0 0 20px;
+    line-height: 1.3;
+    color: var(--about-heading);
+    font-weight: 400;
+}
+
+.about-commitment-box p {
+    font-size: 15px;
+    line-height: 1.85;
+    color: var(--about-text);
+    max-width: 680px;
+    margin: 0 auto 28px;
+}
+
+.about-btn {
+    display: inline-block;
+    min-width: 200px;
+    padding: 12px 28px;
+    border: 1px solid var(--gold);
+    background: transparent;
+    color: var(--dark);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+}
+
+.about-btn:hover {
+    background: var(--gold);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(201, 162, 74, 0.4);
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+@media (max-width: 1200px) {
+    .about-page .container,
+    .about-page .rh-container {
+        width: calc(100% - 40px);
+    }
+
+    .about-values-grid,
+    .about-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 24px;
+    }
+
+    .about-hero-title {
+        font-size: 42px;
+    }
+
+    .about-intro-text h2,
+    .about-heading h2 {
+        font-size: 36px;
+    }
+
+    .about-commitment-box h2 {
+        font-size: 32px;
+    }
+}
+
+@media (max-width: 992px) {
+    .about-page .rh-nav {
+        flex-direction: column;
+        align-items: center;
+        gap: 24px;
+        padding-top: 8px;
+    }
+
+    .about-page .rh-menu {
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-top: 0;
+    }
+
+    .about-banner,
+    .about-page .rh-hero__inner {
+        min-height: 560px;
+    }
+
+    .about-intro-grid {
+        grid-template-columns: 1fr;
+        gap: 50px;
+    }
+
+    .about-intro-images {
+        min-height: 450px;
+    }
+
+    .about-hero-title {
+        font-size: 38px;
+    }
+
+    .about-hero-desc {
+        font-size: 15px;
+    }
+
+    .about-intro-text h2,
+    .about-heading h2 {
+        font-size: 32px;
+    }
+}
+
+@media (max-width: 768px) {
+    .about-page .container,
+    .about-page .rh-container {
+        width: calc(100% - 32px);
+    }
+
+    .about-banner,
+    .about-page .rh-hero__inner {
+        min-height: 500px;
+    }
+
+    .about-page .rh-menu {
+        gap: 22px;
+    }
+
+    .about-page .rh-menu__link {
+        font-size: 13px;
+    }
+
+    .about-page .rh-brand__top {
+        font-size: 20px;
+    }
+
+    .about-page .rh-brand__bot {
+        font-size: 10px;
+    }
+
+    .about-hero-title {
+        font-size: 32px;
+    }
+
+    .about-hero-desc,
+    .about-intro-text p,
+    .about-commitment-box p,
+    .value-card p {
+        font-size: 14px;
+    }
+
+    .about-intro,
+    .about-values,
+    .about-stats,
+    .about-commitment {
+        padding: 60px 0;
+    }
+
+    .about-values-grid,
+    .about-stats-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .about-intro-text h2,
+    .about-heading h2 {
+        font-size: 28px;
+    }
+
+    .about-commitment-box h2 {
+        font-size: 26px;
+    }
+
+    .about-contact-box strong {
+        font-size: 20px;
+    }
+
+    .about-intro-images {
+        min-height: auto;
+        display: grid;
+        gap: 20px;
+    }
+
+    .about-img-main,
+    .about-img-sub {
+        position: static;
+        width: 100%;
+        height: 260px;
+    }
+
+    .about-commitment-box {
+        padding: 40px 28px;
+    }
+
+    .value-card,
+    .stat-box {
+        min-height: auto;
+    }
+
+    .stat-box h3 {
+        font-size: 36px;
+    }
+}

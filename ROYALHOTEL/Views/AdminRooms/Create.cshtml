@@ -64,7 +64,53 @@
                         <textarea asp-for="Description" class="form-control" rows="5" placeholder="Enter room description"></textarea>
                         <span asp-validation-for="Description" class="text-danger"></span>
                     </div>
+                    @{
+                    string AmenityIcon(string name)
+                    {
+                        var text = (name ?? "").ToLower();
 
+                        if (text.Contains("wifi")) return "📶";
+                        if (text.Contains("bể bơi") || text.Contains("hồ bơi")) return "🏊";
+                        if (text.Contains("spa")) return "🧖";
+                        if (text.Contains("minibar")) return "🍷";
+                        if (text.Contains("điều hòa")) return "❄️";
+                        if (text.Contains("tv")) return "📺";
+                        if (text.Contains("ban công")) return "🌅";
+                        if (text.Contains("buffet")) return "🍽️";
+                        if (text.Contains("đưa đón sân bay")) return "🚗";
+                        if (text.Contains("dọn phòng")) return "🧹";
+                        if (text.Contains("vòi tắm") || text.Contains("nóng lạnh")) return "🚿";
+
+                        return "✨";
+                    }
+                }
+
+                <div class="admin-form-group admin-form-group--full">
+                    <label class="admin-form-label">Amenities</label>
+
+                    <div class="admin-amenity-grid">
+                        @if (Model.AmenityOptions != null && Model.AmenityOptions.Any())
+                        {
+                            foreach (var amenity in Model.AmenityOptions)
+                            {
+                                <label class="admin-amenity-card">
+                                    <input type="checkbox"
+                                        name="SelectedAmenityIds"
+                                        value="@amenity.Value"
+                                        class="admin-amenity-card__checkbox"
+                                        @(amenity.Selected ? "checked" : null) />
+
+                                    <span class="admin-amenity-card__icon">@AmenityIcon(amenity.Text)</span>
+                                    <span class="admin-amenity-card__text">@amenity.Text</span>
+                                </label>
+                            }
+                        }
+                        else
+                        {
+                            <div class="admin-empty-note">No amenities available.</div>
+                        }
+                    </div>
+                </div>
                     <div class="admin-form-group admin-form-group--full">
                         <div class="admin-switch">
                             <input asp-for="IsActive" class="form-check-input" />
@@ -72,7 +118,7 @@
                         </div>
                     </div>
                 </div>
-
+                
                 <div class="admin-form-actions">
                     <button type="submit" class="btn btn-primary">Create Room</button>
                     <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
@@ -121,6 +167,7 @@
                 </div>
             </div>
         </div>
+
     </div>
 </div>
 

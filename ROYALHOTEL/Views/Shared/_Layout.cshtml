@@ -1,4 +1,4 @@
-﻿
+
 <!doctype html>
 <html lang="vi">
 <head>
@@ -8,14 +8,17 @@
 
     <link rel="stylesheet" href="/css/site.css" />
 </head>
-<body>
+<body class="@(ViewData["BodyClass"] as string ?? "")">
     @RenderBody()
 
     <partial name="_Footer" />
 
-    <button id="rhScrollTopBtn" class="rh-scrollTop" type="button" aria-label="Lên đầu trang">
-        <span class="rh-scrollTop__icon">↑</span>
-    </button>
+    @if (ViewData["HideScrollTop"] as bool? != true)
+    {
+        <button id="rhScrollTopBtn" class="rh-scrollTop" type="button" aria-label="Lên đầu trang">
+            <span class="rh-scrollTop__icon">↑</span>
+        </button>
+    }
 
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)

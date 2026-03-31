@@ -1,26 +1,24 @@
 using Microsoft.EntityFrameworkCore;
 using ROYALHOTEL.Data;
-using ROYALHOTEL.Models;
 using ROYALHOTEL.ViewModels.Booking;
 
 namespace ROYALHOTEL.Services.Booking;
 
 /// <summary>
-/// Decorator Pattern: Wraps IBookingService to add validation logic
-/// before delegating to the core booking service.
+/// Concrete Decorator:
+/// bổ sung bước validate trước khi gọi vào core booking service.
 /// </summary>
-public class BookingValidationDecorator : IBookingService
+public class BookingValidationDecorator : BookingServiceDecorator
 {
-    private readonly IBookingService _inner;
     private readonly RoyalHotelDbContext _context;
 
     public BookingValidationDecorator(IBookingService inner, RoyalHotelDbContext context)
+        : base(inner)
     {
-        _inner = inner;
         _context = context;
     }
 
-    public async Task<Models.Booking> CreateBookingAsync(CreateBookingRequest request, int? accountId = null)
+    public override async Task<Models.Booking> CreateBookingAsync(CreateBookingRequest request, int? accountId = null)
     {
         // Validation 1: Room exists and is active
         var room = await _context.Rooms
@@ -47,23 +45,7 @@ public class BookingValidationDecorator : IBookingService
         if (hasConfirmedOverlap)
             throw new InvalidOperationException("Phòng này đã được đặt trong khoảng thời gian anh chọn.");
 
-        // All validations passed, delegate to core service
-        return await _inner.CreateBookingAsync(request, accountId);
+        // All validations passed, delegate to wrapped service
+        return await base.CreateBookingAsync(request, accountId);
     }
-
-    // Forward all other methods to inner service
-    public Task<Models.Booking?> GetBookingByIdAsync(int bookingId)
-        => _inner.GetBookingByIdAsync(bookingId);
-
-    public Task<Models.Booking?> GetBookingByCodeAsync(string bookingCode)
-        => _inner.GetBookingByCodeAsync(bookingCode);
-
-    public Task<bool> ConfirmPaymentAsync(int bookingId, string paymentMethod)
-        => _inner.ConfirmPaymentAsync(bookingId, paymentMethod);
-
-    public Task<List<Models.Booking>> GetBookingsByAccountIdAsync(int accountId)
-        => _inner.GetBookingsByAccountIdAsync(accountId);
-
-    public Task<(bool Success, string Message)> CancelBookingAsync(int bookingId, int accountId, bool isAdmin = false)
-        => _inner.CancelBookingAsync(bookingId, accountId, isAdmin);
 }

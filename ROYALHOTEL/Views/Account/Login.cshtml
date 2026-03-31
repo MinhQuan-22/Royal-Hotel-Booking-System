@@ -1,32 +1,10 @@
 @{
     ViewData["Title"] = "Đăng nhập";
+    ViewData["HideScrollTop"] = true;
+    ViewData["BodyClass"] = "body--auth";
 }
 
-<!-- TOP NAV -->
-<section class="rh-payTop">
-    <div class="rh-container">
-        <header class="rh-nav rh-nav--plain">
-            <div class="rh-brand">
-                <div class="rh-brand__top">ROYAL</div>
-                <div class="rh-brand__bot">LUXURY HOTEL</div>
-            </div>
-
-            <nav class="rh-menu">
-                <a class="rh-menu__link" asp-controller="Home" asp-action="Index">Trang chủ</a>
-                <a class="rh-menu__link" href="#">Giới thiệu</a>
-                <a class="rh-menu__link" asp-controller="Rooms" asp-action="Index">Phòng &amp; giá</a>
-                <a class="rh-menu__link" href="#">Liên hệ</a>
-            </nav>
-
-            <div class="rh-account">
-                <a class="rh-account__btn" asp-controller="Account" asp-action="Login" style="text-decoration: none;">
-                    <span class="rh-account__icon">👤</span>
-                    <span class="rh-account__text">Đăng nhập</span>
-                </a>
-            </div>
-        </header>
-    </div>
-</section>
+@await Html.PartialAsync("_AuthNav")
 
 <!-- LOGIN PAGE -->
 <section class="rh-loginPage">
@@ -65,9 +43,35 @@
 
                 <div class="rh-loginForm__group">
                     <label class="rh-loginForm__label">Mật khẩu</label>
-                    <div class="rh-loginForm__inputWrapper">
+                    <div class="rh-loginForm__inputWrapper rh-loginForm__inputWrapper--password">
                         <span class="rh-loginForm__icon">🔒</span>
-                        <input type="password" name="password" class="rh-loginForm__input" placeholder="••••••••" required />
+                        <input type="password"
+                            id="loginPassword"
+                            name="password"
+                            class="rh-loginForm__input rh-loginForm__input--password"
+                            placeholder="••••••••"
+                            required />
+
+                        <button type="button"
+                                class="rh-loginForm__passwordToggle"
+                                data-password-toggle
+                                data-toggle-target="loginPassword"
+                                aria-label="Giữ để xem mật khẩu"
+                                aria-pressed="false">
+                            <svg class="rh-loginForm__passwordIcon"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                                aria-hidden="true">
+                                <path d="M2 12C3.8 8.8 7.2 6.5 12 6.5C16.8 6.5 20.2 8.8 22 12C20.2 15.2 16.8 17.5 12 17.5C7.2 17.5 3.8 15.2 2 12Z"
+                                    stroke="currentColor"
+                                    stroke-width="1.8"
+                                    stroke-linejoin="round" />
+                                <circle cx="12" cy="12" r="3"
+                                        stroke="currentColor"
+                                        stroke-width="1.8" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
 

@@ -1,0 +1,132 @@
+@model List<ROYALHOTEL.Models.PricingRuleHistory>
+
+@{
+    ViewData["Title"] = "Pricing Rule History";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    var ruleId = (int)(ViewBag.RuleId ?? 0);
+}
+
+<div class="admin-toolbar">
+    <div class="admin-toolbar__left">
+        <h2 class="admin-section-title">Pricing Rule History</h2>
+        <p class="admin-section-subtitle">Track all create, update, and delete actions for rule #@ruleId.</p>
+    </div>
+
+    <div class="admin-toolbar__right">
+        <a asp-action="Index" class="btn admin-btn-back-rules">
+    ← Back to Rules
+</a>
+    </div>
+</div>
+
+<div class="admin-table-card">
+    <div class="admin-table-card__head">
+        <div>
+            <h3>Change History</h3>
+            <span>@Model.Count record(s)</span>
+        </div>
+    </div>
+
+    <div class="admin-table-responsive">
+        <table class="table admin-room-table align-middle">
+            <thead>
+                <tr>
+                    <th style="width: 110px;">Action</th>
+                    <th>Name</th>
+                    <th style="width: 120px;">Type</th>
+                    <th style="width: 140px;">Room Type</th>
+                    <th style="width: 160px;">Date Range</th>
+                    <th style="width: 120px;">Multiplier</th>
+                    <th style="width: 100px;">Priority</th>
+                    <th style="width: 110px;">Status</th>
+                    <th style="width: 160px;">Changed At</th>
+                    <th style="width: 180px;">Changed By</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Any())
+                {
+                    @foreach (var item in Model)
+                    {
+                        var actionClass = item.ActionType == "create"
+                            ? "admin-status admin-status--checkedin"
+                            : item.ActionType == "update"
+                                ? "admin-status admin-status--checkedout"
+                                : "admin-status admin-status--cancelled";
+
+                        var statusClass = item.IsActive
+                            ? "admin-status admin-status--active"
+                            : "admin-status admin-status--inactive";
+
+                        var dateRangeText = (item.StartDate.HasValue || item.EndDate.HasValue)
+                            ? $"{item.StartDate?.ToString("dd/MM/yyyy") ?? "-"} - {item.EndDate?.ToString("dd/MM/yyyy") ?? "-"}"
+                            : "-";
+
+                        <tr>
+                            <td><span class="@actionClass">@item.ActionType</span></td>
+                            <td>
+                                <div class="admin-room-name">@item.RuleName</div>
+                                <div class="admin-room-desc">@(string.IsNullOrWhiteSpace(item.Notes) ? "No notes." : item.Notes)</div>
+                            </td>
+                            <td><span class="admin-pill admin-pill--type">@item.RuleType</span></td>
+                            <td>@(string.IsNullOrWhiteSpace(item.RoomType) ? "All rooms" : item.RoomType)</td>
+                            <td>@dateRangeText</td>
+                            <td class="admin-room-price">@item.Multiplier.ToString("0.0000")</td>
+                            <td>@item.Priority</td>
+                            <td><span class="@statusClass">@(item.IsActive ? "Active" : "Inactive")</span></td>
+                            <td>@item.ChangedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>@(string.IsNullOrWhiteSpace(item.ChangedBy) ? "-" : item.ChangedBy)</td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="10">
+                            <div class="admin-empty-state">
+                                <h4>No history found</h4>
+                                <p>This pricing rule has no recorded history yet.</p>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .admin-btn-back-rules {
+        min-width: 154px;
+        height: 42px;
+        padding: 0 18px;
+        border-radius: 12px;
+        border: 1px solid #c9a646;
+        background: #fffaf0;
+        color: #8c6a16;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        text-decoration: none;
+        transition: all .2s ease;
+    }
+
+    .admin-btn-back-rules:hover {
+        background: linear-gradient(180deg, #d8b357 0%, #b88b25 100%);
+        border-color: #b88b25;
+        color: #ffffff;
+        box-shadow: 0 10px 22px rgba(184, 139, 37, 0.22);
+        transform: translateY(-1px);
+        text-decoration: none;
+    }
+
+    .admin-btn-back-rules:focus,
+    .admin-btn-back-rules:active {
+        color: #ffffff;
+        text-decoration: none;
+        outline: none;
+        box-shadow: 0 0 0 0.18rem rgba(201, 166, 70, 0.22);
+    }
+</style>

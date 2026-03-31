@@ -1,6 +1,8 @@
 -- Migration: Add AccountId to Bookings table
 -- Date: 2026-03-10
 
+USE RoyalHotelDb;
+GO
 -- Step 1: Add AccountId column (nullable)
 IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Bookings]') AND name = 'AccountId')
 BEGIN

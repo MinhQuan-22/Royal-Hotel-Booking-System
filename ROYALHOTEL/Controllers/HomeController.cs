@@ -28,4 +28,14 @@ public class HomeController : Controller
 
         return View(vm);
     }
+
+    public IActionResult About()
+    {
+        return View();
+    }
+
+    public IActionResult Contact()
+    {
+        return View();
+    }
 }

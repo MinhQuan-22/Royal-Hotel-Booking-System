@@ -1,9 +1,11 @@
 @using Microsoft.AspNetCore.Http
+@using ROYALHOTEL.Services.Accounts
 
 @{
-    var email = Context.Session.GetString("USER_EMAIL");
-    var name = Context.Session.GetString("USER_NAME") ?? "";
-    var role = Context.Session.GetString("USER_ROLE") ?? "";
+    var _reg = AuthSessionRegistry.Instance;
+    var email = Context.Session.GetString(_reg.UserEmailKey);
+    var name = Context.Session.GetString(_reg.UserNameKey) ?? "";
+    var role = Context.Session.GetString(_reg.UserRoleKey) ?? "";
     var isLoggedIn = !string.IsNullOrWhiteSpace(email);
     var isAdmin = role.ToLower() == "admin";
 }

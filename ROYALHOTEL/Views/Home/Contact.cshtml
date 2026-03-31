@@ -1,0 +1,173 @@
+@{
+    ViewData["Title"] = "Liên hệ";
+}
+
+<link rel="stylesheet" href="~/css/contact.css" asp-append-version="true" />
+
+<div class="contact-page">
+    <section class="contact-banner" style="background-image:url('/assets/home/hero.jpg')">
+        <div class="contact-banner-overlay"></div>
+
+        <div class="rh-container rh-hero__inner">
+            <header class="rh-nav">
+                <div class="rh-brand">
+                    <div class="rh-brand__top">ROYAL</div>
+                    <div class="rh-brand__bot">LUXURY HOTEL</div>
+                </div>
+
+                <nav class="rh-menu">
+                    <a class="rh-menu__link" asp-controller="Home" asp-action="Index">Trang chủ</a>
+                    <a class="rh-menu__link" asp-controller="Home" asp-action="About">Giới thiệu</a>
+                    <a class="rh-menu__link" asp-controller="Rooms" asp-action="Index">Phòng &amp; giá</a>
+                    <a class="rh-menu__link is-active" asp-controller="Home" asp-action="Contact">Liên hệ</a>
+                </nav>
+
+                @await Html.PartialAsync("_AccountAvatar")
+            </header>
+
+            <div class="contact-hero-content">
+                <div class="contact-subtitle">ROYAL LUXURY HOTEL</div>
+                <h1 class="contact-hero-title">Liên hệ</h1>
+                <p class="contact-hero-desc">
+                    Chúng tôi luôn sẵn sàng hỗ trợ anh trong việc đặt phòng, tư vấn dịch vụ
+                    và giải đáp mọi thắc mắc trong quá trình lưu trú tại Royal Hotel.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="contact-info-section">
+        <div class="container">
+            <div class="contact-info-grid">
+                <div class="contact-info-card">
+                    <div class="contact-info-icon">☎</div>
+                    <h3>Điện thoại</h3>
+                    <p>0788660087</p>
+                    <span>Hỗ trợ đặt phòng và tư vấn dịch vụ 24/7</span>
+                </div>
+
+                <div class="contact-info-card">
+                    <div class="contact-info-icon">✉</div>
+                    <h3>Email</h3>
+                    <p>royalhotel@gmail.com</p>
+                    <span>Phản hồi nhanh các yêu cầu và thắc mắc</span>
+                </div>
+
+                <div class="contact-info-card">
+                    <div class="contact-info-icon">⌂</div>
+                    <h3>Địa chỉ</h3>
+                    <p>123 Đường Trung Tâm, Quận 1, TP. Hồ Chí Minh</p>
+                    <span>Vị trí thuận tiện cho du lịch và công tác</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="contact-main-section">
+        <div class="container">
+            <div class="contact-main-grid">
+                <div class="contact-form-wrapper">
+                    <div class="section-label">GỬI LIÊN HỆ</div>
+                    <h2>Để lại thông tin để chúng tôi hỗ trợ anh nhanh chóng</h2>
+                    <p class="contact-form-desc">
+                        Anh có thể gửi yêu cầu đặt phòng, cần tư vấn loại phòng phù hợp
+                        hoặc liên hệ với chúng tôi để được hỗ trợ chi tiết hơn.
+                    </p>
+
+                    <form class="contact-form" method="post" action="#">
+                        <div class="contact-form-row">
+                            <div class="contact-form-group">
+                                <label for="fullName">Họ và tên</label>
+                                <input id="fullName" name="fullName" type="text" placeholder="Nhập họ và tên" />
+                            </div>
+
+                            <div class="contact-form-group">
+                                <label for="phone">Số điện thoại</label>
+                                <input id="phone" name="phone" type="text" placeholder="Nhập số điện thoại" />
+                            </div>
+                        </div>
+
+                        <div class="contact-form-row">
+                            <div class="contact-form-group">
+                                <label for="email">Email</label>
+                                <input id="email" name="email" type="email" placeholder="Nhập email" />
+                            </div>
+
+                            <div class="contact-form-group">
+                                <label for="subject">Chủ đề</label>
+                                <input id="subject" name="subject" type="text" placeholder="Ví dụ: Tư vấn đặt phòng" />
+                            </div>
+                        </div>
+
+                        <div class="contact-form-group">
+                            <label for="message">Nội dung</label>
+                            <textarea id="message" name="message" rows="6" placeholder="Nhập nội dung liên hệ"></textarea>
+                        </div>
+
+                        <button type="submit" class="contact-submit-btn">
+                            Gửi liên hệ
+                        </button>
+                    </form>
+                </div>
+
+                <div class="contact-side-wrapper">
+                    <div class="contact-side-card">
+                        <div class="section-label">THÔNG TIN KHÁCH SẠN</div>
+                        <h2>Royal Hotel</h2>
+
+                        <ul class="contact-detail-list">
+                            <li>
+                                <strong>Giờ hỗ trợ:</strong>
+                                <span>24/7 tất cả các ngày trong tuần</span>
+                            </li>
+                            <li>
+                                <strong>Nhận phòng:</strong>
+                                <span>Từ 14:00</span>
+                            </li>
+                            <li>
+                                <strong>Trả phòng:</strong>
+                                <span>Trước 12:00</span>
+                            </li>
+                            <li>
+                                <strong>Email:</strong>
+                                <span>royalhotel@gmail.com</span>
+                            </li>
+                            <li>
+                                <strong>Điện thoại:</strong>
+                                <span>0788660087</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="contact-image-card">
+                        <img src="/assets/home/Home2.jpg" alt="Royal Hotel" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="contact-map-section">
+        <div class="container">
+            <div class="contact-map-wrapper">
+                <div class="section-label center-label">VỊ TRÍ</div>
+                <h2>Tìm đường đến Royal Hotel</h2>
+                <p>
+                    Vị trí trung tâm thuận tiện cho việc di chuyển, công tác và khám phá thành phố.
+                </p>
+
+                <div class="contact-map-frame">
+                    <iframe
+                        src="https://www.google.com/maps?q=Ho%20Chi%20Minh%20City&z=13&output=embed"
+                        width="100%"
+                        height="420"
+                        style="border:0;"
+                        allowfullscreen=""
+                        loading="lazy"
+                        referrerpolicy="no-referrer-when-downgrade">
+                    </iframe>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>

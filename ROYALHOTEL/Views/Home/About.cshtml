@@ -1,0 +1,168 @@
+@{
+    ViewData["Title"] = "Giới thiệu";
+}
+
+<link rel="stylesheet" href="~/css/about.css" asp-append-version="true" />
+
+<div class="about-page">
+    <section class="about-banner" style="background-image:url('/assets/home/hero.jpg')">
+        <div class="about-banner-overlay"></div>
+
+        <div class="rh-container rh-hero__inner">
+
+            <header class="rh-nav">
+                <div class="rh-brand">
+                    <div class="rh-brand__top">ROYAL</div>
+                    <div class="rh-brand__bot">LUXURY HOTEL</div>
+                </div>
+
+                <nav class="rh-menu">
+                    <a class="rh-menu__link" asp-controller="Home" asp-action="Index">Trang chủ</a>
+                    <a class="rh-menu__link is-active" asp-controller="Home" asp-action="About">Giới thiệu</a>
+                    <a class="rh-menu__link" asp-controller="Rooms" asp-action="Index">Phòng &amp; giá</a>
+                    <a class="rh-menu__link" asp-controller="Home" asp-action="Contact">Liên hệ</a>
+                </nav>
+
+                @await Html.PartialAsync("_AccountAvatar")
+            </header>
+
+            <div class="about-hero-content">
+                <div class="about-subtitle">ROYAL LUXURY HOTEL</div>
+                <h1 class="about-hero-title">Giới thiệu</h1>
+                <p class="about-hero-desc">
+                    Royal Hotel là điểm đến lý tưởng dành cho những khách hàng tìm kiếm
+                    không gian nghỉ dưỡng sang trọng, tiện nghi hiện đại và dịch vụ tận tâm.
+                </p>
+            </div>
+
+        </div>
+    </section>
+
+    <section class="about-intro">
+        <div class="container">
+            <div class="about-intro-grid">
+                <div class="about-intro-text">
+                    <span class="section-label">ROYAL LUXURY HOTEL</span>
+                    <h2>Tận hưởng trải nghiệm lưu trú đẳng cấp và tinh tế</h2>
+                    <p>
+                        Royal Hotel được xây dựng với mong muốn mang đến cho khách hàng
+                        một không gian nghỉ dưỡng sang trọng, ấm cúng và chuyên nghiệp.
+                        Chúng tôi chú trọng đến từng chi tiết, từ thiết kế phòng nghỉ,
+                        chất lượng dịch vụ cho đến sự tận tâm trong cách phục vụ.
+                    </p>
+                    <p>
+                        Dù là chuyến đi công tác, kỳ nghỉ cùng gia đình hay những dịp đặc biệt,
+                        Royal Hotel luôn mong muốn mỗi khoảnh khắc lưu trú của khách hàng
+                        đều trở nên thoải mái, tiện nghi và đáng nhớ.
+                    </p>
+
+                    <div class="about-contact-box">
+                        <div class="about-contact-icon">☎</div>
+                        <div>
+                            <span>Hỗ trợ đặt phòng</span>
+                            <strong>0788660087</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="about-intro-images">
+                    <div class="about-img about-img-main">
+                        <img src="/assets/home/Home2.jpg" alt="Không gian khách sạn" />
+                    </div>
+                    <div class="about-img about-img-sub">
+                        <img src="/assets/home/Home1.jpg" alt="Phòng nghỉ sang trọng" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="about-values">
+        <div class="container">
+            <div class="about-heading">
+                <span class="section-label">GIÁ TRỊ CỐT LÕI</span>
+                <h2>Những điều tạo nên dấu ấn Royal Hotel</h2>
+            </div>
+
+            <div class="about-values-grid">
+                <div class="value-card">
+                    <h3>Không gian sang trọng</h3>
+                    <p>
+                        Thiết kế tinh tế, ấm cúng và hài hòa, mang lại cảm giác thư giãn
+                        ngay từ khi khách hàng đặt chân đến.
+                    </p>
+                </div>
+
+                <div class="value-card">
+                    <h3>Dịch vụ chuyên nghiệp</h3>
+                    <p>
+                        Đội ngũ nhân viên luôn sẵn sàng hỗ trợ nhanh chóng, tận tình
+                        và chu đáo trong mọi nhu cầu lưu trú.
+                    </p>
+                </div>
+
+                <div class="value-card">
+                    <h3>Tiện nghi hiện đại</h3>
+                    <p>
+                        Hệ thống phòng nghỉ đầy đủ tiện ích, phù hợp cho cả khách du lịch,
+                        công tác và nghỉ dưỡng dài ngày.
+                    </p>
+                </div>
+
+                <div class="value-card">
+                    <h3>Trải nghiệm đáng nhớ</h3>
+                    <p>
+                        Chúng tôi luôn nỗ lực để mỗi kỳ nghỉ không chỉ thoải mái,
+                        mà còn để lại ấn tượng tốt đẹp cho khách hàng.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="about-stats">
+        <div class="container">
+            <div class="about-heading center">
+                <span class="section-label">ROYAL HOTEL TRONG NHỮNG CON SỐ</span>
+                <h2>Khẳng định chất lượng qua từng trải nghiệm</h2>
+            </div>
+
+            <div class="about-stats-grid">
+                <div class="stat-box">
+                    <h3>50+</h3>
+                    <p>Phòng nghỉ cao cấp</p>
+                </div>
+                <div class="stat-box">
+                    <h3>1.000+</h3>
+                    <p>Khách hàng hài lòng</p>
+                </div>
+                <div class="stat-box">
+                    <h3>10+</h3>
+                    <p>Năm hoạt động</p>
+                </div>
+                <div class="stat-box">
+                    <h3>24/7</h3>
+                    <p>Hỗ trợ khách hàng</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="about-commitment">
+        <div class="container">
+            <div class="about-commitment-box">
+                <span class="section-label">CAM KẾT DỊCH VỤ</span>
+                <h2>Luôn đặt sự hài lòng của khách hàng lên hàng đầu</h2>
+                <p>
+                    Royal Hotel cam kết mang đến chất lượng dịch vụ ổn định,
+                    không gian lưu trú sạch sẽ, tiện nghi và chuyên nghiệp.
+                    Chúng tôi tin rằng một kỳ nghỉ trọn vẹn không chỉ đến từ
+                    vẻ đẹp của không gian, mà còn đến từ sự tận tâm trong từng trải nghiệm.
+                </p>
+                <a asp-controller="Rooms" asp-action="Index" class="about-btn">
+                    Xem phòng &amp; giá
+                </a>
+            </div>
+        </div>
+    </section>
+</div>

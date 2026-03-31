@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using ROYALHOTEL.Commands.Bookings;
+using ROYALHOTEL.Commands.Common;
 using ROYALHOTEL.Data;
-using ROYALHOTEL.Models;
 using ROYALHOTEL.ViewModels;
 
 namespace ROYALHOTEL.Controllers
@@ -9,10 +10,12 @@ namespace ROYALHOTEL.Controllers
     public class AdminBookingsController : Controller
     {
         private readonly RoyalHotelDbContext _context;
+        private readonly IAdminCommandDispatcher _dispatcher;
 
-        public AdminBookingsController(RoyalHotelDbContext context)
+        public AdminBookingsController(RoyalHotelDbContext context, IAdminCommandDispatcher dispatcher)
         {
             _context = context;
+            _dispatcher = dispatcher;
         }
 
         private bool IsAdmin()
@@ -52,12 +55,10 @@ namespace ROYALHOTEL.Controllers
 
             if (!string.IsNullOrWhiteSpace(keyword))
             {
-                keyword = keyword.Trim();
-
                 query = query.Where(x =>
                     x.BookingCode.Contains(keyword) ||
-                    x.RoomName.Contains(keyword) ||
-                    x.RoomCode.Contains(keyword) ||
+                    (x.RoomName != null && x.RoomName.Contains(keyword)) ||
+                    (x.RoomCode != null && x.RoomCode.Contains(keyword)) ||
                     (x.GuestName != null && x.GuestName.Contains(keyword)) ||
                     (x.GuestEmail != null && x.GuestEmail.Contains(keyword)));
             }
@@ -85,55 +86,6 @@ namespace ROYALHOTEL.Controllers
             return View(items);
         }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> UpdateStatus(int id, string status)
-        {
-            if (!IsAdmin())
-            {
-                return RedirectToAction("Login", "Account");
-            }
-
-            var allowedStatuses = new List<string>
-            {
-                "Confirmed",
-                "CheckedIn",
-                "CheckedOut",
-                "Completed",
-                "Cancelled"
-            };
-
-            if (string.IsNullOrWhiteSpace(status) || !allowedStatuses.Contains(status))
-            {
-                TempData["Error"] = "Invalid booking status.";
-                return RedirectToAction(nameof(Index));
-            }
-
-            var exists = await _context.Bookings
-                .AsNoTracking()
-                .AnyAsync(x => x.Id == id);
-
-            if (!exists)
-            {
-                TempData["Error"] = "Booking not found.";
-                return RedirectToAction(nameof(Index));
-            }
-
-            var booking = new Booking
-            {
-                Id = id,
-                Status = status
-            };
-
-            _context.Bookings.Attach(booking);
-            _context.Entry(booking).Property(x => x.Status).IsModified = true;
-
-            await _context.SaveChangesAsync();
-
-            TempData["Success"] = "Booking status updated successfully.";
-            return RedirectToAction(nameof(Index));
-        }
-
         [HttpGet]
         public async Task<IActionResult> Detail(int id)
         {
@@ -144,25 +96,25 @@ namespace ROYALHOTEL.Controllers
 
             var item = await
                 (from b in _context.Bookings
-                join r in _context.Rooms on b.RoomId equals r.Id
-                where b.Id == id
-                select new AdminBookingDetailViewModel
-                {
-                    Id = b.Id,
-                    BookingCode = b.BookingCode,
-                    RoomId = r.Id,
-                    RoomName = r.Name,
-                    RoomCode = r.Code,
-                    CoverImageUrl = r.CoverImageUrl,
-                    CheckIn = b.CheckIn,
-                    CheckOut = b.CheckOut,
-                    Guests = b.Guests,
-                    Status = b.Status,
-                    GuestName = b.GuestName,
-                    GuestEmail = b.GuestEmail,
-                    GuestPhone = b.GuestPhone,
-                    TotalAmount = b.TotalAmount
-                })
+                 join r in _context.Rooms on b.RoomId equals r.Id
+                 where b.Id == id
+                 select new AdminBookingDetailViewModel
+                 {
+                     Id = b.Id,
+                     BookingCode = b.BookingCode,
+                     RoomId = r.Id,
+                     RoomName = r.Name,
+                     RoomCode = r.Code,
+                     CoverImageUrl = r.CoverImageUrl,
+                     CheckIn = b.CheckIn,
+                     CheckOut = b.CheckOut,
+                     Guests = b.Guests,
+                     Status = b.Status,
+                     GuestName = b.GuestName,
+                     GuestEmail = b.GuestEmail,
+                     GuestPhone = b.GuestPhone,
+                     TotalAmount = b.TotalAmount
+                 })
                 .FirstOrDefaultAsync();
 
             if (item == null)
@@ -172,6 +124,38 @@ namespace ROYALHOTEL.Controllers
             }
 
             return View(item);
+        }
+
+// action to update booking status, only for admin users
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateStatus(int id, string status)
+        {
+            if (!IsAdmin())
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            AdminCommandResult result = status switch
+            {
+                "Confirmed" => await _dispatcher.DispatchAsync(new ConfirmBookingCommand { BookingId = id }),
+                "CheckedIn" => await _dispatcher.DispatchAsync(new CheckInBookingCommand { BookingId = id }),
+                "CheckedOut" => await _dispatcher.DispatchAsync(new CheckOutBookingCommand { BookingId = id }),
+                "Completed" => await _dispatcher.DispatchAsync(new CompleteBookingCommand { BookingId = id }),
+                "Cancelled" => await _dispatcher.DispatchAsync(new CancelBookingCommand { BookingId = id }),
+                _ => AdminCommandResult.Fail("Invalid status.")
+            };
+
+            if (result.Success)
+            {
+                TempData["Success"] = result.Message;
+            }
+            else
+            {
+                TempData["Error"] = result.Message;
+            }
+
+            return RedirectToAction(nameof(Index));
         }
     }
 }

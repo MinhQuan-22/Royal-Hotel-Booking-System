@@ -1,4 +1,4 @@
-﻿@model ROYALHOTEL.Models.HomePageVM
+@model ROYALHOTEL.Models.HomePageVM
 @{
   ViewData["Title"] = "Trang chủ";
 }
@@ -15,10 +15,10 @@
             </div>
 
             <nav class="rh-menu">
-                <a class="rh-menu__link" asp-controller="Home" asp-action="Index">Trang chủ</a>
-                <a class="rh-menu__link" href="#">Giới thiệu</a>
+                <a class="rh-menu__link is-active" asp-controller="Home" asp-action="Index">Trang chủ</a>
+                <a class="rh-menu__link" asp-controller="Home" asp-action="About">Giới thiệu</a>
                 <a class="rh-menu__link" asp-controller="Rooms" asp-action="Index">Phòng &amp; giá</a>
-                <a class="rh-menu__link" href="#">Liên hệ</a>
+                <a class="rh-menu__link" asp-controller="Home" asp-action="Contact">Liên hệ</a>
             </nav>
 
             @await Html.PartialAsync("_AccountAvatar")
@@ -131,7 +131,7 @@
 
             <div class="@cardClass">
                 <img class="rh-roomCard__img" src="@img" alt="@displayName" />
-                <a asp-controller="Rooms" asp-action="Detail" asp-route-id="@r.Id"
+                <a href="#" onclick="event.preventDefault();"
                   class="rh-roomCard__bookBtn">ĐẶT PHÒNG</a>
 
                 <div class="rh-roomCard__info">
