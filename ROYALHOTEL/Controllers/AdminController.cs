@@ -25,7 +25,7 @@ namespace ROYALHOTEL.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
-            return RedirectToAction("Index", "AdminRooms");
+            return RedirectToAction("Index", "AdminDashboard");
         }
     }
 }

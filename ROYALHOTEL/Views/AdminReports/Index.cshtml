@@ -1,0 +1,272 @@
+@model ROYALHOTEL.ViewModels.AdminReportViewModel
+
+@{
+    ViewData["Title"] = "Hotel Operations Report";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="row pt-2 mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h4 class="mb-0" style="color: #8b6a14; font-family: 'Playfair Display', Georgia, serif; font-size: 28px;">Hotel Operations Report</h4>
+        <button class="btn btn-outline-primary shadow-sm">
+            <i class="bi bi-file-earmark-pdf me-2"></i> Export to PDF
+        </button>
+    </div>
+</div>
+
+<div class="row pt-2 mb-4 g-4">
+    <!-- TOP 3 REVENUE GENERATING ROOMS -->
+    <div class="col-12">
+        <div class="section-card h-100 d-flex flex-column p-0 overflow-hidden mb-2 shadow-sm rounded">
+            <div class="p-4 border-bottom" style="border-color: rgba(201, 162, 74, 0.2) !important; background-color: #fdfdf9;">
+                <h4 class="mb-0 section-heading-custom">Top 3 Revenue Rooms <span class="badge bg-warning text-dark ms-2" style="font-size: 11px;">Current QTR</span></h4>
+            </div>
+
+            <div class="p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="background-color: transparent;">
+                        <thead style="background-color: rgba(201, 162, 74, 0.05);">
+                            <tr>
+                                <th class="text-center" style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; width: 80px; padding: 15px;">Rank</th>
+                                <th style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; width: 120px; padding: 15px;">Code</th>
+                                <th style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; padding: 15px;">Room</th>
+                                <th style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; width: 150px; padding: 15px;">Type</th>
+                                <th class="text-center" style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; width: 120px; padding: 15px;">Occ</th>
+                                <th class="text-end" style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; width: 180px; padding: 15px 30px 15px 15px;">Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                int index = 1;
+                            }
+                            @if (Model.TopRevenueRooms != null && Model.TopRevenueRooms.Any())
+                            {
+                                @foreach (var room in Model.TopRevenueRooms)
+                                {
+                                    <tr style="border-bottom: 1px solid rgba(201, 162, 74, 0.1); transition: all 0.2s ease;">
+                                        <!-- Rank Number Only -->
+                                        <td class="text-center py-4">
+                                            <div class="d-inline-flex align-items-center justify-content-center"
+                                                 style="width: 32px; height: 32px; border-radius: 50%; background-color: rgba(139, 106, 20, 0.08);">
+                                                <span class="fw-bold" style="color: #8b6a14; font-size: 15px;">#@index</span>
+                                            </div>
+                                        </td>
+
+                                        <!-- Code -->
+                                        <td class="py-4 px-3">
+                                            <span class="text-secondary fw-semibold" style="font-size: 15px; letter-spacing: 0.5px;">@room.RoomCode</span>
+                                        </td>
+
+                                        <!-- Room Info -->
+                                        <td class="py-4 px-3">
+                                            <h6 class="mb-0 fw-bold text-dark" style="font-size: 16px;">@room.RoomName</h6>
+                                        </td>
+
+                                        <!-- Type -->
+                                        <td class="py-4 px-3">
+                                            <span class="badge rounded-pill" style="background-color: rgba(139, 106, 20, 0.1); color: #8b6a14; font-weight: 600; padding: 6px 12px; font-size: 12px;">@room.RoomType</span>
+                                        </td>
+
+                                        <!-- Occupancy Rate -->
+                                        <td class="text-center py-4 px-3">
+                                            <div class="d-inline-block px-3 py-1 rounded" style="background-color: rgba(46, 125, 50, 0.05);">
+                                                <span class="fw-bold" style="color: #2e7d32; font-size: 15px;">@room.OccupancyRate%</span>
+                                            </div>
+                                        </td>
+
+                                        <!-- Revenue -->
+                                        <td class="text-end py-4" style="padding-right: 30px;">
+                                            <h5 class="mb-1" style="color: #8b6a14; font-family: 'Playfair Display', Georgia, serif; font-size: 20px; font-weight: 700;">
+                                                $@room.RevenueGenerated.ToString("N0")
+                                            </h5>
+                                            <span class="text-muted d-block text-uppercase" style="font-size: 11px; font-weight: 600; letter-spacing: 0.5px;">@room.TotalBookings Bookings</span>
+                                        </td>
+                                    </tr>
+                                    index++;
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MONTHLY REVENUE CHART -->
+<div class="row pt-2 mb-4 g-4">
+    <div class="col-12">
+        <div class="section-card h-100 d-flex flex-column p-0 overflow-hidden mb-2 shadow-sm rounded">
+            <div class="d-flex justify-content-between align-items-center p-4 border-bottom" style="border-color: rgba(201, 162, 74, 0.2) !important; background-color: #fdfdf9;">
+                <h4 class="mb-0 section-heading-custom">Monthly Revenue Statistics <span class="badge text-white ms-2" style="font-size: 15px;">2024</span></h4>
+                <div>
+                    <button class="btn btn-sm btn-outline-secondary" style="color: #8b6a14; border-color: #d9caa7;">
+                        <i class="bi bi-download"></i> CSV
+                    </button>
+                </div>
+            </div>
+            <div class="p-4" style="height: 350px;">
+                <canvas id="monthlyRevenueChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MOVED PRICING TREND CHART -->
+<div class="row pt-2 mb-4 g-4">
+    <div class="col-xl-8 col-lg-12">
+        <div class="section-card mb-2 h-100">
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4" style="border-color: rgba(201, 162, 74, 0.2) !important;">
+                <h4 class="mb-0 section-heading-custom">Room Pricing Trend</h4>
+                <div>
+                    <select class="form-select form-select-sm d-inline-block w-auto" style="border-color: #d9caa7;">
+                        <option value="7days">Last 7 Days</option>
+                        <option value="30days">Last 30 Days</option>
+                    </select>
+                </div>
+            </div>
+            <div style="height: 360px;">
+                <canvas id="roomPriceReportChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Load Mock Data dynamically from C# ViewModel to Chart JS using System.Text.Json Serializer
+            const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PricingLabels));
+            const stdData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.StandardPricingData));
+            const dlxData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.DeluxePricingData));
+
+            const monthlyLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyRevenueLabels));
+            const monthlyData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyRevenueData));
+
+            const ctx = document.getElementById('roomPriceReportChart');
+            if (ctx) {
+                new Chart(ctx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Standard Room ($)',
+                                data: stdData,
+                                borderColor: '#8b6a14',
+                                backgroundColor: 'rgba(139, 106, 20, 0.1)',
+                                borderWidth: 3,
+                                tension: 0.3,
+                                pointBackgroundColor: '#fff',
+                                pointBorderColor: '#8b6a14',
+                                pointRadius: 4,
+                                fill: true
+                            },
+                            {
+                                label: 'Deluxe Room ($)',
+                                data: dlxData,
+                                borderColor: '#0288d1',
+                                backgroundColor: 'transparent',
+                                borderWidth: 3,
+                                tension: 0.3,
+                                pointBackgroundColor: '#fff',
+                                pointBorderColor: '#0288d1',
+                                pointRadius: 4,
+                                borderDash: [5, 5]
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            intersect: false,
+                            mode: 'index',
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                suggestedMin: 50,
+                                grid: { color: 'rgba(0, 0, 0, 0.05)', drawBorder: false }
+                            },
+                            x: {
+                                grid: { display: false, drawBorder: false }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: { font: { family: "'Inter', sans-serif", size: 13 }, usePointStyle: true, boxWidth: 8 }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(26, 26, 26, 0.9)',
+                                titleFont: { size: 14 },
+                                bodyFont: { size: 13 },
+                                padding: 12,
+                                cornerRadius: 8,
+                                displayColors: true
+                            }
+                        }
+                    }
+                });
+            }
+
+            const ctxMonthly = document.getElementById('monthlyRevenueChart');
+            if (ctxMonthly) {
+                new Chart(ctxMonthly.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: monthlyLabels,
+                        datasets: [{
+                            label: 'Total Revenue ($)',
+                            data: monthlyData,
+                            backgroundColor: 'rgba(139, 106, 20, 0.7)',
+                            borderColor: '#8b6a14',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(0, 0, 0, 0.05)', drawBorder: false },
+                                ticks: {
+                                    callback: function(value) {
+                                        return '$' + value.toLocaleString();
+                                    }
+                                }
+                            },
+                            x: {
+                                grid: { display: false, drawBorder: false }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(26, 26, 26, 0.9)',
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.y !== null) {
+                                            label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y);
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+}

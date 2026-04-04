@@ -310,7 +310,7 @@ GO
 
 UPDATE Accounts
 SET Role = 'admin'
-WHERE Email = 'tthuuttrangg08022005@gmail.com' OR Email = 'joumitthavong@gmail.com';
+WHERE Email = 'tthuuttrangg08022005@gmail.com' OR Email = 'hoangt1245@gmail.com';
 GO
 
 BEGIN TRAN;
