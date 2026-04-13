@@ -7,6 +7,7 @@ public class RoyalHotelDbContext : DbContext
 {
     public RoyalHotelDbContext(DbContextOptions<RoyalHotelDbContext> options) : base(options) { }
 
+    public DbSet<Hotel> Hotels => Set<Hotel>();
     public DbSet<Room> Rooms => Set<Room>();
     public DbSet<Amenity> Amenities => Set<Amenity>();
     public DbSet<RoomAmenity> RoomAmenities => Set<RoomAmenity>();
@@ -23,6 +24,20 @@ public class RoyalHotelDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // =========================
+        // Hotel
+        // =========================
+        modelBuilder.Entity<Hotel>(e =>
+        {
+            e.ToTable("Hotels");
+            e.HasKey(x => x.Id);
+            
+            e.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Address).HasMaxLength(500);
+            e.Property(x => x.City).HasMaxLength(100);
+            e.Property(x => x.Country).HasMaxLength(100);
+        });
 
         // =========================
         // Room / Amenity / Images
@@ -45,9 +60,19 @@ public class RoyalHotelDbContext : DbContext
             .WithMany(r => r.Images)
             .HasForeignKey(i => i.RoomId);
 
-        modelBuilder.Entity<Room>()
-            .Property(x => x.BasePricePerNight)
-            .HasPrecision(18, 2);
+        modelBuilder.Entity<Room>(e =>
+        {
+            e.Property(x => x.BasePricePerNight).HasPrecision(18, 2);
+            e.Property(x => x.Rate).HasPrecision(18, 2);
+            e.Property(x => x.Status).HasMaxLength(50).IsRequired();
+
+            e.HasOne(x => x.Hotel)
+                .WithMany(h => h.Rooms)
+                .HasForeignKey(x => x.HotelId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasCheckConstraint("CK_Room_Rate", "Rate > 0");
+        });
 
         // =========================
         // PricingRule
@@ -135,6 +160,10 @@ public class RoyalHotelDbContext : DbContext
             e.Property(x => x.BookingCode)
                 .HasMaxLength(50)
                 .IsRequired();
+
+            e.HasIndex(x => x.BookingCode).IsUnique();
+            e.HasIndex(x => new { x.RoomId, x.CheckIn, x.CheckOut, x.Status });
+            e.HasCheckConstraint("CK_Booking_Dates", "CheckOut > CheckIn");
 
             e.Property(x => x.Status)
                 .HasMaxLength(30)

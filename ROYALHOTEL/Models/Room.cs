@@ -12,6 +12,11 @@ public class Room
     public string? Description { get; set; }
     public string? CoverImageUrl { get; set; }
 
+    public int HotelId { get; set; }
+    public Hotel Hotel { get; set; } = null!;
+    public decimal Rate { get; set; } = 1.0m;
+    public string Status { get; set; } = "Available";
+
     public List<RoomImage> Images { get; set; } = new();
     public List<RoomAmenity> RoomAmenities { get; set; } = new();
 }

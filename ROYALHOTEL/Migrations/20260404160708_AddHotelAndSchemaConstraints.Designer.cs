@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ROYALHOTEL.Data;
 
@@ -11,9 +12,11 @@ using ROYALHOTEL.Data;
 namespace ROYALHOTEL.Migrations
 {
     [DbContext(typeof(RoyalHotelDbContext))]
-    partial class RoyalHotelDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260404160708_AddHotelAndSchemaConstraints")]
+    partial class AddHotelAndSchemaConstraints
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

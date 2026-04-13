@@ -5,6 +5,8 @@ using ROYALHOTEL.ViewModels.Booking;
 using ROYALHOTEL.Services.Payments;
 using ROYALHOTEL.Services.Events;
 using ROYALHOTEL.Services.Rooms;
+using Microsoft.Data.SqlClient;
+using System.Data;
 
 namespace ROYALHOTEL.Services.Booking;
 
@@ -93,53 +95,72 @@ public class CoreBookingService : IBookingService
         if (booking.Status != "Pending")
             return false;
 
-        // Chỉ tại thời điểm thanh toán mới chốt xem phòng còn trống không
-        var hasConfirmedOverlap = await _context.Bookings.AnyAsync(b =>
-            b.Id != booking.Id &&
-            b.RoomId == booking.RoomId &&
-            (b.Status == "Confirmed" || b.Status == "CheckedIn") &&
-            booking.CheckIn < b.CheckOut &&
-            booking.CheckOut > b.CheckIn);
-
-        // Nếu đã có người khác chốt trước thì booking Pending này không còn hợp lệ.
-        // Xóa luôn để không xuất hiện trong lịch sử booking của khách và danh sách admin.
-        if (hasConfirmedOverlap)
-        {
-            _context.Bookings.Remove(booking);
-            await _context.SaveChangesAsync();
-            return false;
-        }
-
-        // Factory Method Pattern: chọn Concrete Creator phù hợp
-        var factory = CreatePaymentFactory(paymentMethod);
-        var transaction = await factory.ProcessAsync(booking);
-
-        // Nếu sau này có processor trả Failed thì không confirm booking
-        if (!string.Equals(transaction.Status, "Paid", StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        booking.PaymentMethod = paymentMethod;
-        booking.Status = "Confirmed";
-
-        _context.PaymentTransactions.Add(transaction);
-        await _context.SaveChangesAsync();
-
-        // Observer Pattern: Publish event thay vì gọi trực tiếp email service
-        // Publisher sẽ notify tất cả observers (email, audit log, etc.)
+        using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted);
         try
         {
-            var evt = new BookingConfirmedEvent(booking);
-            await _bookingEventPublisher.PublishBookingConfirmedAsync(evt);
-        }
-        catch (Exception ex)
-        {
-            // Log error nhưng không làm fail payment
-            Console.WriteLine($"[WARNING] Không thể publish booking confirmed event {booking.BookingCode}: {ex.Message}");
-        }
+            // Call Stored Procedure to acquire Pessimistic Lock and check overlap
+            var hasOverlapParam = new SqlParameter
+            {
+                ParameterName = "HasOverlap",
+                SqlDbType = SqlDbType.Bit,
+                Direction = ParameterDirection.Output
+            };
 
-        return true;
+            await _context.Database.ExecuteSqlRawAsync(
+                "EXEC sp_RequireBookingLock @RoomId, @CheckIn, @CheckOut, @ExcludeBookingId, @HasOverlap OUTPUT",
+                new SqlParameter("RoomId", booking.RoomId),
+                new SqlParameter("CheckIn", booking.CheckIn),
+                new SqlParameter("CheckOut", booking.CheckOut),
+                new SqlParameter("ExcludeBookingId", booking.Id),
+                hasOverlapParam);
+
+            var hasConfirmedOverlap = (bool)hasOverlapParam.Value;
+
+            // Nếu đã có người khác chốt trước thì booking Pending này không còn hợp lệ.
+            if (hasConfirmedOverlap)
+            {
+                _context.Bookings.Remove(booking);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return false;
+            }
+
+            // Factory Method Pattern: chọn Concrete Creator phù hợp
+            var factory = CreatePaymentFactory(paymentMethod);
+            var paymentTransaction = await factory.ProcessAsync(booking);
+
+            // Nếu sau này có processor trả Failed thì không confirm booking
+            if (!string.Equals(paymentTransaction.Status, "Paid", StringComparison.OrdinalIgnoreCase))
+            {
+                await transaction.RollbackAsync();
+                return false;
+            }
+
+            booking.PaymentMethod = paymentMethod;
+            booking.Status = "Confirmed";
+
+            _context.PaymentTransactions.Add(paymentTransaction);
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            // Observer Pattern: Publish event thay vì gọi trực tiếp email service
+            try
+            {
+                var evt = new BookingConfirmedEvent(booking);
+                await _bookingEventPublisher.PublishBookingConfirmedAsync(evt);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[WARNING] Không thể publish booking confirmed event {booking.BookingCode}: {ex.Message}");
+            }
+
+            return true;
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
 
     private PaymentProcessorFactory CreatePaymentFactory(string paymentMethod)
