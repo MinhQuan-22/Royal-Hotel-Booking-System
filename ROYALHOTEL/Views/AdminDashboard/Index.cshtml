@@ -1,0 +1,120 @@
+@model ROYALHOTEL.ViewModels.AdminDashboardViewModel
+
+@{
+    ViewData["Title"] = "Hotel Dashboard Overview";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<!-- LƯỚI 4 Ô KPI -->
+<div class="stat-grid mb-4" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;">
+    <div class="stat-card-custom mb-2">
+        <div class="kpi-icon">
+            <i class="bi bi-currency-dollar"></i>
+        </div>
+        <h6>Total Revenue</h6>
+        <h3>$@Model.TotalRevenue.ToString("N2")</h3>
+    </div>
+
+    <div class="stat-card-custom mb-2">
+        <div class="kpi-icon">
+            <i class="bi bi-door-open"></i>
+        </div>
+        <h6>Occupancy Rate</h6>
+        <h3>@Model.OccupancyRate</h3>
+    </div>
+
+    <div class="stat-card-custom mb-2">
+        <div class="kpi-icon style-alert">
+            <i class="bi bi-calendar-check"></i>
+        </div>
+        <h6>Pending Bookings</h6>
+        <h3>@Model.PendingBookings</h3>
+        <small class="text-muted">Out of @Model.TotalBookings Total</small>
+    </div>
+
+    <div class="stat-card-custom mb-2">
+        <div class="kpi-icon">
+            <i class="bi bi-shield-check"></i>
+        </div>
+        <h6>Available Rooms</h6>
+        <h3>@Model.ActiveRooms</h3>
+        <small class="text-muted">Out of @Model.TotalRooms Total</small>
+    </div>
+</div>
+
+<!-- LỊCH SỬ KẾT HỢP SUMMARY -->
+<div class="row g-4 pt-2 mb-4">
+    <div class="col-lg-8">
+        <div class="section-card h-100 p-0 overflow-hidden mb-2">
+            <div class="d-flex justify-content-between align-items-center p-4 border-bottom" style="border-color: rgba(201, 162, 74, 0.2) !important; background-color: #fff;">
+                <h4 class="mb-0 section-heading-custom">Recent Operational Activities</h4>
+            </div>
+
+            <div class="admin-table-wrap p-0 border-0 shadow-none m-0 rounded-0">
+                <table class="table table-hover table-custom align-middle mb-0 w-100">
+                    <thead>
+                        <tr style="background-color: rgba(201, 162, 74, 0.05);">
+                            <th style="color: #8b6a14; border-bottom: 2px solid #eadfcb; font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; padding-left:24px;">Ref ID</th>
+                            <th style="color: #8b6a14; border-bottom: 2px solid #eadfcb; font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">Type</th>
+                            <th style="color: #8b6a14; border-bottom: 2px solid #eadfcb; font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">Amount/Value</th>
+                            <th style="color: #8b6a14; border-bottom: 2px solid #eadfcb; font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; padding-right:24px;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding-left:24px;"><strong>#TRX-098</strong></td>
+                            <td><i class="bi bi-wallet2 me-2 text-muted"></i>Booking Payment</td>
+                            <td class="fw-bold text-dark">$450.00</td>
+                            <td style="padding-right:24px;"><span class="dashboard-badge badge-success-custom">Completed</span></td>
+                        </tr>
+                        <tr>
+                            <td style="padding-left:24px;"><strong>#TRX-099</strong></td>
+                            <td><i class="bi bi-tools me-2 text-muted"></i>Room Maintenance</td>
+                            <td class="fw-bold text-dark">$125.00</td>
+                            <td style="padding-right:24px;"><span class="dashboard-badge badge-success-custom">Completed</span></td>
+                        </tr>
+                        <tr>
+                            <td style="padding-left:24px;"><strong>#PRC-021</strong></td>
+                            <td><i class="bi bi-tag  me-2 text-muted"></i>Pricing Rule Updated</td>
+                            <td class="text-dark">Priority 1</td>
+                            <td style="padding-right:24px;"><span class="dashboard-badge badge-info-custom">Applied</span></td>
+                        </tr>
+                        <tr>
+                            <td style="padding-left:24px;"><strong>#BK-9285</strong></td>
+                            <td><i class="bi bi-arrow-counterclockwise me-2 text-muted"></i>Refund Processing</td>
+                            <td class="fw-bold text-dark">$200.00</td>
+                            <td style="padding-right:24px;"><span class="dashboard-badge badge-warning-custom">Pending</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="section-card h-100 d-flex flex-column">
+             <h4 class="mb-4 pb-3 border-bottom" style="border-color: rgba(201, 162, 74, 0.2) !important;">System Summary</h4>
+
+             <div class="d-flex justify-content-between align-items-center mb-3">
+                 <div>
+                     <span class="d-block text-muted small text-uppercase fw-bold mb-1">Registered Accounts</span>
+                     <span class="fs-5 fw-bold text-dark">@Model.TotalAccounts</span>
+                 </div>
+                 <div class="kpi-icon" style="width:40px; height:40px; font-size:16px; margin-bottom: 0;">
+                     <i class="bi bi-people"></i>
+                 </div>
+             </div>
+
+             <div class="d-flex justify-content-between align-items-center mb-3">
+                 <div>
+                     <span class="d-block text-muted small text-uppercase fw-bold mb-1">Active Pricing Rules</span>
+                     <span class="fs-5 fw-bold text-dark">@Model.ActivePricingRules</span>
+                 </div>
+                 <div class="kpi-icon" style="width:40px; height:40px; font-size:16px; margin-bottom: 0;">
+                     <i class="bi bi-tags"></i>
+                 </div>
+             </div>
+        </div>
+    </div>
+</div>
+

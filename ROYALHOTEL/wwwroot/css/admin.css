@@ -27,6 +27,11 @@ body {
   flex-direction: column;
   gap: 28px;
   border-right: 1px solid rgba(201, 162, 74, 0.2);
+  /* Fix sticky sidebar */
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
 }
 
 .admin-brand {
@@ -1594,4 +1599,91 @@ body {
     .admin-amenity-grid {
         grid-template-columns: 1fr;
     }
+}
+
+/* =========================================
+   DASHBOARD KPI CARDS & CUSTOM WIDGETS
+   ========================================= */
+
+.kpi-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: rgba(201, 162, 74, 0.15); /* matching brand color */
+    color: #8b6a14;
+    font-size: 20px;
+    margin-bottom: 20px;
+}
+
+.stat-card-custom {
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border: 1px solid #d9caa7;
+    border-radius: 8px;
+    padding: 24px;
+    box-shadow: 0 4px 16px rgba(139, 106, 20, 0.08);
+    transition: all 0.25s ease;
+    height: 100%;
+}
+
+.stat-card-custom:hover {
+    box-shadow: 0 8px 24px rgba(139, 106, 20, 0.12);
+    transform: translateY(-3px);
+}
+
+.stat-card-custom h6 {
+    margin: 0 0 12px;
+    color: #8b6a14;
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.stat-card-custom h3 {
+    margin: 0 0 4px;
+    font-size: 34px;
+    color: #1a1a1a;
+    font-weight: 600;
+    font-family: "Playfair Display", Georgia, serif;
+}
+
+/* Custom Status Badges */
+.dashboard-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 6px;
+    text-align: center;
+    white-space: nowrap;
+}
+.badge-success-custom {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+.badge-info-custom {
+    background-color: #e1f5fe;
+    color: #0288d1;
+}
+.badge-warning-custom {
+    background-color: #fff8e1;
+    color: #f57f17;
+}
+
+/* Action Table Headings & Grid */
+.section-heading-custom {
+    color: #8b6a14; 
+    font-family: "Playfair Display", Georgia, serif; 
+    font-size: 26px;
+    font-weight: 500;
+}
+
+.table-custom td, .table-custom th {
+    padding: 14px 16px;
+    vertical-align: middle;
 }
