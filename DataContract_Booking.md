@@ -20,11 +20,12 @@ Lưu ý: Rooms.Status không dùng để biểu diễn booked/unbooked theo ngà
 - Completed
 - Cancelled
 
-## 4. Overlap Blocking Rule
-Các booking status được xem là chặn đặt phòng:
-- Pending
+## 4. Confirm-Time Overlap Rule
+At payment confirmation time, overlapping bookings are blocked against:
 - Confirmed
 - CheckedIn
+
+Pending bookings are treated as non-finalized drafts and do not block final confirmation until one booking is confirmed atomically.
 
 ## 5. Revenue Analytics Rule
 Các booking status được tính doanh thu cho analytics:
@@ -52,3 +53,10 @@ Hai booking bị giao nhau khi:
 - Hotels.Id = 2 and Hotels.Id = 3 are seeded as demo properties for MongoDB catalog and analytics demonstration
 - Existing legacy rooms must not be randomly reassigned to Hotel 2 or Hotel 3
 - If multi-hotel reporting is required, demo rooms and demo bookings must be created separately for Hotel 2 and Hotel 3
+
+## 9. Demo Room Seed Rule
+- Demo rooms are created only for HotelId = 2 and HotelId = 3
+- Legacy rooms of HotelId = 1 must remain unchanged
+- BasePricePerNight must stay aligned with Rate
+- IsActive must stay aligned with Status = ACTIVE
+- Description and CoverImageUrl are intentionally left NULL for Member 2 to manage through MongoDB HotelCatalog

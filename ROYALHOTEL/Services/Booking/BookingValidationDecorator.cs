@@ -22,10 +22,13 @@ public class BookingValidationDecorator : BookingServiceDecorator
     {
         // Validation 1: Room exists and is active
         var room = await _context.Rooms
-            .FirstOrDefaultAsync(r => r.Id == request.RoomId && r.IsActive);
+    .FirstOrDefaultAsync(r =>
+        r.Id == request.RoomId &&
+        r.IsActive &&
+        r.Status == "ACTIVE");
 
         if (room == null)
-            throw new InvalidOperationException("Phòng không tồn tại hoặc đang không hoạt động.");
+            throw new InvalidOperationException("Phòng không tồn tại hoặc hiện không sẵn sàng để đặt.");
 
         // Validation 2: CheckOutDate > CheckInDate
         if (request.CheckOutDate <= request.CheckInDate)
@@ -36,40 +39,16 @@ public class BookingValidationDecorator : BookingServiceDecorator
             throw new InvalidOperationException($"Số khách không hợp lệ. Phòng này tối đa {room.MaxGuests} khách.");
 
         // Validation 4: Overlap check with Confirmed/CheckedIn bookings
-        // Dùng Pessimistic Locking qua Stored Procedure giống ConfirmPaymentAsync
-        using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted);
-        try
-        {
-            var hasOverlapParam = new Microsoft.Data.SqlClient.SqlParameter
-            {
-                ParameterName = "HasOverlap",
-                SqlDbType = System.Data.SqlDbType.Bit,
-                Direction = System.Data.ParameterDirection.Output
-            };
+        var hasConfirmedOverlap = await _context.Bookings.AnyAsync(b =>
+            b.RoomId == request.RoomId &&
+            (b.Status == "Confirmed" || b.Status == "CheckedIn") &&
+            request.CheckInDate < b.CheckOut &&
+            request.CheckOutDate > b.CheckIn);
 
-            await _context.Database.ExecuteSqlRawAsync(
-                "EXEC sp_RequireBookingLock @RoomId, @CheckIn, @CheckOut, @ExcludeBookingId, @HasOverlap OUTPUT",
-                new Microsoft.Data.SqlClient.SqlParameter("RoomId", request.RoomId),
-                new Microsoft.Data.SqlClient.SqlParameter("CheckIn", request.CheckInDate),
-                new Microsoft.Data.SqlClient.SqlParameter("CheckOut", request.CheckOutDate),
-                new Microsoft.Data.SqlClient.SqlParameter("ExcludeBookingId", 0), // Không exclude booking nào vì đang tạo mới
-                hasOverlapParam);
+        if (hasConfirmedOverlap)
+            throw new InvalidOperationException("Phòng này đã được đặt trong khoảng thời gian anh chọn.");
 
-            var hasConfirmedOverlap = (bool)hasOverlapParam.Value;
-
-            if (hasConfirmedOverlap)
-                throw new InvalidOperationException("Phòng này đã được đặt trong khoảng thời gian anh chọn.");
-
-            // All validations passed, delegate to wrapped service
-            var booking = await base.CreateBookingAsync(request, accountId);
-            
-            await transaction.CommitAsync();
-            return booking;
-        }
-        catch
-        {
-            await transaction.RollbackAsync();
-            throw;
-        }
+        // All validations passed, delegate to wrapped service
+        return await base.CreateBookingAsync(request, accountId);
     }
 }

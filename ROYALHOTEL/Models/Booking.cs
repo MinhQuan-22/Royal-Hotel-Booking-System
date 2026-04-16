@@ -20,7 +20,7 @@ public class Booking
     public int Guests { get; set; }
 
     // Pending / Confirmed / CheckedIn / CheckedOut / Completed / Cancelled
-    public string Status { get; set; } = "Pending";
+    public string Status { get; set; } = "ACTIVE";
 
     public string? GuestName { get; set; }
     public string? GuestEmail { get; set; }

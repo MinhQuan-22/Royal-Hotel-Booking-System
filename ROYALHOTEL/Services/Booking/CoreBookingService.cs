@@ -2,11 +2,10 @@ using Microsoft.EntityFrameworkCore;
 using ROYALHOTEL.Data;
 using ROYALHOTEL.Models;
 using ROYALHOTEL.ViewModels.Booking;
-using ROYALHOTEL.Services.Payments;
 using ROYALHOTEL.Services.Events;
 using ROYALHOTEL.Services.Rooms;
-using Microsoft.Data.SqlClient;
 using System.Data;
+using Microsoft.Data.SqlClient;
 
 namespace ROYALHOTEL.Services.Booking;
 
@@ -69,6 +68,7 @@ public class CoreBookingService : IBookingService
     public async Task<Models.Booking?> GetBookingByIdAsync(int bookingId)
     {
         return await _context.Bookings
+            .AsNoTracking()
             .Include(b => b.Room)
             .Include(b => b.PaymentTransactions)
             .FirstOrDefaultAsync(b => b.Id == bookingId);
@@ -77,73 +77,77 @@ public class CoreBookingService : IBookingService
     public async Task<Models.Booking?> GetBookingByCodeAsync(string bookingCode)
     {
         return await _context.Bookings
+            .AsNoTracking()
             .Include(b => b.Room)
             .Include(b => b.PaymentTransactions)
             .FirstOrDefaultAsync(b => b.BookingCode == bookingCode);
     }
 
-    public async Task<bool> ConfirmPaymentAsync(int bookingId, string paymentMethod)
+    public async Task<ConfirmPaymentResult> ConfirmPaymentAsync(int bookingId, string paymentMethod)
     {
-        var booking = await _context.Bookings
-            .Include(b => b.Room)
-            .Include(b => b.PaymentTransactions)
-            .FirstOrDefaultAsync(b => b.Id == bookingId);
+        if (bookingId <= 0)
+        {
+            return new ConfirmPaymentResult
+            {
+                Success = false,
+                Message = "Booking không hợp lệ."
+            };
+        }
 
-        if (booking == null)
-            return false;
+        if (string.IsNullOrWhiteSpace(paymentMethod))
+        {
+            return new ConfirmPaymentResult
+            {
+                Success = false,
+                Message = "Phương thức thanh toán không hợp lệ."
+            };
+        }
 
-        if (booking.Status != "Pending")
-            return false;
-
-        using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted);
         try
         {
-            // Call Stored Procedure to acquire Pessimistic Lock and check overlap
-            var hasOverlapParam = new SqlParameter
+            var connection = (SqlConnection)_context.Database.GetDbConnection();
+
+            if (connection.State != ConnectionState.Open)
             {
-                ParameterName = "HasOverlap",
-                SqlDbType = SqlDbType.Bit,
-                Direction = ParameterDirection.Output
+                await connection.OpenAsync();
+            }
+
+            await using var command = new SqlCommand("sp_ConfirmBooking", connection)
+            {
+                CommandType = CommandType.StoredProcedure
             };
 
-            await _context.Database.ExecuteSqlRawAsync(
-                "EXEC sp_RequireBookingLock @RoomId, @CheckIn, @CheckOut, @ExcludeBookingId, @HasOverlap OUTPUT",
-                new SqlParameter("RoomId", booking.RoomId),
-                new SqlParameter("CheckIn", booking.CheckIn),
-                new SqlParameter("CheckOut", booking.CheckOut),
-                new SqlParameter("ExcludeBookingId", booking.Id),
-                hasOverlapParam);
-
-            var hasConfirmedOverlap = (bool)hasOverlapParam.Value;
-
-            // Nếu đã có người khác chốt trước thì booking Pending này không còn hợp lệ.
-            if (hasConfirmedOverlap)
+            command.Parameters.Add(new SqlParameter("@BookingId", SqlDbType.Int)
             {
-                _context.Bookings.Remove(booking);
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-                return false;
+                Value = bookingId
+            });
+
+            command.Parameters.Add(new SqlParameter("@PaymentMethod", SqlDbType.NVarChar, 50)
+            {
+                Value = paymentMethod
+            });
+
+            await command.ExecuteNonQueryAsync();
+
+            _context.ChangeTracker.Clear();
+
+            // Load lại booking mới nhất sau khi SQL xử lý xong
+            var booking = await _context.Bookings
+                .AsNoTracking()
+                .Include(b => b.Room)
+                .Include(b => b.PaymentTransactions)
+                .FirstOrDefaultAsync(b => b.Id == bookingId);
+
+            if (booking == null)
+            {
+                return new ConfirmPaymentResult
+                {
+                    Success = false,
+                    Message = "Booking không còn tồn tại sau khi xử lý."
+                };
             }
 
-            // Factory Method Pattern: chọn Concrete Creator phù hợp
-            var factory = CreatePaymentFactory(paymentMethod);
-            var paymentTransaction = await factory.ProcessAsync(booking);
-
-            // Nếu sau này có processor trả Failed thì không confirm booking
-            if (!string.Equals(paymentTransaction.Status, "Paid", StringComparison.OrdinalIgnoreCase))
-            {
-                await transaction.RollbackAsync();
-                return false;
-            }
-
-            booking.PaymentMethod = paymentMethod;
-            booking.Status = "Confirmed";
-
-            _context.PaymentTransactions.Add(paymentTransaction);
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
-
-            // Observer Pattern: Publish event thay vì gọi trực tiếp email service
+            // Publish event giữ nguyên behavior cũ
             try
             {
                 var evt = new BookingConfirmedEvent(booking);
@@ -154,24 +158,49 @@ public class CoreBookingService : IBookingService
                 Console.WriteLine($"[WARNING] Không thể publish booking confirmed event {booking.BookingCode}: {ex.Message}");
             }
 
-            return true;
+            return new ConfirmPaymentResult
+            {
+                Success = true,
+                Message = "Thanh toán thành công. Booking đã được xác nhận."
+            };
         }
-        catch
+        catch (SqlException ex)
         {
-            await transaction.RollbackAsync();
-            throw;
+            return ex.Number switch
+            {
+                50010 => new ConfirmPaymentResult
+                {
+                    Success = false,
+                    ErrorCode = ex.Number,
+                    Message = "Booking không tồn tại."
+                },
+                50011 => new ConfirmPaymentResult
+                {
+                    Success = false,
+                    ErrorCode = ex.Number,
+                    Message = "Chỉ booking ở trạng thái Pending mới được xác nhận."
+                },
+                50012 => new ConfirmPaymentResult
+                {
+                    Success = false,
+                    ErrorCode = ex.Number,
+                    Message = "Phòng hiện không hoạt động hoặc không còn khả dụng."
+                },
+                50013 => new ConfirmPaymentResult
+                {
+                    Success = false,
+                    ErrorCode = ex.Number,
+                    Message = "Phòng này đã được khách khác xác nhận trong khoảng thời gian anh chọn."
+                },
+                50014 => new ConfirmPaymentResult
+                {
+                    Success = false,
+                    ErrorCode = ex.Number,
+                    Message = "Trạng thái booking đã thay đổi trong lúc xử lý."
+                },
+                _ => throw
+            };
         }
-    }
-
-    private PaymentProcessorFactory CreatePaymentFactory(string paymentMethod)
-    {
-        return paymentMethod switch
-        {
-            "bank_transfer" => new BankTransferPaymentFactory(),
-            "card" => new VisaPaymentFactory(),
-            "visa" => new VisaPaymentFactory(),
-            _ => throw new ArgumentException($"Unsupported payment method: {paymentMethod}")
-        };
     }
 
     private async Task<string> GenerateBookingCodeAsync()
@@ -189,6 +218,7 @@ public class CoreBookingService : IBookingService
     public async Task<List<Models.Booking>> GetBookingsByAccountIdAsync(int accountId)
     {
         return await _context.Bookings
+            .AsNoTracking()
             .Include(b => b.Room)
             .Include(b => b.PaymentTransactions)
             .Where(b => b.AccountId == accountId)

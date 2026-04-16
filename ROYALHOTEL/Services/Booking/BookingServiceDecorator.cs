@@ -3,11 +3,6 @@ using ROYALHOTEL.ViewModels.Booking;
 
 namespace ROYALHOTEL.Services.Booking;
 
-/// <summary>
-/// Abstract Decorator:
-/// giữ tham chiếu tới một IBookingService khác và forward toàn bộ lời gọi.
-/// Các concrete decorator sẽ kế thừa lớp này để bổ sung hành vi cần thiết.
-/// </summary>
 public abstract class BookingServiceDecorator : IBookingService
 {
     protected readonly IBookingService _inner;
@@ -26,7 +21,7 @@ public abstract class BookingServiceDecorator : IBookingService
     public virtual Task<Models.Booking?> GetBookingByCodeAsync(string bookingCode)
         => _inner.GetBookingByCodeAsync(bookingCode);
 
-    public virtual Task<bool> ConfirmPaymentAsync(int bookingId, string paymentMethod)
+    public virtual Task<ConfirmPaymentResult> ConfirmPaymentAsync(int bookingId, string paymentMethod)
         => _inner.ConfirmPaymentAsync(bookingId, paymentMethod);
 
     public virtual Task<List<Models.Booking>> GetBookingsByAccountIdAsync(int accountId)

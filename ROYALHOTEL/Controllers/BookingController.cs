@@ -93,9 +93,6 @@ namespace ROYALHOTEL.Controllers
                 return RedirectToAction(nameof(Payment), new { bookingId });
             }
 
-            // Lấy booking hiện tại trước khi xử lý để:
-            // 1) xử lý double-click
-            // 2) vẫn render lại đúng trang Payment nếu bị conflict
             var currentBooking = await _bookingService.GetBookingByIdAsync(bookingId);
 
             if (currentBooking == null)
@@ -104,30 +101,24 @@ namespace ROYALHOTEL.Controllers
                 return RedirectToAction(nameof(MyBookings));
             }
 
-            // Nếu request trước đã thành công, request sau chỉ đi tới Success
             if (string.Equals(currentBooking.Status, "Confirmed", StringComparison.OrdinalIgnoreCase))
             {
                 return RedirectToAction(nameof(Success), new { code = currentBooking.BookingCode });
             }
 
-            var success = await _bookingService.ConfirmPaymentAsync(bookingId, paymentMethod);
+            var result = await _bookingService.ConfirmPaymentAsync(bookingId, paymentMethod);
 
-            if (!success)
+            if (!result.Success)
             {
-                // Check lại sau khi xử lý
                 var bookingAfterProcess = await _bookingService.GetBookingByIdAsync(bookingId);
 
-                // Nếu booking còn và đã Confirmed, nghĩa là request trước đã thành công
                 if (bookingAfterProcess != null &&
                     string.Equals(bookingAfterProcess.Status, "Confirmed", StringComparison.OrdinalIgnoreCase))
                 {
                     return RedirectToAction(nameof(Success), new { code = bookingAfterProcess.BookingCode });
                 }
 
-                // Nếu booking đã bị xóa vì conflict:
-                // render lại ngay trang Payment với snapshot booking cũ + khóa nút thanh toán
-                ViewData["PaymentErrorMessage"] =
-                    "Phòng này đã được khách khác đặt trong khoảng thời gian anh chọn. Vui lòng chọn lại phòng hoặc ngày khác.";
+                ViewData["PaymentErrorMessage"] = result.Message;
                 ViewData["PaymentLocked"] = true;
 
                 return View("Payment", currentBooking);

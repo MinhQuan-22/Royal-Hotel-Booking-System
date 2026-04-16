@@ -31,9 +31,9 @@ namespace ROYALHOTEL.ViewModels
 
     public class TopRevenueRoom
     {
-        public string? RoomCode { get; set; }
-        public string? RoomName { get; set; }
-        public string? RoomType { get; set; }
+        public string RoomCode { get; set; }
+        public string RoomName { get; set; }
+        public string RoomType { get; set; }
         public int TotalBookings { get; set; }
         public decimal RevenueGenerated { get; set; }
         public decimal OccupancyRate { get; set; }

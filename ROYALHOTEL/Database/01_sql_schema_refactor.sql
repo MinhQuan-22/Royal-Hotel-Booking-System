@@ -1,13 +1,29 @@
 -- 01_sql_schema_refactor.sql
 
 -- Step 1: Create Hotels
+-- Step 1: Create or align Hotels table
 IF OBJECT_ID('Hotels', 'U') IS NULL
 BEGIN
     CREATE TABLE Hotels (
         Id INT IDENTITY(1,1) PRIMARY KEY,
-        City NVARCHAR(100) NOT NULL
+        Name NVARCHAR(200) NOT NULL DEFAULT 'ROYALHOTEL',
+        Address NVARCHAR(500) NOT NULL DEFAULT '',
+        City NVARCHAR(100) NOT NULL,
+        Country NVARCHAR(100) NOT NULL DEFAULT 'Vietnam'
     );
 END
+GO
+
+IF COL_LENGTH('Hotels', 'Name') IS NULL
+    ALTER TABLE Hotels ADD Name NVARCHAR(200) NOT NULL CONSTRAINT DF_Hotels_Name DEFAULT 'ROYALHOTEL';
+GO
+
+IF COL_LENGTH('Hotels', 'Address') IS NULL
+    ALTER TABLE Hotels ADD Address NVARCHAR(500) NOT NULL CONSTRAINT DF_Hotels_Address DEFAULT '';
+GO
+
+IF COL_LENGTH('Hotels', 'Country') IS NULL
+    ALTER TABLE Hotels ADD Country NVARCHAR(100) NOT NULL CONSTRAINT DF_Hotels_Country DEFAULT 'Vietnam';
 GO
 
 -- Step 2: Add new columns to Rooms
@@ -114,6 +130,51 @@ SET BookingCode = CONCAT('BK-', Id)
 WHERE BookingCode IS NULL;
 GO
 
+-- Step 8: Ensure Bookings.RoomId FK exists
+IF NOT EXISTS (
+    SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Bookings_Rooms'
+)
+BEGIN
+    ALTER TABLE Bookings
+    ADD CONSTRAINT FK_Bookings_Rooms FOREIGN KEY (RoomId) REFERENCES Rooms(Id);
+END
+GO
+
+-- Step 9: Add TotalAmount rule
+IF NOT EXISTS (
+    SELECT 1 FROM sys.check_constraints WHERE name = 'CK_Bookings_TotalAmount_NonNegative'
+)
+BEGIN
+    ALTER TABLE Bookings
+    ADD CONSTRAINT CK_Bookings_TotalAmount_NonNegative
+    CHECK (TotalAmount IS NULL OR TotalAmount >= 0);
+END
+GO
+
+-- Step 10: Validate data before making columns NOT NULL
+IF EXISTS (SELECT 1 FROM Rooms WHERE HotelId IS NULL)
+    THROW 50100, 'Rooms.HotelId still contains NULL values. Fix data mapping before proceeding.', 1;
+GO
+
+IF EXISTS (SELECT 1 FROM Rooms WHERE Rate IS NULL)
+    THROW 50101, 'Rooms.Rate still contains NULL values. Fix data before proceeding.', 1;
+GO
+
+IF EXISTS (SELECT 1 FROM Bookings WHERE BookingCode IS NULL)
+    THROW 50102, 'Bookings.BookingCode still contains NULL values. Fix data before proceeding.', 1;
+GO
+
+-- Step 11: Harden nullability
+ALTER TABLE Rooms ALTER COLUMN HotelId INT NOT NULL;
+GO
+
+ALTER TABLE Rooms ALTER COLUMN Rate DECIMAL(18,2) NOT NULL;
+GO
+
+ALTER TABLE Bookings ALTER COLUMN BookingCode NVARCHAR(50) NOT NULL;
+GO
+
+-- Step 12: Add indexes AFTER ALTER COLUMN
 IF NOT EXISTS (
     SELECT 1 FROM sys.indexes WHERE name = 'UQ_Bookings_BookingCode'
 )
@@ -123,7 +184,6 @@ BEGIN
 END
 GO
 
--- Step 8: Add indexes
 IF NOT EXISTS (
     SELECT 1 FROM sys.indexes WHERE name = 'IX_Rooms_HotelId_Status'
 )
@@ -140,53 +200,4 @@ BEGIN
     CREATE INDEX IX_Bookings_RoomId_CheckIn_CheckOut_Status
     ON Bookings(RoomId, CheckIn, CheckOut, Status);
 END
-GO
-
--- Step 9: Ensure Bookings.RoomId FK exists
-IF NOT EXISTS (
-    SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Bookings_Rooms'
-)
-BEGIN
-    ALTER TABLE Bookings
-    ADD CONSTRAINT FK_Bookings_Rooms FOREIGN KEY (RoomId) REFERENCES Rooms(Id);
-END
-GO
-
--- Step 10: Add TotalAmount rule
-IF NOT EXISTS (
-    SELECT 1 FROM sys.check_constraints WHERE name = 'CK_Bookings_TotalAmount_NonNegative'
-)
-BEGIN
-    ALTER TABLE Bookings
-    ADD CONSTRAINT CK_Bookings_TotalAmount_NonNegative
-    CHECK (TotalAmount IS NULL OR TotalAmount >= 0);
-END
-GO
-
--- Step 11: Validate data before making columns NOT NULL
-IF EXISTS (SELECT 1 FROM Rooms WHERE HotelId IS NULL)
-    THROW 50100, 'Rooms.HotelId still contains NULL values. Fix data mapping before proceeding.', 1;
-GO
-
-IF EXISTS (SELECT 1 FROM Rooms WHERE Rate IS NULL)
-    THROW 50101, 'Rooms.Rate still contains NULL values. Fix data before proceeding.', 1;
-GO
-
-UPDATE Bookings
-SET BookingCode = CONCAT('BK-', Id)
-WHERE BookingCode IS NULL;
-GO
-
-IF EXISTS (SELECT 1 FROM Bookings WHERE BookingCode IS NULL)
-    THROW 50102, 'Bookings.BookingCode still contains NULL values. Fix data before proceeding.', 1;
-GO
-
--- Step 12: Harden nullability
-ALTER TABLE Rooms ALTER COLUMN HotelId INT NOT NULL;
-GO
-
-ALTER TABLE Rooms ALTER COLUMN Rate DECIMAL(18,2) NOT NULL;
-GO
-
-ALTER TABLE Bookings ALTER COLUMN BookingCode NVARCHAR(50) NOT NULL;
 GO
