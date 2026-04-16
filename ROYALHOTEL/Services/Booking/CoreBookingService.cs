@@ -198,7 +198,7 @@ public class CoreBookingService : IBookingService
                     ErrorCode = ex.Number,
                     Message = "Trạng thái booking đã thay đổi trong lúc xử lý."
                 },
-                _ => throw
+                _ => throw ex
             };
         }
     }
