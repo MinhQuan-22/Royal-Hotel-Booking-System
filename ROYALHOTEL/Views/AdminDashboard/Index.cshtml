@@ -11,8 +11,8 @@
         <div class="kpi-icon">
             <i class="bi bi-currency-dollar"></i>
         </div>
-        <h6>Total Revenue</h6>
-        <h3>$@Model.TotalRevenue.ToString("N2")</h3>
+        <h6>Total Revenue by Month</h6>
+        <h3>@Model.MonthlyRevenue.ToString("N2") VNĐ</h3>
     </div>
 
     <div class="stat-card-custom mb-2">
@@ -34,63 +34,188 @@
 
     <div class="stat-card-custom mb-2">
         <div class="kpi-icon">
-            <i class="bi bi-shield-check"></i>
+            <i class="bi bi-x-circle"></i>
         </div>
-        <h6>Available Rooms</h6>
-        <h3>@Model.ActiveRooms</h3>
-        <small class="text-muted">Out of @Model.TotalRooms Total</small>
+        <h6>Cancellation Rate</h6>
+        <h3>@Model.CancellationRate</h3>
     </div>
 </div>
 
-<!-- LỊCH SỬ KẾT HỢP SUMMARY -->
-<div class="row g-4 pt-2 mb-4">
-    <div class="col-lg-8">
-        <div class="section-card h-100 p-0 overflow-hidden mb-2">
-            <div class="d-flex justify-content-between align-items-center p-4 border-bottom" style="border-color: rgba(201, 162, 74, 0.2) !important; background-color: #fff;">
-                <h4 class="mb-0 section-heading-custom">Recent Operational Activities</h4>
+<div class="row pt-2 mb-4 g-4">
+    <!-- TOP 3 REVENUE GENERATING ROOMS -->
+    <div class="col-12">
+        <div class="section-card h-100 d-flex flex-column p-0 overflow-hidden mb-2 shadow-sm rounded">
+            <div class="p-4 border-bottom" style="border-color: rgba(201, 162, 74, 0.2) !important; background-color: #fdfdf9;">
+                <h4 class="mb-0 section-heading-custom">Top 3 Revenue Rooms <span class="badge bg-warning text-dark ms-2" style="font-size: 11px;">Current QTR</span></h4>
             </div>
 
-            <div class="admin-table-wrap p-0 border-0 shadow-none m-0 rounded-0">
-                <table class="table table-hover table-custom align-middle mb-0 w-100">
-                    <thead>
-                        <tr style="background-color: rgba(201, 162, 74, 0.05);">
-                            <th style="color: #8b6a14; border-bottom: 2px solid #eadfcb; font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; padding-left:24px;">Ref ID</th>
-                            <th style="color: #8b6a14; border-bottom: 2px solid #eadfcb; font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">Type</th>
-                            <th style="color: #8b6a14; border-bottom: 2px solid #eadfcb; font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">Amount/Value</th>
-                            <th style="color: #8b6a14; border-bottom: 2px solid #eadfcb; font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; padding-right:24px;">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td style="padding-left:24px;"><strong>#TRX-098</strong></td>
-                            <td><i class="bi bi-wallet2 me-2 text-muted"></i>Booking Payment</td>
-                            <td class="fw-bold text-dark">$450.00</td>
-                            <td style="padding-right:24px;"><span class="dashboard-badge badge-success-custom">Completed</span></td>
-                        </tr>
-                        <tr>
-                            <td style="padding-left:24px;"><strong>#TRX-099</strong></td>
-                            <td><i class="bi bi-tools me-2 text-muted"></i>Room Maintenance</td>
-                            <td class="fw-bold text-dark">$125.00</td>
-                            <td style="padding-right:24px;"><span class="dashboard-badge badge-success-custom">Completed</span></td>
-                        </tr>
-                        <tr>
-                            <td style="padding-left:24px;"><strong>#PRC-021</strong></td>
-                            <td><i class="bi bi-tag  me-2 text-muted"></i>Pricing Rule Updated</td>
-                            <td class="text-dark">Priority 1</td>
-                            <td style="padding-right:24px;"><span class="dashboard-badge badge-info-custom">Applied</span></td>
-                        </tr>
-                        <tr>
-                            <td style="padding-left:24px;"><strong>#BK-9285</strong></td>
-                            <td><i class="bi bi-arrow-counterclockwise me-2 text-muted"></i>Refund Processing</td>
-                            <td class="fw-bold text-dark">$200.00</td>
-                            <td style="padding-right:24px;"><span class="dashboard-badge badge-warning-custom">Pending</span></td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div class="p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="background-color: transparent;">
+                        <thead style="background-color: rgba(201, 162, 74, 0.05);">
+                            <tr>
+                                <th class="text-center" style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; width: 80px; padding: 15px;">Rank</th>
+                                <th class="text-center" style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; width: 120px; padding: 15px;">Code</th>
+                                <th class="text-center" style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; padding: 15px;">Room</th>
+                                <th class="text-center" style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; width: 150px; padding: 15px;">Type</th>
+                                <th class="text-center" style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; width: 120px; padding: 15px;">Nightly Rate</th>
+                                <th class="text-center" style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; width: 120px; padding: 15px;">Bookings</th>
+                                <th class="text-center" style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; width: 120px; padding: 15px;">Occ</th>
+                                <th class="text-center" style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; width: 180px; padding: 15px 30px 15px 15px;">Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                int index = 1;
+                            }
+                            @if (Model.TopRevenueRooms != null && Model.TopRevenueRooms.Any())
+                            {
+                                @foreach (var room in Model.TopRevenueRooms)
+                                {
+                                    <tr style="border-bottom: 1px solid rgba(201, 162, 74, 0.1); transition: all 0.2s ease;">
+                                        <!-- Rank Number Only -->
+                                        <td class="text-center py-4">
+                                            <div class="d-inline-flex align-items-center justify-content-center"
+                                                 style="width: 32px; height: 32px; border-radius: 50%; background-color: rgba(139, 106, 20, 0.08);">
+                                                <span class="fw-bold" style="color: #8b6a14; font-size: 15px;">#@index</span>
+                                            </div>
+                                        </td>
+
+                                        <!-- Code -->
+                                        <td class="text-center py-4 px-3">
+                                            <span class="text-secondary fw-semibold" style="font-size: 15px; letter-spacing: 0.5px;">@room.RoomCode</span>
+                                        </td>
+
+                                        <!-- Room Info -->
+                                        <td class="text-center py-4 px-3">
+                                            <h6 class="mb-0 fw-bold text-dark" style="font-size: 16px;">@room.RoomName</h6>
+                                        </td>
+
+                                        <!-- Type -->
+                                        <td class="text-center py-4 px-3">
+                                            <span class="badge rounded-pill" style="background-color: rgba(139, 106, 20, 0.1); color: #8b6a14; font-weight: 600; padding: 6px 12px; font-size: 12px;">@room.RoomType</span>
+                                        </td>
+
+                                        <!-- Nightly Rate -->
+                                        <td class="text-center py-4 px-3">
+                                            <span class="fw-bold text-dark" style="font-size: 15px;">$@room.PricePerNight.ToString("N2")</span>
+                                        </td>
+
+                                        <!-- Bookings -->
+                                        <td class="text-center py-4 px-3">
+                                            <span class="fw-bold text-dark" style="font-size: 15px;">@room.TotalBookings</span>
+                                        </td>
+
+                                        <!-- Occupancy Rate -->
+                                        <td class="text-center py-4 px-3">
+                                            <div class="d-inline-block px-3 py-1 rounded" style="background-color: rgba(46, 125, 50, 0.05);">
+                                                <span class="fw-bold" style="color: #2e7d32; font-size: 15px;">@room.OccupancyRate%</span>
+                                            </div>
+                                        </td>
+
+                                        <!-- Revenue -->
+                                        <td class="text-center py-4" style="padding-right: 30px;">
+                                            <h5 class="mb-1" style="color: #8b6a14; font-family: 'Playfair Display', Georgia, serif; font-size: 20px; font-weight: 700;">
+                                                $@room.RevenueGenerated.ToString("N0")
+                                            </h5>
+                                        </td>
+                                    </tr>
+                                    index++;
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
+</div>
 
+<!-- LƯỚI MOST BOOKED ROOMS -->
+<div class="row g-4 pt-2 mb-4">
+    <div class="col-12">
+        <div class="section-card h-100 d-flex flex-column p-0 overflow-hidden mb-2 shadow-sm rounded">
+            <div class="p-4 border-bottom" style="border-color: rgba(201, 162, 74, 0.2) !important; background-color: #fdfdf9;">
+                <h4 class="mb-0 section-heading-custom">Top 3 Most Booked Rooms <span class="badge bg-info text-dark ms-2" style="font-size: 11px;">All Time</span></h4>
+            </div>
+
+            <div class="p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="background-color: transparent;">
+                        <thead style="background-color: rgba(201, 162, 74, 0.05);">
+                            <tr>
+                                <th class="text-center" style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; width: 80px; padding: 15px;">Rank</th>
+                                <th class="text-center" style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; width: 120px; padding: 15px;">Code</th>
+                                <th class="text-center" style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; padding: 15px;">Room</th>
+                                <th class="text-center" style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; width: 150px; padding: 15px;">Type</th>
+                                <th class="text-center" style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; width: 120px; padding: 15px;">Nights Booked</th>
+                                <th class="text-center" style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; width: 120px; padding: 15px;">Bookings</th>
+                                <th class="text-center" style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; width: 180px; padding: 15px 30px 15px 15px;">Total Rev</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                int mIndex = 1;
+                            }
+                            @if (Model.MostBookedRooms != null && Model.MostBookedRooms.Any())
+                            {
+                                @foreach (var mRoom in Model.MostBookedRooms)
+                                {
+                                    <tr style="border-bottom: 1px solid rgba(201, 162, 74, 0.1); transition: all 0.2s ease;">
+                                        <!-- Rank Number Only -->
+                                        <td class="text-center py-4">
+                                            <div class="d-inline-flex align-items-center justify-content-center"
+                                                 style="width: 32px; height: 32px; border-radius: 50%; background-color: rgba(139, 106, 20, 0.08);">
+                                                <span class="fw-bold" style="color: #8b6a14; font-size: 15px;">#@mIndex</span>
+                                            </div>
+                                        </td>
+
+                                        <!-- Code -->
+                                        <td class="text-center py-4 px-3">
+                                            <span class="text-secondary fw-semibold" style="font-size: 15px; letter-spacing: 0.5px;">@mRoom.RoomCode</span>
+                                        </td>
+
+                                        <!-- Room Info -->
+                                        <td class="text-center py-4 px-3">
+                                            <h6 class="mb-0 fw-bold text-dark" style="font-size: 16px;">@mRoom.RoomName</h6>
+                                        </td>
+
+                                        <!-- Type -->
+                                        <td class="text-center py-4 px-3">
+                                            <span class="badge rounded-pill" style="background-color: rgba(139, 106, 20, 0.1); color: #8b6a14; font-weight: 600; padding: 6px 12px; font-size: 12px;">@mRoom.RoomType</span>
+                                        </td>
+
+                                        <!-- Nights Booked -->
+                                        <td class="text-center py-4 px-3">
+                                            <div class="d-inline-block px-3 py-1 rounded" style="background-color: rgba(46, 125, 50, 0.05);">
+                                                <span class="fw-bold" style="color: #2e7d32; font-size: 15px;">@mRoom.TotalNights Nights</span>
+                                            </div>
+                                        </td>
+
+                                        <!-- Bookings -->
+                                        <td class="text-center py-4 px-3">
+                                            <span class="fw-bold text-dark" style="font-size: 15px;">@mRoom.TotalBookings</span>
+                                        </td>
+
+                                        <!-- Revenue -->
+                                        <td class="text-center py-4" style="padding-right: 30px;">
+                                            <h5 class="mb-1" style="color: #8b6a14; font-family: 'Playfair Display', Georgia, serif; font-size: 20px; font-weight: 700;">
+                                                $@mRoom.TotalRevenue.ToString("N0")
+                                            </h5>
+                                        </td>
+                                    </tr>
+                                    mIndex++;
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div>
     <div class="col-lg-4">
         <div class="section-card h-100 d-flex flex-column">
              <h4 class="mb-4 pb-3 border-bottom" style="border-color: rgba(201, 162, 74, 0.2) !important;">System Summary</h4>
