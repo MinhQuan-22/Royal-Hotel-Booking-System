@@ -11,8 +11,9 @@
 
 <div class="admin-toolbar">
     <div class="admin-toolbar__left">
-        <h2 class="admin-section-title">Manage Bookings</h2>
-        <p class="admin-section-subtitle">Track guest reservations, update status, and view booking details.</p>
+    <div class="admin-toolbar__left">
+        <h2 class="admin-section-title">Quản lý Đặt phòng</h2>
+        <p class="admin-section-subtitle">Theo dõi đơn hàng, cập nhật trạng thái và xem chi tiết booking.</p>
     </div>
 </div>
 
@@ -21,13 +22,15 @@
         <div class="admin-filter-form__group">
             <input type="text"
                    name="keyword"
+            <input type="text"
+                   name="keyword"
                    value="@keyword"
                    class="form-control"
-                   placeholder="Search by booking code, guest, email, room..." />
+                   placeholder="Tìm theo mã, khách, email, phòng..." />
         </div>
 
         <select name="status" class="form-control" style="max-width: 220px;">
-            <option value="">All statuses</option>
+            <option value="">Tất cả trạng thái</option>
             @foreach (var st in statusOptions)
             {
                 if (selectedStatus == st)
@@ -59,8 +62,8 @@
 <div class="admin-table-card">
     <div class="admin-table-card__head">
         <div>
-            <h3>Booking List</h3>
-            <span>@Model.Count booking(s)</span>
+            <h3>Danh sách Đặt phòng</h3>
+            <span>@Model.Count đơn</span>
         </div>
     </div>
 
@@ -69,13 +72,14 @@
             <thead>
                 <tr>
                     <th style="width: 80px;">ID</th>
-                    <th style="width: 130px;">Code</th>
-                    <th>Guest / Room</th>
+                    <th style="width: 130px;">Mã Đơn</th>
+                    <th>Khách / Phòng</th>
                     <th style="width: 140px;">Check In</th>
                     <th style="width: 140px;">Check Out</th>
-                    <th style="width: 90px;">Guests</th>
-                    <th style="width: 180px;">Status</th>
-                    <th style="width: 150px;">Total</th>
+                    <th style="width: 90px;">Số Khách</th>
+                    <th style="width: 180px;">Trạng Thái</th>
+                    <th style="width: 150px;">Tổng tiền</th>
+                    <th style="width: 150px;">Hủy / Hoàn tiền</th>
                 </tr>
             </thead>
             <tbody>
@@ -124,6 +128,32 @@
 
                         <td class="admin-room-price">
                             @(item.TotalAmount?.ToString("N0") ?? "0")
+                        </td>
+
+                        <td>
+                           @if (item.Status == "Cancelled")
+                           {
+                               @if (item.RefundStatus == "Processed")
+                               {
+                                   <span style="background-color: #d1e7dd; color: #0f5132; padding: 4px 12px; border-radius: 20px; font-size: 0.85em; font-weight: 600; display: inline-block;">Đã hoàn: @(item.RefundAmount?.ToString("N0") ?? "0") ₫</span>
+                               }
+                               else if (item.RefundStatus == "Rejected")
+                               {
+                                   <span style="background-color: #f8d7da; color: #842029; padding: 4px 12px; border-radius: 20px; font-size: 0.85em; font-weight: 600; display: inline-block;">Không hoàn</span>
+                               }
+                               else if (item.RefundStatus == "NotApplicable")
+                               {
+                                   <span style="background-color: #e2e3e5; color: #41464b; padding: 4px 12px; border-radius: 20px; font-size: 0.85em; font-weight: 600; display: inline-block;">Không áp dụng</span>
+                               }
+                               else
+                               {
+                                   <span class="badge bg-dark">@item.RefundStatus</span>
+                               }
+                           }
+                           else
+                           {
+                               <span class="text-muted">-</span>
+                           }
                         </td>
                     </tr>
                 }

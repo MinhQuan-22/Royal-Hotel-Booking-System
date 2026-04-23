@@ -4333,3 +4333,67 @@ a {
     font-size: 22px;
   }
 }
+
+
+/* ========================================
+   TOP BOOKED ROOM TYPE BADGE STYLES
+   ======================================== */
+
+/* Badge for featured room cards */
+.rh-roomCard__badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.4);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  animation: badgePulse 2s ease-in-out infinite;
+}
+
+/* Badge for room list items */
+.rh-roomItem__badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.4);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  animation: badgePulse 2s ease-in-out infinite;
+}
+
+/* Subtle pulse animation for badge */
+@keyframes badgePulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 2px 8px rgba(255, 107, 53, 0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.6);
+  }
+}
+
+/* Ensure room card and room item have position relative for absolute badge positioning */
+.rh-roomCard {
+  position: relative;
+}
+
+.rh-roomItem__thumb {
+  position: relative;
+}

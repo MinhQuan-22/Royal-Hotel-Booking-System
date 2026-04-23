@@ -20,4 +20,11 @@ public class PaymentTransaction
     public string? TransactionCode { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // --- REFUND LEDGER ---
+    public string TransactionType { get; set; } = "Payment"; // Payment hoặc Refund
+    public int? ParentTransactionId { get; set; }
+    public PaymentTransaction? ParentTransaction { get; set; }
+    public string? Note { get; set; }
+    public DateTime? ProcessedAt { get; set; }
 }

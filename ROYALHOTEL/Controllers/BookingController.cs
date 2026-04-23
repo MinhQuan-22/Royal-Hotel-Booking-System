@@ -201,7 +201,7 @@ namespace ROYALHOTEL.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Cancel(int bookingId)
+        public async Task<IActionResult> Cancel(int bookingId, string reason, string note)
         {
             var userId = GetCurrentUserId();
             if (userId == null)
@@ -211,7 +211,7 @@ namespace ROYALHOTEL.Controllers
             }
 
             var isAdmin = IsAdmin();
-            var (success, message) = await _bookingService.CancelBookingAsync(bookingId, userId.Value, isAdmin);
+            var (success, message) = await _bookingService.CancelBookingAsync(bookingId, userId.Value, isAdmin, reason, note);
 
             if (success)
             {

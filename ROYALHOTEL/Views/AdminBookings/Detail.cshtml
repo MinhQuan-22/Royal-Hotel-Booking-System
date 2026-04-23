@@ -88,64 +88,75 @@
             </div>
         }
 
-        <div class="admin-booking-update-box">
-            <form asp-action="UpdateStatus" method="post" class="admin-booking-update-form">
+        @if (!isCancelled && !isCompleted)
+        {
+            <div class="admin-booking-update-box">
+                <form asp-action="UpdateStatus" method="post" class="admin-booking-update-form">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="id" value="@Model.Id" />
 
-                <div class="admin-form-group">
-                    <label>Update Status</label>
-                    <select name="status" class="form-select admin-booking-status-select">
-                        @if (Model.Status == "Confirmed")
-                        {
-                            <option value="Confirmed" selected>Confirmed</option>
+                <div class="admin-form-group" style="margin-bottom: 0;">
+                    <label style="font-weight: 600; color: #5c4d3c; margin-bottom: 8px; display: block;">Update Status</label>
+                    <div style="display: flex; gap: 16px; align-items: stretch;">
+                        @{
+                            int currentStep = Model.Status switch {
+                                "Confirmed" => 1,
+                                "CheckedIn" => 2,
+                                "CheckedOut" => 3,
+                                "Completed" => 4,
+                                _ => 0
+                            };
                         }
-                        else
-                        {
-                            <option value="Confirmed">Confirmed</option>
-                        }
-
-                        @if (Model.Status == "CheckedIn")
-                        {
-                            <option value="CheckedIn" selected>Checked In</option>
-                        }
-                        else
-                        {
-                            <option value="CheckedIn">Checked In</option>
-                        }
-
-                        @if (Model.Status == "CheckedOut")
-                        {
-                            <option value="CheckedOut" selected>Checked Out</option>
-                        }
-                        else
-                        {
-                            <option value="CheckedOut">Checked Out</option>
-                        }
-
-                        @if (Model.Status == "Completed")
-                        {
-                            <option value="Completed" selected>Completed</option>
-                        }
-                        else
-                        {
-                            <option value="Completed">Completed</option>
-                        }
-
-                        @if (Model.Status == "Cancelled")
-                        {
-                            <option value="Cancelled" selected>Cancelled</option>
-                        }
-                        else
-                        {
-                            <option value="Cancelled">Cancelled</option>
-                        }
-                    </select>
+                        <select name="status" class="form-select admin-booking-status-select" style="min-width: 200px; border-color: #eadded; border-radius: 8px; font-size: 1.05em; padding: 10px 16px; box-shadow: none;">
+                            @if (currentStep <= 1)
+                            {
+                                <option value="Confirmed" selected="@(Model.Status == "Confirmed")">Confirmed</option>
+                            }
+                            @if (currentStep <= 2)
+                            {
+                                <option value="CheckedIn" selected="@(Model.Status == "CheckedIn")">Checked In</option>
+                            }
+                            @if (currentStep <= 3)
+                            {
+                                <option value="CheckedOut" selected="@(Model.Status == "CheckedOut")">Checked Out</option>
+                            }
+                            @if (currentStep <= 4)
+                            {
+                                <option value="Completed" selected="@(Model.Status == "Completed")">Completed</option>
+                            }
+                            @if (currentStep <= 2) // Typically only cancel before or during stay
+                            {
+                                <option value="Cancelled">Cancelled</option>
+                            }
+                        </select>
+                        
+                        <style>
+                            .btn-custom-update {
+                                background-color: #fdfaf6;
+                                border: 1px solid #d4c098;
+                                color: #8b6d3b;
+                                font-weight: 600;
+                                padding: 10px 24px;
+                                border-radius: 8px;
+                                font-size: 1.05em;
+                                box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+                                transition: all 0.3s ease;
+                            }
+                            .btn-custom-update:hover {
+                                background-color: #f5eed7;
+                                color: #614a24;
+                                box-shadow: 0 4px 10px rgba(139, 109, 59, 0.15);
+                                transform: translateY(-1px);
+                            }
+                        </style>
+                        <button type="submit" class="btn btn-custom-update">
+                            Update Status
+                        </button>
+                    </div>
                 </div>
-
-                <button type="submit" class="btn btn-primary">Update Status</button>
             </form>
         </div>
+        }
     </div>
 
     <div class="admin-booking-detail-grid">
@@ -215,5 +226,108 @@
                 <strong>@Model.Status</strong>
             </div>
         </div>
+
+    </div> <!-- end admin-booking-detail-grid -->
+
+    @if (isCancelled)
+    {
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-top: 24px;">
+            <!-- Left Card -->
+            <div class="admin-booking-detail-card" style="border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); height: 100%; margin-top: 0; padding: 24px;">
+                <h3 style="color: #c92a2a; border-bottom: 1px solid #f1f5f9; padding-bottom: 16px; margin-bottom: 16px; font-weight: 600; white-space: nowrap;">Thông tin hủy booking</h3>
+
+                <div class="admin-booking-detail-row" style="margin-bottom: 16px; align-items: center;">
+                    <span style="color: #64748b; font-weight: 500; min-width: 160px;">Thời gian hủy</span>
+                    <strong style="color: #1e293b;">@(Model.CancelledAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</strong>
+                </div>
+
+                <div class="admin-booking-detail-row" style="margin-bottom: 16px; align-items: center;">
+                    <span style="color: #64748b; font-weight: 500; min-width: 160px;">Lý do hủy</span>
+                    <strong style="color: #1e293b;">@(string.IsNullOrEmpty(Model.CancelReason) ? "-" : Model.CancelReason)</strong>
+                </div>
+
+                @if(!string.IsNullOrEmpty(Model.CancelNote))
+                {
+                    <div class="admin-booking-detail-row" style="margin-bottom: 16px; align-items: flex-start;">
+                        <span style="color: #64748b; font-weight: 500; min-width: 160px; margin-top: 2px;">Ghi chú của khách</span>
+                        <strong style="color: #1e293b; font-style: italic; font-weight: 400; background: #f8fafc; padding: 8px 12px; border-radius: 4px; flex: 1;">@Model.CancelNote</strong>
+                    </div>
+                }
+
+                @{
+                    string friendlyPolicyAdmin = Model.RefundPolicyApplied switch {
+                        "SYSTEM RULE: Hủy trước >= 48h, hoàn tiền 100%" => "Hủy trước ít nhất 48 giờ, hoàn 100%",
+                        "SYSTEM RULE: Hủy trước 24h-48h, hoàn tiền 50%" => "Hủy từ 24 đến dưới 48 giờ, hoàn 50%",
+                        "SYSTEM RULE: Hủy quá sát giờ (< 24h), hoàn tiền 0%" => "Hủy dưới 24 giờ, không hoàn tiền",
+                        "Cancelled before payment" => "Hủy trước khi thanh toán, không áp dụng hoàn tiền",
+                        _ => Model.RefundPolicyApplied ?? "Chính sách mặc định"
+                    };
+                }
+
+                <div class="admin-booking-detail-row" style="margin-bottom: 0px; align-items: center;">
+                    <span style="color: #64748b; font-weight: 500; min-width: 160px;">Chính sách áp dụng</span>
+                    <strong style="color: #1e293b;">@friendlyPolicyAdmin</strong>
+                </div>
+            </div>
+
+            <!-- Right Card -->
+            <div class="admin-booking-detail-card" style="border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); border-left: 4px solid #0ea5e9; height: 100%; margin-top: 0; padding: 24px;">
+                <h3 style="color: #0ea5e9; border-bottom: 1px solid #f1f5f9; padding-bottom: 16px; margin-bottom: 16px; font-weight: 600; white-space: nowrap;">Thông tin giao dịch hoàn tiền</h3>
+
+                <div class="admin-booking-detail-row" style="margin-bottom: 16px; align-items: center;">
+                    <span style="color: #64748b; font-weight: 500; min-width: 160px;">Trạng thái xử lý tiền</span>
+                    <strong>
+                        @{
+                            string vAdminRefundStatus = Model.RefundStatus switch {
+                                "Processed" => "Đã hoàn",
+                                "Rejected" => "Không được hoàn",
+                                "NotApplicable" => "Không áp dụng",
+                                _ => Model.RefundStatus ?? "N/A"
+                            };
+                            string statusBg = Model.RefundStatus == "Processed" ? "#d1e7dd" : (Model.RefundStatus == "Rejected" ? "#f8d7da" : "#e2e3e5");
+                            string statusText = Model.RefundStatus == "Processed" ? "#0f5132" : (Model.RefundStatus == "Rejected" ? "#842029" : "#41464b");
+                        }
+                        <span style="background-color: @statusBg; color: @statusText; padding: 4px 12px; border-radius: 20px; font-size: 0.9em; display: inline-block;">@vAdminRefundStatus</span>
+                    </strong>
+                </div>
+
+                <div class="admin-booking-detail-row" style="margin-bottom: 16px; align-items: center;">
+                    <span style="color: #64748b; font-weight: 500; min-width: 160px;">Số tiền hoàn</span>
+                    @if(Model.RefundAmount > 0)
+                    {
+                        <strong style="color: #10b981; font-size: 1.15em;">@Model.RefundAmount?.ToString("N0", vi) VNĐ</strong>
+                    }
+                    else
+                    {
+                        <strong style="color: #1e293b; font-size: 1.1em;">0 ₫</strong>
+                    }
+                </div>
+                
+                @if (Model.RefundProcessedAt.HasValue)
+                {
+                    <div class="admin-booking-detail-row" style="margin-bottom: 16px; align-items: center;">
+                        <span style="color: #64748b; font-weight: 500; min-width: 160px;">Ngày xử lý hoàn tiền</span>
+                        <strong style="color: #1e293b;">@Model.RefundProcessedAt.Value.ToString("dd/MM/yyyy HH:mm")</strong>
+                    </div>
+                }
+
+                @if(!string.IsNullOrEmpty(Model.PaymentTransactionCode))
+                {
+                    <div class="admin-booking-detail-row" style="margin-bottom: 16px; align-items: flex-start;">
+                        <span style="color: #64748b; font-weight: 500; min-width: 160px; margin-top: 2px;">Mã GD thanh toán</span>
+                        <strong style="color: #1e293b; word-break: break-all; font-family: monospace; font-size: 1.05em; background: #f1f5f9; padding: 4px 8px; border-radius: 4px; flex: 1;">#@Model.PaymentTransactionCode</strong>
+                    </div>
+                }
+                
+                @if(!string.IsNullOrEmpty(Model.RefundTransactionCode))
+                {
+                    <div class="admin-booking-detail-row" style="margin-bottom: 0px; align-items: flex-start;">
+                        <span style="color: #64748b; font-weight: 500; min-width: 160px; margin-top: 2px;">Mã GD hoàn tiền</span>
+                        <strong style="color: #10b981; word-break: break-all; font-family: monospace; font-size: 1.05em; background: #ecfdf5; padding: 4px 8px; border-radius: 4px; flex: 1;">#@Model.RefundTransactionCode</strong>
+                    </div>
+                }
+            </div>
+        </div>
+    }
     </div>
 </div>

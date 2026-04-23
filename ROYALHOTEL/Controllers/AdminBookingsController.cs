@@ -50,7 +50,10 @@ namespace ROYALHOTEL.Controllers
                     GuestEmail = b.GuestEmail,
                     GuestPhone = b.GuestPhone,
                     TotalAmount = b.TotalAmount,
-                    CoverImageUrl = r.CoverImageUrl
+                    CoverImageUrl = r.CoverImageUrl,
+                    PaymentMethod = b.PaymentMethod,
+                    RefundAmount = b.RefundAmount,
+                    RefundStatus = b.RefundStatus
                 };
 
             if (!string.IsNullOrWhiteSpace(keyword))
@@ -94,36 +97,49 @@ namespace ROYALHOTEL.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
-            var item = await
-                (from b in _context.Bookings
-                 join r in _context.Rooms on b.RoomId equals r.Id
-                 where b.Id == id
-                 select new AdminBookingDetailViewModel
-                 {
-                     Id = b.Id,
-                     BookingCode = b.BookingCode,
-                     RoomId = r.Id,
-                     RoomName = r.Name,
-                     RoomCode = r.Code,
-                     CoverImageUrl = r.CoverImageUrl,
-                     CheckIn = b.CheckIn,
-                     CheckOut = b.CheckOut,
-                     Guests = b.Guests,
-                     Status = b.Status,
-                     GuestName = b.GuestName,
-                     GuestEmail = b.GuestEmail,
-                     GuestPhone = b.GuestPhone,
-                     TotalAmount = b.TotalAmount
-                 })
-                .FirstOrDefaultAsync();
+            var booking = await _context.Bookings
+                .Include(b => b.Room)
+                .Include(b => b.PaymentTransactions)
+                .FirstOrDefaultAsync(b => b.Id == id);
 
-            if (item == null)
+            if (booking == null)
             {
                 TempData["Error"] = "Booking not found.";
                 return RedirectToAction(nameof(Index));
             }
 
-            return View(item);
+            var paymentTxn = booking.PaymentTransactions.FirstOrDefault(t => t.TransactionType == "Payment" && t.Status == "Paid");
+            var refundTxn = booking.PaymentTransactions.FirstOrDefault(t => t.TransactionType == "Refund" && t.Status == "Paid");
+
+            var detail = new AdminBookingDetailViewModel
+            {
+                Id = booking.Id,
+                BookingCode = booking.BookingCode,
+                RoomId = booking.RoomId,
+                RoomName = booking.Room?.Name ?? "",
+                RoomCode = booking.Room?.Code ?? "",
+                CoverImageUrl = booking.Room?.CoverImageUrl,
+                CheckIn = booking.CheckIn,
+                CheckOut = booking.CheckOut,
+                Guests = booking.Guests,
+                Status = booking.Status,
+                GuestName = booking.GuestName,
+                GuestEmail = booking.GuestEmail,
+                GuestPhone = booking.GuestPhone,
+                TotalAmount = booking.TotalAmount,
+                PaymentMethod = booking.PaymentMethod,
+                PaymentTransactionCode = paymentTxn?.TransactionCode,
+                RefundTransactionCode = refundTxn?.TransactionCode,
+                CancelledAt = booking.CancelledAt,
+                CancelReason = booking.CancelReason,
+                CancelNote = booking.CancelNote,
+                RefundPolicyApplied = booking.RefundPolicyApplied,
+                RefundAmount = booking.RefundAmount,
+                RefundStatus = booking.RefundStatus,
+                RefundProcessedAt = booking.RefundProcessedAt
+            };
+
+            return View(detail);
         }
 
 // action to update booking status, only for admin users
@@ -155,7 +171,7 @@ namespace ROYALHOTEL.Controllers
                 TempData["Error"] = result.Message;
             }
 
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Detail), new { id = id });
         }
     }
 }

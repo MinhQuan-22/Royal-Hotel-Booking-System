@@ -24,6 +24,7 @@ public class RoomIndexPageData
     public List<string> AllRoomTypes { get; set; } = new();
     public Dictionary<int, RoomPricingSummary> FeaturedPricingMap { get; set; } = new();
     public Dictionary<int, RoomPricingSummary> RoomPricingMap { get; set; } = new();
+    public HashSet<int> TopBookedRoomIds { get; set; } = new();
     public string? CheckIn { get; set; }
     public string? CheckOut { get; set; }
     public int Guests { get; set; }
@@ -82,6 +83,9 @@ public class RoomPageService : IRoomPageService
         var allRoomTypes = await _roomQueryService.GetAllRoomTypesAsync();
         var featuredRooms = await _roomQueryService.GetFeaturedRoomTypesAsync();
         var filterAmenities = await _roomQueryService.GetFilterAmenitiesAsync();
+        
+        // Get top 3 booked specific rooms from stored procedure
+        var topBookedRoomIds = await _roomQueryService.GetTopBookedRoomsAsync();
 
         var rooms = await _roomQueryService.SearchAsync(new RoomSearchQuery
         {
@@ -95,6 +99,12 @@ public class RoomPageService : IRoomPageService
             MaxPrice = maxPrice
         });
 
+        // Reorder rooms: push top-booked specific rooms to the front
+        // Rooms with ID in topBookedRoomIds appear first, then others
+        rooms = rooms
+            .OrderByDescending(r => topBookedRoomIds.Contains(r.Id))
+            .ToList();
+
         return new RoomIndexPageData
         {
             Rooms = rooms,
@@ -103,6 +113,7 @@ public class RoomPageService : IRoomPageService
             AllRoomTypes = allRoomTypes,
             FeaturedPricingMap = _pricingService.BuildPricingMap(featuredRooms, pricingCheckIn, pricingCheckOut),
             RoomPricingMap = _pricingService.BuildPricingMap(rooms, pricingCheckIn, pricingCheckOut),
+            TopBookedRoomIds = topBookedRoomIds,
             CheckIn = request.CheckIn,
             CheckOut = request.CheckOut,
             Guests = guests,
