@@ -14,6 +14,51 @@
     </div>
 </div>
 
+<!-- ANALYTICS REPORTS NAVIGATION -->
+<div class="row pt-2 mb-4 g-4">
+    <div class="col-md-6">
+        <a asp-controller="AdminReports" asp-action="QuarterlyRevenue" class="text-decoration-none">
+            <div class="section-card h-100 d-flex flex-column p-4 shadow-sm rounded" style="transition: all 0.3s ease; cursor: pointer;">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="kpi-icon me-3" style="width: 50px; height: 50px; font-size: 24px;">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-1 fw-bold" style="color: #8b6a14;">Quarterly Revenue Analytics</h5>
+                        <p class="mb-0 text-muted small">View top 3 revenue-generating rooms per hotel per quarter</p>
+                    </div>
+                </div>
+                <div class="mt-auto">
+                    <span class="badge" style="background-color: rgba(139, 106, 20, 0.1); color: #8b6a14; font-weight: 600; padding: 6px 12px; font-size: 12px;">
+                        <i class="bi bi-bar-chart-line me-1"></i> Advanced Analytics
+                    </span>
+                </div>
+            </div>
+        </a>
+    </div>
+    
+    <div class="col-md-6">
+        <a asp-controller="AdminReports" asp-action="RateChangeHistory" asp-route-roomId="1" class="text-decoration-none">
+            <div class="section-card h-100 d-flex flex-column p-4 shadow-sm rounded" style="transition: all 0.3s ease; cursor: pointer;">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="kpi-icon me-3" style="width: 50px; height: 50px; font-size: 24px; background-color: rgba(2, 136, 209, 0.1);">
+                        <i class="bi bi-clock-history" style="color: #0288d1;"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-1 fw-bold" style="color: #0288d1;">Room Rate Change History</h5>
+                        <p class="mb-0 text-muted small">Track significant room rate changes and audit pricing decisions</p>
+                    </div>
+                </div>
+                <div class="mt-auto">
+                    <span class="badge" style="background-color: rgba(2, 136, 209, 0.1); color: #0288d1; font-weight: 600; padding: 6px 12px; font-size: 12px;">
+                        <i class="bi bi-shield-check me-1"></i> Audit Trail
+                    </span>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
 <div class="row pt-2 mb-4 g-4">
     <!-- TOP 3 REVENUE GENERATING ROOMS -->
     <div class="col-12">
@@ -131,6 +176,19 @@
         </div>
     </div>
 </div>
+
+@section Styles {
+    <style>
+        .section-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(139, 106, 20, 0.15) !important;
+        }
+        
+        .section-card {
+            border: 1px solid rgba(201, 162, 74, 0.15);
+        }
+    </style>
+}
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

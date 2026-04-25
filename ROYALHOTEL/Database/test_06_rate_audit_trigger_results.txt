@@ -1,0 +1,167 @@
+========================================
+Rate_Audit_Trigger Test Suite
+========================================
+ 
+
+(5 rows affected)
+Cleared existing RoomRateChangeLog entries.
+ 
+
+(12 rows affected)
+Stored original room rates for restoration.
+ 
+========================================
+TEST 1: Single-row update (increase > 50%)
+========================================
+Test Room ID: 1
+Old Rate: $160.00
+New Rate: $256.00
+Expected Change: +60%
+ 
+
+(1 rows affected)
+Audit Log Entry:
+RoomId      OldRate              NewRate              ChangePercent ChangedBy                                                                                            ChangedAt                             
+----------- -------------------- -------------------- ------------- ---------------------------------------------------------------------------------------------------- --------------------------------------
+          1               160.00               256.00         60.00 sa                                                                                                              2026-04-23 14:48:20.6100000
+
+(1 rows affected)
+PASS: Change percent calculated correctly (60%)
+ 
+========================================
+TEST 2: Single-row update (decrease > 50%)
+========================================
+Test Room ID: 2
+Old Rate: $100.00
+New Rate: $40.00
+Expected Change: -60%
+ 
+
+(1 rows affected)
+Audit Log Entry:
+RoomId      OldRate              NewRate              ChangePercent ChangedBy                                                                                            ChangedAt                             
+----------- -------------------- -------------------- ------------- ---------------------------------------------------------------------------------------------------- --------------------------------------
+          2               100.00                40.00        -60.00 sa                                                                                                              2026-04-23 14:48:20.6133333
+
+(1 rows affected)
+PASS: Change percent calculated correctly (-60%)
+ 
+========================================
+TEST 3: Rate change <= 50% (should NOT log)
+========================================
+Test Room ID: 3
+Old Rate: $300.00
+New Rate: $390.00
+Expected Change: +30% (below 50% threshold)
+ 
+
+(1 rows affected)
+PASS: No audit log entry created (change below 50% threshold)
+ 
+========================================
+TEST 4: Multi-row update (mixed changes)
+========================================
+
+(2 rows affected)
+
+(5 rows affected)
+Test Rooms:
+Id          OldRate              NewRate                  ExpectedChangePercent                    ExpectedBehavior
+----------- -------------------- ------------------------ ---------------------------------------- ----------------
+          1               256.00                 512.0000                        100.0000000000000 Should Log      
+          2                40.00                  16.0000                        -60.0000000000000 Should Log      
+          3               390.00                 507.0000                         30.0000000000000 Should NOT Log  
+          4               100.00                 155.0000                         55.0000000000000 Should Log      
+          5               311.00                 279.9000                        -10.0000000000000 Should NOT Log  
+
+(5 rows affected)
+ 
+
+(5 rows affected)
+Multi-row update executed.
+ 
+Audit Log Entries:
+RoomId      OldRate              NewRate              ChangePercent ChangedBy                                                                                           
+----------- -------------------- -------------------- ------------- ----------------------------------------------------------------------------------------------------
+          1               256.00               512.00        100.00 sa                                                                                                  
+          2                40.00                16.00        -60.00 sa                                                                                                  
+          4               100.00               155.00         55.00 sa                                                                                                  
+
+(3 rows affected)
+ 
+Expected log entries: 3
+Actual log entries: 3
+PASS: Correct number of audit log entries created
+ 
+========================================
+TEST 5: NULL and zero OldRate handling
+========================================
+
+(3 rows affected)
+Msg 547, Level 16, State 1, Server 0b2bc03fba03, Line 279
+The INSERT statement conflicted with the CHECK constraint "CK_Rooms_Rate_Positive". The conflict occurred in database "RoyalHotelDb", table "dbo.Rooms", column 'Rate'.
+The statement has been terminated.
+Created test room with zero rate (ID: 5)
+
+(1 rows affected)
+FAIL: Audit log entry created for zero OldRate
+Msg 547, Level 16, State 1, Server 0b2bc03fba03, Line 298
+The DELETE statement conflicted with the REFERENCE constraint "FK_RoomRateChangeLog_Rooms". The conflict occurred in database "RoyalHotelDb", table "dbo.RoomRateChangeLog", column 'RoomId'.
+The statement has been terminated.
+ 
+========================================
+TEST 6: Boundary test (exactly 50% change)
+========================================
+
+(1 rows affected)
+
+(1 rows affected)
+
+(1 rows affected)
+
+(1 rows affected)
+Old Rate: $100.00
+New Rate: $150.00
+Change: Exactly +50%
+ 
+PASS: No audit log entry for exactly 50% change (threshold is > 50, not >= 50)
+ 
+========================================
+TEST 7: Transaction rollback test
+========================================
+
+(0 rows affected)
+Test Room ID: 1
+Old Rate: $150.00
+ 
+
+(1 rows affected)
+Audit log entries during transaction: 1
+Audit log entries after rollback: 0
+ 
+PASS: Audit log entry rolled back with transaction
+ 
+========================================
+CLEANUP: Restoring original room rates
+========================================
+
+(12 rows affected)
+Original room rates restored.
+ 
+
+(2 rows affected)
+Test audit log entries cleared.
+ 
+========================================
+TEST SUITE COMPLETE
+========================================
+All tests executed. Review results above.
+ 
+Key Test Coverage:
+- Single-row updates (increase and decrease > 50%)
+- Rate changes <= 50% (should not log)
+- Multi-row updates with mixed changes
+- NULL and zero OldRate handling
+- Boundary test (exactly 50% change)
+- Transaction rollback behavior
+ 

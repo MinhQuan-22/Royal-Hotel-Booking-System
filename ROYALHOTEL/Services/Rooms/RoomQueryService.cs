@@ -15,6 +15,13 @@ public class RoomSearchQuery
     public decimal? MaxPrice { get; set; }
     public IReadOnlyList<string>? AmenityKeys { get; set; }
     public string? Sort { get; set; } = "price_asc";
+
+    /// <summary>
+    /// Room ID candidates từ MongoDB (bước 1 của 2-step search flow).
+    /// Nếu null → không bypass SQL, query trực tiếp.
+    /// Nếu empty list → không có phòng nào phù hợp từ MongoDB (trả rỗng).
+    /// </summary>
+    public List<int>? RoomIdCandidates { get; set; }
 }
 
 public class RoomQueryService

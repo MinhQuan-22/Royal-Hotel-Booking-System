@@ -1,0 +1,302 @@
+@model IEnumerable<ROYALHOTEL.DTOs.QuarterlyRevenueDto>
+
+@{
+    ViewData["Title"] = "Quarterly Revenue Analytics";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="row pt-2 mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h4 class="mb-0" style="color: #8b6a14; font-family: 'Playfair Display', Georgia, serif; font-size: 28px;">Quarterly Revenue Analytics</h4>
+        <a href="@Url.Action("Index", "AdminReports")" class="btn btn-outline-secondary shadow-sm">
+            <i class="bi bi-arrow-left me-2"></i> Back to Reports
+        </a>
+    </div>
+</div>
+
+<!-- Filter Form -->
+<div class="row pt-2 mb-4">
+    <div class="col-12">
+        <div class="section-card p-4 shadow-sm rounded" style="background-color: #fdfdf9;">
+            <h5 class="mb-3 section-heading-custom" style="font-size: 18px;">Filter Options</h5>
+            <form method="get" action="@Url.Action("QuarterlyRevenue", "AdminReports")" id="filterForm">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label for="hotelId" class="form-label fw-semibold" style="color: #8b6a14;">Hotel</label>
+                        <select name="hotelId" id="hotelId" class="form-select" style="border-color: #d9caa7;">
+                            <option value="">All Hotels</option>
+                            @if (ViewBag.Hotels != null)
+                            {
+                                @foreach (var hotel in ViewBag.Hotels)
+                                {
+                                    <option value="@hotel.Id">@hotel.Name</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="year" class="form-label fw-semibold" style="color: #8b6a14;">Year</label>
+                        <select name="year" id="year" class="form-select" style="border-color: #d9caa7;">
+                            <option value="">All Years</option>
+                            <option value="2024">2024</option>
+                            <option value="2025">2025</option>
+                            <option value="2026">2026</option>
+                            <option value="2027">2027</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="quarter" class="form-label fw-semibold" style="color: #8b6a14;">Quarter</label>
+                        <select name="quarter" id="quarter" class="form-select" style="border-color: #d9caa7;">
+                            <option value="">All Quarters</option>
+                            <option value="1">Q1 (Jan-Mar)</option>
+                            <option value="2">Q2 (Apr-Jun)</option>
+                            <option value="3">Q3 (Jul-Sep)</option>
+                            <option value="4">Q4 (Oct-Dec)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn w-100" style="background-color: #8b6a14; color: white; border: none;">
+                            <i class="bi bi-funnel me-2"></i> Apply Filters
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Results Table -->
+<div class="row pt-2 mb-4">
+    <div class="col-12">
+        <div class="section-card h-100 d-flex flex-column p-0 overflow-hidden mb-2 shadow-sm rounded">
+            <div class="p-4 border-bottom d-flex justify-content-between align-items-center" style="border-color: rgba(201, 162, 74, 0.2) !important; background-color: #fdfdf9;">
+                <h4 class="mb-0 section-heading-custom">
+                    Top 3 Revenue Rooms by Hotel & Quarter
+                    @if (Model != null && Model.Any())
+                    {
+                        <span class="badge bg-success text-white ms-2" style="font-size: 11px;">@Model.Count() Results</span>
+                    }
+                </h4>
+                <div>
+                    <button class="btn btn-sm btn-outline-secondary" style="color: #8b6a14; border-color: #d9caa7;" onclick="exportToCSV()">
+                        <i class="bi bi-download"></i> Export CSV
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-0">
+                @if (Model != null && Model.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="revenueTable" style="background-color: transparent;">
+                            <thead style="background-color: rgba(201, 162, 74, 0.05);">
+                                <tr>
+                                    <th class="sortable" data-column="hotel" style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; padding: 15px; cursor: pointer;">
+                                        Hotel <i class="bi bi-arrow-down-up ms-1"></i>
+                                    </th>
+                                    <th class="sortable text-center" data-column="quarter" style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; width: 100px; padding: 15px; cursor: pointer;">
+                                        Quarter <i class="bi bi-arrow-down-up ms-1"></i>
+                                    </th>
+                                    <th class="sortable text-center" data-column="year" style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; width: 100px; padding: 15px; cursor: pointer;">
+                                        Year <i class="bi bi-arrow-down-up ms-1"></i>
+                                    </th>
+                                    <th class="sortable" data-column="room" style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; padding: 15px; cursor: pointer;">
+                                        Room <i class="bi bi-arrow-down-up ms-1"></i>
+                                    </th>
+                                    <th class="sortable text-end" data-column="revenue" style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; width: 180px; padding: 15px; cursor: pointer;">
+                                        Revenue <i class="bi bi-arrow-down-up ms-1"></i>
+                                    </th>
+                                    <th class="sortable text-center" data-column="bookings" style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; width: 120px; padding: 15px; cursor: pointer;">
+                                        Bookings <i class="bi bi-arrow-down-up ms-1"></i>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model)
+                                {
+                                    <tr style="border-bottom: 1px solid rgba(201, 162, 74, 0.1); transition: all 0.2s ease;">
+                                        <!-- Hotel -->
+                                        <td class="py-4 px-3" data-hotel="@item.HotelName">
+                                            <h6 class="mb-0 fw-bold text-dark" style="font-size: 15px;">@item.HotelName</h6>
+                                            <span class="text-muted" style="font-size: 12px;">ID: @item.HotelId</span>
+                                        </td>
+
+                                        <!-- Quarter -->
+                                        <td class="text-center py-4 px-3" data-quarter="@item.Quarter">
+                                            <span class="badge rounded-pill" style="background-color: rgba(139, 106, 20, 0.1); color: #8b6a14; font-weight: 600; padding: 6px 12px; font-size: 13px;">
+                                                @item.Quarter
+                                            </span>
+                                        </td>
+
+                                        <!-- Year -->
+                                        <td class="text-center py-4 px-3" data-year="@item.Year">
+                                            <span class="fw-semibold text-secondary" style="font-size: 15px;">@item.Year</span>
+                                        </td>
+
+                                        <!-- Room -->
+                                        <td class="py-4 px-3" data-room="@item.RoomName">
+                                            <h6 class="mb-0 fw-bold text-dark" style="font-size: 15px;">@item.RoomName</h6>
+                                            <span class="text-muted" style="font-size: 12px; letter-spacing: 0.5px;">@item.RoomCode</span>
+                                        </td>
+
+                                        <!-- Revenue -->
+                                        <td class="text-end py-4" style="padding-right: 30px;" data-revenue="@item.TotalRevenue">
+                                            <h5 class="mb-0" style="color: #8b6a14; font-family: 'Playfair Display', Georgia, serif; font-size: 20px; font-weight: 700;">
+                                                $@item.TotalRevenue.ToString("N2")
+                                            </h5>
+                                        </td>
+
+                                        <!-- Bookings -->
+                                        <td class="text-center py-4 px-3" data-bookings="@item.TotalBookings">
+                                            <div class="d-inline-block px-3 py-1 rounded" style="background-color: rgba(46, 125, 50, 0.05);">
+                                                <span class="fw-bold" style="color: #2e7d32; font-size: 15px;">@item.TotalBookings</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="p-5 text-center">
+                        <i class="bi bi-inbox" style="font-size: 48px; color: #d9caa7;"></i>
+                        <h5 class="mt-3 text-muted">No Data Available</h5>
+                        <p class="text-muted">Try adjusting your filter criteria to see results.</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Restore filter values from URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const hotelId = urlParams.get('hotelId');
+            const year = urlParams.get('year');
+            const quarter = urlParams.get('quarter');
+
+            if (hotelId) document.getElementById('hotelId').value = hotelId;
+            if (year) document.getElementById('year').value = year;
+            if (quarter) document.getElementById('quarter').value = quarter;
+
+            // Table sorting functionality
+            let sortDirection = {};
+            const table = document.getElementById('revenueTable');
+            
+            if (table) {
+                const headers = table.querySelectorAll('.sortable');
+                
+                headers.forEach(header => {
+                    const column = header.getAttribute('data-column');
+                    sortDirection[column] = 'asc';
+                    
+                    header.addEventListener('click', function() {
+                        const tbody = table.querySelector('tbody');
+                        const rows = Array.from(tbody.querySelectorAll('tr'));
+                        
+                        // Toggle sort direction
+                        sortDirection[column] = sortDirection[column] === 'asc' ? 'desc' : 'asc';
+                        
+                        // Sort rows
+                        rows.sort((a, b) => {
+                            let aValue, bValue;
+                            
+                            switch(column) {
+                                case 'hotel':
+                                    aValue = a.querySelector('[data-hotel]').getAttribute('data-hotel');
+                                    bValue = b.querySelector('[data-hotel]').getAttribute('data-hotel');
+                                    break;
+                                case 'quarter':
+                                    aValue = a.querySelector('[data-quarter]').getAttribute('data-quarter');
+                                    bValue = b.querySelector('[data-quarter]').getAttribute('data-quarter');
+                                    break;
+                                case 'year':
+                                    aValue = parseInt(a.querySelector('[data-year]').getAttribute('data-year'));
+                                    bValue = parseInt(b.querySelector('[data-year]').getAttribute('data-year'));
+                                    break;
+                                case 'room':
+                                    aValue = a.querySelector('[data-room]').getAttribute('data-room');
+                                    bValue = b.querySelector('[data-room]').getAttribute('data-room');
+                                    break;
+                                case 'revenue':
+                                    aValue = parseFloat(a.querySelector('[data-revenue]').getAttribute('data-revenue'));
+                                    bValue = parseFloat(b.querySelector('[data-revenue]').getAttribute('data-revenue'));
+                                    break;
+                                case 'bookings':
+                                    aValue = parseInt(a.querySelector('[data-bookings]').getAttribute('data-bookings'));
+                                    bValue = parseInt(b.querySelector('[data-bookings]').getAttribute('data-bookings'));
+                                    break;
+                            }
+                            
+                            if (typeof aValue === 'string') {
+                                return sortDirection[column] === 'asc' 
+                                    ? aValue.localeCompare(bValue)
+                                    : bValue.localeCompare(aValue);
+                            } else {
+                                return sortDirection[column] === 'asc' 
+                                    ? aValue - bValue
+                                    : bValue - aValue;
+                            }
+                        });
+                        
+                        // Clear and re-append sorted rows
+                        tbody.innerHTML = '';
+                        rows.forEach(row => tbody.appendChild(row));
+                        
+                        // Update sort indicators
+                        headers.forEach(h => {
+                            const icon = h.querySelector('i');
+                            if (h === header) {
+                                icon.className = sortDirection[column] === 'asc' 
+                                    ? 'bi bi-arrow-up ms-1'
+                                    : 'bi bi-arrow-down ms-1';
+                            } else {
+                                icon.className = 'bi bi-arrow-down-up ms-1';
+                            }
+                        });
+                    });
+                });
+            }
+        });
+
+        // Export to CSV functionality
+        function exportToCSV() {
+            const table = document.getElementById('revenueTable');
+            if (!table) return;
+
+            let csv = [];
+            const rows = table.querySelectorAll('tr');
+
+            for (let i = 0; i < rows.length; i++) {
+                const row = [];
+                const cols = rows[i].querySelectorAll('td, th');
+
+                for (let j = 0; j < cols.length; j++) {
+                    let data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, '').trim();
+                    data = data.replace(/"/g, '""');
+                    row.push('"' + data + '"');
+                }
+
+                csv.push(row.join(','));
+            }
+
+            const csvContent = csv.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'quarterly_revenue_' + new Date().toISOString().split('T')[0] + '.csv');
+            link.style.visibility = 'hidden';
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+}

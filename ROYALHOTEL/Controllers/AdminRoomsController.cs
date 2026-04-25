@@ -5,16 +5,21 @@ using ROYALHOTEL.Data;
 using Microsoft.Data.SqlClient;
 using ROYALHOTEL.Models;
 using ROYALHOTEL.ViewModels;
+using ROYALHOTEL.Services.Catalog;
 
 namespace ROYALHOTEL.Controllers
 {
     public class AdminRoomsController : Controller
     {
         private readonly RoyalHotelDbContext _context;
+        private readonly CatalogSyncService _catalogSync;
 
-        public AdminRoomsController(RoyalHotelDbContext context)
+        public AdminRoomsController(
+            RoyalHotelDbContext context,
+            CatalogSyncService catalogSync)
         {
             _context = context;
+            _catalogSync = catalogSync;
         }
 
         private bool IsAdmin()
@@ -161,6 +166,14 @@ namespace ROYALHOTEL.Controllers
                 }
 
                 TempData["Success"] = "Room created successfully.";
+
+                // Sync sang MongoDB (fire-and-forget)
+                _ = Task.Run(async () =>
+                {
+                    try { await _catalogSync.SyncRoomToMongoAsync(room.Id); }
+                    catch (Exception ex) { Console.WriteLine($"[WARN] Mongo sync failed: {ex.Message}"); }
+                });
+
                 return RedirectToAction(nameof(Index));
             }
             catch (DbUpdateException ex) when (IsDuplicateKeyException(ex))
@@ -274,6 +287,14 @@ namespace ROYALHOTEL.Controllers
                 await _context.SaveChangesAsync();
 
                 TempData["Success"] = "Room updated successfully.";
+
+                // Sync sang MongoDB (fire-and-forget)
+                _ = Task.Run(async () =>
+                {
+                    try { await _catalogSync.SyncRoomToMongoAsync(room.Id); }
+                    catch (Exception ex) { Console.WriteLine($"[WARN] Mongo sync failed: {ex.Message}"); }
+                });
+
                 return RedirectToAction(nameof(Index));
             }
             catch (DbUpdateException ex) when (IsDuplicateKeyException(ex))

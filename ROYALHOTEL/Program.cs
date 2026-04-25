@@ -5,15 +5,24 @@ using ROYALHOTEL.Services.Email;
 using ROYALHOTEL.Services.Rooms;
 using ROYALHOTEL.Services.Notifications;
 using ROYALHOTEL.Services.Events;
+using ROYALHOTEL.Services.Analytics;
 using ROYALHOTEL.Security;
 using ROYALHOTEL.Commands.Common;
 using ROYALHOTEL.Commands.Bookings;
 using ROYALHOTEL.Services.Accounts;
+using ROYALHOTEL.Services.Catalog;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<RoyalHotelDbContext>(opt =>
     opt.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// ==========================================================
+// MongoDB HotelCatalog — Singleton context + Scoped services
+// ==========================================================
+builder.Services.AddSingleton<MongoDbContext>();
+builder.Services.AddScoped<IHotelCatalogService, MongoHotelCatalogService>();
+builder.Services.AddScoped<CatalogSyncService>();
 
 builder.Services.AddScoped<IRoomRepository, EfRoomRepository>();
 builder.Services.AddScoped<RoomQueryService>();
@@ -25,6 +34,9 @@ builder.Services.AddScoped<IRoomPricingStrategy, DbPricingRuleStrategy>();
 
 builder.Services.AddScoped<RoomPricingService>();
 builder.Services.AddScoped<IPricingRuleAdminService, PricingRuleAdminService>();
+
+// Analytics Service: Quarterly revenue analytics and rate change audit reporting
+builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 
 // Adapter Pattern: Register notification service
 builder.Services.AddScoped<IBookingNotificationService, EmailNotificationAdapter>();
@@ -68,7 +80,34 @@ builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>(); // Strategy
 // Add services to the container.
 builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
 
+// ==========================================================
+// Health Checks
+// ==========================================================
+builder.Services.AddHealthChecks()
+    .AddSqlServer(
+        connectionString: builder.Configuration.GetConnectionString("DefaultConnection")!,
+        name: "sqlserver",
+        failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded,
+        tags: new[] { "db", "sql" })
+    .AddCheck<ROYALHOTEL.HealthChecks.MongoDbHealthCheck>(
+        name: "mongodb",
+        failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded,
+        tags: new[] { "db", "nosql" });
+
 var app = builder.Build();
+
+// Đảm bảo MongoDB indexes tồn tại khi app khởi động
+try
+{
+    using var scope = app.Services.CreateScope();
+    var mongo = scope.ServiceProvider.GetRequiredService<MongoDbContext>();
+    await mongo.EnsureIndexesAsync();
+    Console.WriteLine("[MongoDB] Indexes ensured on HotelCatalog collection.");
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"[MongoDB] EnsureIndexes failed (non-fatal): {ex.Message}");
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -82,6 +121,9 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseSession();
 app.UseAuthorization();
+
+// Health check endpoint
+app.MapHealthChecks("/health");
 
 app.MapControllerRoute(
     name: "default",

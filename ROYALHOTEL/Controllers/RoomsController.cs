@@ -20,7 +20,8 @@ public class RoomsController : Controller
         string[]? roomTypes = null,
         string[]? amenities = null,
         decimal? minPrice = null,
-        decimal? maxPrice = null)
+        decimal? maxPrice = null,
+        string? search = null)
     {
         var checkInFinal = !string.IsNullOrWhiteSpace(checkIn) ? checkIn : checkInDate;
         var checkOutFinal = !string.IsNullOrWhiteSpace(checkOut) ? checkOut : checkOutDate;
@@ -34,7 +35,8 @@ public class RoomsController : Controller
             RoomTypes = roomTypes,
             Amenities = amenities,
             MinPrice = minPrice,
-            MaxPrice = maxPrice
+            MaxPrice = maxPrice,
+            SearchText = search
         });
 
         return View(pageData);

@@ -7,6 +7,7 @@ public class RoyalHotelDbContext : DbContext
 {
     public RoyalHotelDbContext(DbContextOptions<RoyalHotelDbContext> options) : base(options) { }
 
+    public DbSet<Hotel> Hotels => Set<Hotel>();
     public DbSet<Room> Rooms => Set<Room>();
     public DbSet<Amenity> Amenities => Set<Amenity>();
     public DbSet<RoomAmenity> RoomAmenities => Set<RoomAmenity>();
@@ -20,9 +21,35 @@ public class RoyalHotelDbContext : DbContext
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<PasswordResetOtp> PasswordResetOtps => Set<PasswordResetOtp>();
 
+    public DbSet<RoomRateChangeLog> RoomRateChangeLogs => Set<RoomRateChangeLog>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // =========================
+        // Hotel
+        // =========================
+        modelBuilder.Entity<Hotel>(e =>
+        {
+            e.ToTable("Hotels");
+
+            e.Property(x => x.Name)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            e.Property(x => x.Address)
+                .HasMaxLength(500)
+                .IsRequired();
+
+            e.Property(x => x.City)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            e.Property(x => x.Country)
+                .HasMaxLength(100)
+                .IsRequired();
+        });
 
         // =========================
         // Room / Amenity / Images
@@ -45,9 +72,24 @@ public class RoyalHotelDbContext : DbContext
             .WithMany(r => r.Images)
             .HasForeignKey(i => i.RoomId);
 
-        modelBuilder.Entity<Room>()
-            .Property(x => x.BasePricePerNight)
-            .HasPrecision(18, 2);
+        modelBuilder.Entity<Room>(e =>
+        {
+            e.Property(x => x.BasePricePerNight)
+                .HasPrecision(18, 2);
+
+            e.Property(x => x.Rate)
+                .HasPrecision(18, 2)
+                .IsRequired();
+
+            e.Property(x => x.Status)
+                .HasMaxLength(20)
+                .IsRequired();
+
+            e.HasOne(x => x.Hotel)
+                .WithMany(h => h.Rooms)
+                .HasForeignKey(x => x.HotelId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
 
         // =========================
         // PricingRule
@@ -254,6 +296,37 @@ public class RoyalHotelDbContext : DbContext
 
             e.Property(x => x.AttemptCount)
                 .HasDefaultValue(0);
+        });
+
+        // =========================
+        // RoomRateChangeLog
+        // =========================
+        modelBuilder.Entity<RoomRateChangeLog>(e =>
+        {
+            e.ToTable("RoomRateChangeLog");
+
+            e.Property(x => x.OldRate)
+                .HasPrecision(18, 2)
+                .IsRequired();
+
+            e.Property(x => x.NewRate)
+                .HasPrecision(18, 2)
+                .IsRequired();
+
+            e.Property(x => x.ChangePercent)
+                .HasPrecision(5, 2)
+                .IsRequired();
+
+            e.Property(x => x.ChangedBy)
+                .HasMaxLength(100);
+
+            e.HasOne(x => x.Room)
+                .WithMany()
+                .HasForeignKey(x => x.RoomId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasIndex(x => new { x.RoomId, x.ChangedAt })
+                .HasDatabaseName("IX_RoomRateChangeLog_RoomId_ChangedAt");
         });
     }
 }

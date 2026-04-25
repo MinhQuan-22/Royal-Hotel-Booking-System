@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ROYALHOTEL.Data;
 using ROYALHOTEL.Models;
+using ROYALHOTEL.Services.Catalog;
 
 namespace ROYALHOTEL.Services.Rooms;
 
@@ -14,6 +15,7 @@ public class RoomIndexPageRequest
     public string[]? Amenities { get; set; }
     public decimal? MinPrice { get; set; }
     public decimal? MaxPrice { get; set; }
+    public string? SearchText { get; set; }
 }
 
 public class RoomIndexPageData
@@ -57,17 +59,20 @@ public class RoomPageService : IRoomPageService
     private readonly IRoomRepository _roomRepository;
     private readonly RoyalHotelDbContext _db;
     private readonly RoomPricingService _pricingService;
+    private readonly IHotelCatalogService _catalogService;
 
     public RoomPageService(
         RoomQueryService roomQueryService,
         IRoomRepository roomRepository,
         RoyalHotelDbContext db,
-        RoomPricingService pricingService)
+        RoomPricingService pricingService,
+        IHotelCatalogService catalogService)
     {
         _roomQueryService = roomQueryService;
         _roomRepository = roomRepository;
         _db = db;
         _pricingService = pricingService;
+        _catalogService = catalogService;
     }
 
     public async Task<RoomIndexPageData> BuildIndexPageAsync(RoomIndexPageRequest request)
@@ -83,6 +88,36 @@ public class RoomPageService : IRoomPageService
         var featuredRooms = await _roomQueryService.GetFeaturedRoomTypesAsync();
         var filterAmenities = await _roomQueryService.GetFilterAmenitiesAsync();
 
+        // ==========================================================
+        // BƯỚC 1: Gọi MongoDB HotelCatalog để lấy room candidates
+        // Khi có amenity filter HOẶC text search → đi qua MongoDB trước
+        // ==========================================================
+        List<int>? roomIdCandidates = null;
+        var hasMongoFilter = (request.Amenities != null && request.Amenities.Length > 0) 
+                          || !string.IsNullOrWhiteSpace(request.SearchText);
+        
+        if (hasMongoFilter)
+        {
+            try
+            {
+                roomIdCandidates = await _catalogService.SearchRoomCandidatesAsync(
+                    new RoomCatalogQuery 
+                    { 
+                        AmenityKeys = request.Amenities,
+                        TextSearch = request.SearchText
+                    });
+            }
+            catch (Exception ex)
+            {
+                // MongoDB không khả dụng → fallback về SQL filter trực tiếp
+                Console.WriteLine($"[WARN] MongoDB search failed, fallback to SQL: {ex.Message}");
+                roomIdCandidates = null;
+            }
+        }
+
+        // ==========================================================
+        // BƯỚC 2: Query SQL Server với candidates từ MongoDB
+        // ==========================================================
         var rooms = await _roomQueryService.SearchAsync(new RoomSearchQuery
         {
             CheckIn = DateOnly.TryParse(request.CheckIn, out var ci) ? ci : null,
@@ -92,7 +127,8 @@ public class RoomPageService : IRoomPageService
             RoomTypes = request.RoomTypes,
             AmenityKeys = request.Amenities,
             MinPrice = request.MinPrice,
-            MaxPrice = maxPrice
+            MaxPrice = maxPrice,
+            RoomIdCandidates = roomIdCandidates
         });
 
         return new RoomIndexPageData
