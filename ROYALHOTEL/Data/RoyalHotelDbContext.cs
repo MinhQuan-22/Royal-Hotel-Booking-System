@@ -200,6 +200,11 @@ public class RoyalHotelDbContext : DbContext
             e.Property(x => x.TotalAmount)
                 .HasPrecision(18, 2);
 
+            e.Property(x => x.RefundAmount).HasPrecision(18, 2);
+            e.Property(x => x.RefundStatus).HasMaxLength(50);
+            e.Property(x => x.CancelReason).HasMaxLength(255);
+            e.Property(x => x.RefundPolicyApplied).HasMaxLength(255);
+
             e.HasOne(x => x.Room)
                 .WithMany()
                 .HasForeignKey(x => x.RoomId)
@@ -232,10 +237,18 @@ public class RoyalHotelDbContext : DbContext
             e.Property(x => x.TransactionCode)
                 .HasMaxLength(100);
 
+            e.Property(x => x.TransactionType).HasMaxLength(20).HasDefaultValue("Payment");
+            e.Property(x => x.Note).HasMaxLength(255);
+
             e.HasOne(x => x.Booking)
                 .WithMany(b => b.PaymentTransactions)
                 .HasForeignKey(x => x.BookingId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(x => x.ParentTransaction)
+                .WithMany()
+                .HasForeignKey(x => x.ParentTransactionId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // =========================

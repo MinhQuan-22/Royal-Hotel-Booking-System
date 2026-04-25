@@ -1,32 +1,24 @@
 using Microsoft.EntityFrameworkCore;
 using ROYALHOTEL.Commands.Common;
-using ROYALHOTEL.Data;
+using ROYALHOTEL.Services.Booking;
 
 namespace ROYALHOTEL.Commands.Bookings
 {
     public class CancelBookingCommandHandler : IAdminCommandHandler<CancelBookingCommand>
     {
-        private readonly RoyalHotelDbContext _context;
+        private readonly IBookingService _bookingService;
 
-        public CancelBookingCommandHandler(RoyalHotelDbContext context)
+        public CancelBookingCommandHandler(IBookingService bookingService)
         {
-            _context = context;
+            _bookingService = bookingService;
         }
 
         public async Task<AdminCommandResult> HandleAsync(CancelBookingCommand command)
         {
-            var booking = await _context.Bookings.FirstOrDefaultAsync(x => x.Id == command.BookingId);
-
-            if (booking == null)
-                return AdminCommandResult.Fail("Booking not found.");
-
-            if (booking.Status == "Completed")
-                return AdminCommandResult.Fail("Completed booking cannot be cancelled.");
-
-            booking.Status = "Cancelled";
-            await _context.SaveChangesAsync();
-
-            return AdminCommandResult.Ok("Booking cancelled successfully.");
+            var (success, message) = await _bookingService.CancelBookingAsync(command.BookingId, 0, isAdmin: true);
+            
+            if(!success) return AdminCommandResult.Fail(message);
+            return AdminCommandResult.Ok("Booking đã được hủy bằng Policy system.");
         }
     }
 }

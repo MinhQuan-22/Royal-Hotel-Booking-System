@@ -37,6 +37,15 @@ public class Booking
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    // --- REFUND & CANCELLATION TRACKING ---
+    public DateTime? CancelledAt { get; set; }
+    public string? CancelReason { get; set; }
+    public string? CancelNote { get; set; }
+    public decimal? RefundAmount { get; set; }
+    public string? RefundStatus { get; set; } // NotApplicable / Processed / Rejected
+    public string? RefundPolicyApplied { get; set; } // Note hệ thống áp chính sách nào
+    public DateTime? RefundProcessedAt { get; set; }
+
     // Navigation: 1 booking có thể có nhiều transaction (nếu sau này mở rộng retry payment)
     public ICollection<PaymentTransaction> PaymentTransactions { get; set; } = new List<PaymentTransaction>();
 }

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
 using ROYALHOTEL.Data;
 using ROYALHOTEL.Models;
 using ROYALHOTEL.Services.Rooms.Configuration;
@@ -93,6 +94,38 @@ public class RoomQueryService
     public Task<List<Room>> SearchAsync(RoomSearchQuery query)
     {
         return CreateTemplate(query).ExecuteAsync(query);
+    }
+
+    /// <summary>
+    /// Get top 3 most-booked specific rooms by calling stored procedure sp_GetTopBookedRooms
+    /// Core logic is in SQL Server as required by Database Advanced course
+    /// </summary>
+    public async Task<HashSet<int>> GetTopBookedRoomsAsync()
+    {
+        try
+        {
+            // Call stored procedure - core calculation is in SQL Server
+            var results = await _db.Database
+                .SqlQueryRaw<TopBookedRoomDto>("EXEC dbo.sp_GetTopBookedRooms")
+                .ToListAsync();
+
+            // Extract room IDs into HashSet for O(1) lookup in view
+            return results
+                .Select(r => r.RoomId)
+                .ToHashSet();
+        }
+        catch (SqlException ex)
+        {
+            // Log error and return empty set - graceful degradation
+            Console.WriteLine($"Error calling sp_GetTopBookedRooms: {ex.Message}");
+            return new HashSet<int>();
+        }
+        catch (Exception ex)
+        {
+            // Handle any other errors gracefully
+            Console.WriteLine($"Unexpected error in GetTopBookedRoomsAsync: {ex.Message}");
+            return new HashSet<int>();
+        }
     }
 
     private RoomSearchTemplate CreateTemplate(RoomSearchQuery query)

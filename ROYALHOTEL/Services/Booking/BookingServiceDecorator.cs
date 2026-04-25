@@ -27,6 +27,6 @@ public abstract class BookingServiceDecorator : IBookingService
     public virtual Task<List<Models.Booking>> GetBookingsByAccountIdAsync(int accountId)
         => _inner.GetBookingsByAccountIdAsync(accountId);
 
-    public virtual Task<(bool Success, string Message)> CancelBookingAsync(int bookingId, int accountId, bool isAdmin = false)
-        => _inner.CancelBookingAsync(bookingId, accountId, isAdmin);
+    public virtual Task<(bool Success, string Message)> CancelBookingAsync(int bookingId, int accountId, bool isAdmin = false, string? reason = null, string? note = null)
+        => _inner.CancelBookingAsync(bookingId, accountId, isAdmin, reason, note);
 }

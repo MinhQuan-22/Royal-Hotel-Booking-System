@@ -10,5 +10,5 @@ public interface IBookingService
     Task<Models.Booking?> GetBookingByCodeAsync(string bookingCode);
     Task<ConfirmPaymentResult> ConfirmPaymentAsync(int bookingId, string paymentMethod);
     Task<List<Models.Booking>> GetBookingsByAccountIdAsync(int accountId);
-    Task<(bool Success, string Message)> CancelBookingAsync(int bookingId, int accountId, bool isAdmin = false);
+    Task<(bool Success, string Message)> CancelBookingAsync(int bookingId, int accountId, bool isAdmin = false, string? reason = null, string? note = null);
 }

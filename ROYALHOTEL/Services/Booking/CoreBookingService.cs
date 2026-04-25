@@ -227,34 +227,97 @@ public class CoreBookingService : IBookingService
             .ToListAsync();
     }
 
-    public async Task<(bool Success, string Message)> CancelBookingAsync(int bookingId, int accountId, bool isAdmin = false)
+    public async Task<(bool Success, string Message)> CancelBookingAsync(int bookingId, int accountId, bool isAdmin = false, string? reason = null, string? note = null)
     {
         var booking = await _context.Bookings
             .Include(b => b.PaymentTransactions)
             .FirstOrDefaultAsync(b => b.Id == bookingId);
 
-        if (booking == null)
-            return (false, "Booking không tồn tại.");
+        if (booking == null) return (false, "Booking không tồn tại.");
+        if (!isAdmin && booking.AccountId != accountId) return (false, "Bạn không có quyền.");
 
-        // Check ownership
-        if (!isAdmin && booking.AccountId != accountId)
-            return (false, "Bạn không có quyền hủy booking này.");
-
-        // Check status
-        if (booking.Status == "CheckedIn" || booking.Status == "CheckedOut" || booking.Status == "Cancelled")
+        if (booking.Status == "CheckedIn" || booking.Status == "CheckedOut" || booking.Status == "Cancelled" || booking.Status == "Completed")
             return (false, $"Không thể hủy booking có trạng thái {booking.Status}.");
 
-        // Update status
-        booking.Status = "Cancelled";
+        string originalStatus = booking.Status;
 
-        // Optionally mark payment transactions as cancelled
-        foreach (var txn in booking.PaymentTransactions.Where(t => t.Status == "Paid"))
+        if (originalStatus == "Pending")
         {
-            txn.Status = "Cancelled";
+            booking.Status = "Cancelled";
+            booking.CancelledAt = DateTime.Now;
+
+            booking.RefundAmount = 0;
+            booking.RefundStatus = "NotApplicable";
+            booking.RefundPolicyApplied = "Cancelled before payment";
+            booking.CancelReason = string.IsNullOrWhiteSpace(reason) ? "Khách hủy khi đang Pending" : reason;
+            booking.CancelNote = note;
         }
+        else if (originalStatus == "Confirmed")
+        {
+            var originalPayment = booking.PaymentTransactions
+                .FirstOrDefault(t => t.TransactionType == "Payment" && t.Status == "Paid");
+            
+            if (originalPayment == null) 
+            {
+                return (false, "Data integrity error: Yêu cầu hủy thất bại vì không tìm thấy giao dịch thanh toán gốc thành công của booking Confirmed.");
+            }
+            
+            // Validation passed, set status
+            booking.Status = "Cancelled";
+            booking.CancelledAt = DateTime.Now;
+            
+            decimal paidAmount = originalPayment.Amount;
+            
+            DateTime businessCheckIn = booking.CheckIn.Date.AddHours(14);
+            var hoursDiff = (businessCheckIn - DateTime.Now).TotalHours;
 
+            decimal refundAmount = 0m;
+            string policyNote = "";
+
+            if (hoursDiff >= 48)
+            {
+                refundAmount = paidAmount;
+                policyNote = "SYSTEM RULE: Hủy trước >= 48h, hoàn tiền 100%";
+            }
+            else if (hoursDiff >= 24)
+            {
+                refundAmount = paidAmount * 0.5m;
+                policyNote = "SYSTEM RULE: Hủy trước 24h-48h, hoàn tiền 50%";
+            }
+            else
+            {
+                refundAmount = 0;
+                policyNote = "SYSTEM RULE: Hủy quá sát giờ (< 24h), hoàn tiền 0%";
+            }
+
+            booking.RefundAmount = refundAmount;
+            booking.RefundStatus = refundAmount > 0 ? "Processed" : "Rejected";
+            booking.RefundProcessedAt = refundAmount > 0 ? DateTime.Now : null;
+            booking.RefundPolicyApplied = policyNote;
+            booking.CancelReason = string.IsNullOrWhiteSpace(reason) 
+                ? (isAdmin ? "Admin processed cancellation" : "Người dùng tự hủy")
+                : reason;
+            booking.CancelNote = note;
+
+            if (refundAmount > 0)
+            {
+                _context.PaymentTransactions.Add(new PaymentTransaction
+                {
+                    BookingId = booking.Id,
+                    PaymentMethod = originalPayment.PaymentMethod,
+                    Amount = refundAmount,
+                    Status = "Paid", 
+                    TransactionType = "Refund",
+                    ParentTransactionId = originalPayment.Id,
+                    Note = "Simulated Refund Txn - " + policyNote,
+                    TransactionCode = $"REF-{DateTime.Now:yyyyMMdd}-{originalPayment.Id}",
+                    ProcessedAt = DateTime.Now,
+                    CreatedAt = DateTime.Now
+                });
+            }
+        }
+        
         await _context.SaveChangesAsync();
-
         return (true, "Hủy booking thành công.");
     }
 }

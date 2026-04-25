@@ -23,6 +23,7 @@
     var selectedAmenities = Context.Request.Query["amenities"].ToList();
     var minPrice = Model.MinPrice;
     var maxPrice = Model.MaxPrice;
+    var topBookedRoomIds = Model.TopBookedRoomIds;
 }
 
 <!-- HERO BANNER -->
@@ -99,8 +100,14 @@
                     ? featuredSummary
                     : RoomPricingSummary.FromBase(r.BasePricePerNight);
 
+                var isTopBooked = topBookedRoomIds.Contains(r.Id);
+
                 <div class="@cardClass">
                     <img class="rh-roomCard__img" src="@img" alt="@displayName" />
+                    @if (isTopBooked)
+                    {
+                        <div class="rh-roomCard__badge">🔥 Được đặt nhiều</div>
+                    }
                     <a href="#" onclick="event.preventDefault();"
                        class="rh-roomCard__bookBtn">ĐẶT PHÒNG</a>
                     <div class="rh-roomCard__info">
@@ -241,9 +248,15 @@
                         ? roomSummary
                         : RoomPricingSummary.FromBase(r.BasePricePerNight);
 
+                    var isTopBookedRoom = topBookedRoomIds.Contains(r.Id);
+
                     <article class="rh-roomItem">
                         <div class="rh-roomItem__thumb">
                             <img src="@thumb" alt="@r.Name">
+                            @if (isTopBookedRoom)
+                            {
+                                <div class="rh-roomItem__badge">🔥 Được đặt nhiều</div>
+                            }
                         </div>
                         <div class="rh-roomItem__content">
                             <div class="rh-roomItem__name">@r.Name</div>

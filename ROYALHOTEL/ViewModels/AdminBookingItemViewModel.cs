@@ -20,5 +20,9 @@ namespace ROYALHOTEL.ViewModels
 
         public decimal? TotalAmount { get; set; }
         public string? CoverImageUrl { get; set; }
+
+        public string? PaymentMethod { get; set; }
+        public decimal? RefundAmount { get; set; }
+        public string? RefundStatus { get; set; }
     }
 }

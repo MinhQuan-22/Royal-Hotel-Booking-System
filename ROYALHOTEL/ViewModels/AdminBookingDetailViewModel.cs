@@ -31,5 +31,17 @@ namespace ROYALHOTEL.ViewModels
                 return nights <= 0 ? 1 : nights;
             }
         }
+
+        // --- Added Payment INFO & Refund Tracking ---
+        public string? PaymentMethod { get; set; }
+        public string? PaymentTransactionCode { get; set; }
+        public string? RefundTransactionCode { get; set; }
+        public DateTime? CancelledAt { get; set; }
+        public string? CancelReason { get; set; }
+        public string? CancelNote { get; set; }
+        public string? RefundPolicyApplied { get; set; }
+        public decimal? RefundAmount { get; set; }
+        public string? RefundStatus { get; set; }
+        public DateTime? RefundProcessedAt { get; set; }
     }
 }
