@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using ROYALHOTEL.DTOs;
 using ROYALHOTEL.Services.Chat;
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 
 namespace ROYALHOTEL.Controllers;
 
@@ -46,16 +47,28 @@ public class ChatController : ControllerBase
                 return BadRequest(new { error = "Câu hỏi không hợp lệ" });
             }
 
-            // Extract userId from HttpContext.User claims if authenticated
-            int? userId = null;
-            if (User.Identity?.IsAuthenticated == true)
+            // Validate guest phone if provided
+            if (!string.IsNullOrEmpty(request.GuestPhone))
             {
-                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-                if (userIdClaim != null && int.TryParse(userIdClaim.Value, out var parsedUserId))
+                if (!IsValidPhoneNumber(request.GuestPhone))
                 {
-                    userId = parsedUserId;
+                    _logger.LogWarning("SendMessage called with invalid GuestPhone: {GuestPhone}", request.GuestPhone);
+                    return BadRequest(new { error = "Số điện thoại phải có 10 chữ số và bắt đầu bằng số 0" });
                 }
             }
+
+            // Validate guest name if provided
+            if (!string.IsNullOrEmpty(request.GuestName))
+            {
+                if (!IsValidName(request.GuestName))
+                {
+                    _logger.LogWarning("SendMessage called with invalid GuestName");
+                    return BadRequest(new { error = "Họ tên phải có ít nhất 2 ký tự và không vượt quá 200 ký tự" });
+                }
+            }
+
+            // Extract userId from Session
+            int? userId = HttpContext.Session.GetInt32("USER_ID");
 
             // Call ChatService.ProcessQuestionAsync
             var response = await _chatService.ProcessQuestionAsync(request, userId);
@@ -68,6 +81,23 @@ public class ChatController : ControllerBase
             _logger.LogError(ex, "Error processing chat message");
             return StatusCode(500, new { error = "Đã xảy ra lỗi, vui lòng thử lại" });
         }
+    }
+
+    /// <summary>
+    /// Validate phone number format (10 digits starting with 0)
+    /// </summary>
+    private bool IsValidPhoneNumber(string phone)
+    {
+        return Regex.IsMatch(phone, @"^0\d{9}$");
+    }
+
+    /// <summary>
+    /// Validate name length (2-200 characters)
+    /// </summary>
+    private bool IsValidName(string name)
+    {
+        var trimmed = name?.Trim() ?? "";
+        return trimmed.Length >= 2 && trimmed.Length <= 200;
     }
 
     /// <summary>
@@ -142,7 +172,6 @@ public class ChatController : ControllerBase
     /// Validates: Requirements 1.3, 17.4
     /// </summary>
     [HttpGet("history/{conversationId}")]
-    [Authorize]
     public async Task<IActionResult> GetConversationHistory(int conversationId)
     {
         try
@@ -153,13 +182,8 @@ public class ChatController : ControllerBase
                 return BadRequest(new { error = "Conversation ID không hợp lệ" });
             }
 
-            // Extract userId from HttpContext.User claims
-            int? userId = null;
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim != null && int.TryParse(userIdClaim.Value, out var parsedUserId))
-            {
-                userId = parsedUserId;
-            }
+            // Extract userId from Session
+            int? userId = HttpContext.Session.GetInt32("USER_ID");
 
             if (userId == null)
             {
@@ -201,18 +225,12 @@ public class ChatController : ControllerBase
     /// Validates: Requirements 15.3
     /// </summary>
     [HttpGet("conversations")]
-    [Authorize]
     public async Task<IActionResult> GetUserConversations()
     {
         try
         {
-            // Extract userId from HttpContext.User claims
-            int? userId = null;
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim != null && int.TryParse(userIdClaim.Value, out var parsedUserId))
-            {
-                userId = parsedUserId;
-            }
+            // Extract userId from Session
+            int? userId = HttpContext.Session.GetInt32("USER_ID");
 
             if (userId == null)
             {

@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace ROYALHOTEL.DTOs;
 
 /// <summary>
@@ -9,4 +11,7 @@ public class SendMessageRequest
     public string MessageText { get; set; } = "";
     public string? GuestName { get; set; }
     public string? GuestEmail { get; set; }
+    
+    [MaxLength(20)]
+    public string? GuestPhone { get; set; }
 }

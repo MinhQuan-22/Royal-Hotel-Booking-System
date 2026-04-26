@@ -1,109 +1,837 @@
 @model List<ROYALHOTEL.Models.ChatConversation>
 
 @{
-    ViewData["Title"] = "Escalated Conversations";
+    ViewData["Title"] = "Chat Support";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
 
-<div class="section-card">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="mb-0">
-            Escalated Conversations
-            @if (Model.Count > 0)
+@section Styles {
+<style>
+    /* ─── Messenger Layout ─── */
+    .messenger-container {
+        display: flex;
+        height: calc(100vh - 130px);
+        background: #fff;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 16px rgba(0,0,0,0.10);
+    }
+
+    /* ─── Sidebar ─── */
+    .messenger-sidebar {
+        width: 310px;
+        flex-shrink: 0;
+        border-right: 1px solid #e9ecef;
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+    }
+    .messenger-sidebar-header {
+        padding: 16px 20px 12px;
+        border-bottom: 1px solid #f0f0f0;
+        background: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .messenger-sidebar-header h5 {
+        margin: 0; font-size: 16px; font-weight: 700; color: #1c1e21;
+    }
+
+    /* Search + Filter bar */
+    .conv-search-wrap {
+        padding: 10px 14px 6px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .conv-search-input {
+        width: 100%;
+        background: #e9eaec;
+        border: none;
+        border-radius: 50px;
+        padding: 8px 14px 8px 36px;
+        font-size: 14px;
+        color: #1c1e21;
+        outline: none;
+        transition: background 0.15s;
+        position: relative;
+    }
+    .conv-search-input:focus { background: #dfe0e2; }
+    .conv-search-box {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+    .conv-search-box .search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        color: #65676b;
+    }
+    .conv-filter-bar {
+        display: flex;
+        gap: 6px;
+        margin-top: 8px;
+    }
+    .conv-filter-btn {
+        border: none;
+        border-radius: 50px;
+        padding: 5px 14px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s;
+        background: #e4e6eb;
+        color: #1c1e21;
+    }
+    .conv-filter-btn.active {
+        background: #0084ff;
+        color: #fff;
+    }
+    .conv-filter-btn:hover:not(.active) {
+        background: #d8dadf;
+    }
+
+    .messenger-conv-list { flex: 1; overflow-y: auto; }
+
+    /* Conversation item */
+    .conv-item {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
+        cursor: pointer;
+        border-bottom: 1px solid #f5f5f5;
+        transition: background 0.15s;
+        position: relative;
+    }
+    .conv-item:hover { background: #f0f2f5; }
+    .conv-item.active { background: #e7f3ff; }
+
+    .conv-avatar {
+        width: 44px; height: 44px; border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: 18px; color: #fff;
+        flex-shrink: 0; margin-right: 12px; position: relative;
+    }
+    .conv-status-dot {
+        position: absolute; bottom: 1px; right: 1px;
+        width: 11px; height: 11px; border-radius: 50%;
+        border: 2px solid #fff; background: #ccc;
+    }
+    .conv-status-dot.escalated { background: #fa3e3e; }
+    .conv-status-dot.answered  { background: #42b72a; }
+
+    .conv-info { flex: 1; min-width: 0; }
+    .conv-name {
+        font-size: 14px; font-weight: 600; color: #1c1e21;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        display: block;
+    }
+    .conv-preview {
+        font-size: 12px; color: #65676b; margin-top: 2px;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        display: block;
+    }
+    .conv-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; margin-left: 8px; }
+    .conv-time { font-size: 11px; color: #65676b; }
+    .conv-new-dot {
+        width: 10px; height: 10px; border-radius: 50%;
+        background: #0084ff; display: none;
+    }
+    .conv-new-dot.visible { display: block !important; }
+
+    /* ─── 3-dot Messenger-style actions ─── */
+    .conv-meta {
+        display: flex; flex-direction: column; align-items: flex-end;
+        gap: 4px; flex-shrink: 0; margin-left: 8px;
+        transition: opacity 0.12s;
+    }
+    .conv-item:hover .conv-meta {
+        opacity: 0;
+        pointer-events: none;
+    }
+    /* Button: hidden by default, appear on hover */
+    .conv-actions {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: none;
+        z-index: 30;
+    }
+    .conv-item:hover .conv-actions,
+    .conv-actions.menu-open {
+        display: block;
+    }
+    /* Circular gray Messenger button */
+    .conv-actions-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: none;
+        background: #d8dadf;
+        color: #1c1e21;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 17px;
+        cursor: pointer;
+        transition: background 0.12s;
+        padding: 0;
+        line-height: 1;
+        position: relative;
+    }
+    .conv-actions-btn:hover,
+    .conv-actions.menu-open .conv-actions-btn {
+        background: #bcc0c4;
+    }
+    .conv-actions-btn:focus { outline: none; box-shadow: none; }
+    /* Custom Messenger-style menu (not Bootstrap dropdown) */
+    .conv-menu {
+        display: none;
+        position: absolute;
+        right: 0;
+        top: calc(100% + 6px);
+        min-width: 220px;
+        background: #3e4042;
+        border-radius: 10px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+        padding: 6px;
+        z-index: 100;
+        animation: msgrPop 0.12s cubic-bezier(.18,.89,.32,1.1);
+    }
+    .conv-menu.open { display: block; }
+    @@keyframes msgrPop {
+        from { opacity: 0; transform: scale(0.9) translateY(-4px); }
+        to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .conv-menu-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: 6px;
+        font-size: 15px;
+        font-weight: 500;
+        color: #e4e6eb;
+        cursor: pointer;
+        text-decoration: none;
+        transition: background 0.08s;
+        white-space: nowrap;
+    }
+    .conv-menu-item:hover { background: rgba(255,255,255,0.1); color: #fff; }
+    .conv-menu-item.danger { color: #f5504a; }
+    .conv-menu-item.danger:hover { background: rgba(245,80,74,0.15); color: #ff7875; }
+    .conv-menu-item .item-icon { font-size: 18px; width: 20px; text-align: center; opacity: 0.9; flex-shrink: 0; }
+
+    .no-conv-msg { text-align: center; padding: 40px 20px; color: #65676b; font-size: 14px; }
+
+    /* ─── Main Panel ─── */
+    .messenger-main {
+        flex: 1; display: flex; flex-direction: column;
+        background: #f0f2f5; min-width: 0;
+    }
+    .messenger-empty-state {
+        flex: 1; display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        color: #65676b; gap: 12px;
+    }
+    .messenger-empty-state svg { opacity: 0.25; }
+    .messenger-empty-state p { font-size: 14px; margin: 0; }
+
+    /* Chat panel */
+    .messenger-chat { display: none; flex-direction: column; height: 100%; }
+    .messenger-chat.visible { display: flex; }
+
+    .chat-header {
+        padding: 12px 20px; background: #fff;
+        border-bottom: 1px solid #e9ecef;
+        display: flex; align-items: center; gap: 12px;
+        flex-shrink: 0;
+    }
+    .chat-header-avatar {
+        width: 38px; height: 38px; border-radius: 50%;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        display: flex; align-items: center; justify-content: center;
+        color: #fff; font-weight: 700; font-size: 15px;
+    }
+    .chat-header-info h6 { margin: 0; font-size: 15px; font-weight: 600; }
+    .chat-header-info small { color: #65676b; font-size: 12px; }
+
+    /* Messages */
+    .chat-messages {
+        flex: 1; overflow-y: auto; padding: 20px;
+        display: flex; flex-direction: column; gap: 10px;
+    }
+    .msg-row { display: flex; flex-direction: column; }
+    .msg-row.from-user  { align-items: flex-start; }
+    .msg-row.from-ai    { align-items: flex-start; }
+    .msg-row.from-admin { align-items: flex-end; }
+
+    .msg-label { font-size: 11px; color: #65676b; margin-bottom: 3px; }
+    .msg-row.from-admin .msg-label { text-align: right; }
+
+    .msg-bubble {
+        max-width: 68%; padding: 10px 14px; border-radius: 18px;
+        font-size: 14px; line-height: 1.5; word-break: break-word;
+    }
+    .msg-row.from-user  .msg-bubble { background: #fff; border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+    .msg-row.from-ai    .msg-bubble { background: #e3edf7; border-bottom-left-radius: 4px; }
+    .msg-row.from-admin .msg-bubble { background: #0084ff; color: #fff; border-bottom-right-radius: 4px; }
+    .msg-time { font-size: 11px; color: #65676b; margin-top: 3px; }
+    .msg-row.from-admin .msg-time { text-align: right; }
+
+    /* Loading spinner */
+    .chat-loading {
+        flex: 1; display: flex; align-items: center; justify-content: center;
+        color: #65676b;
+    }
+
+    /* Input area */
+    .chat-input-area {
+        padding: 12px 16px; background: #fff;
+        border-top: 1px solid #e9ecef;
+        display: flex; gap: 10px; align-items: flex-end;
+        flex-shrink: 0;
+    }
+    .chat-input-area textarea {
+        flex: 1; border: 1px solid #e0e0e0; border-radius: 20px;
+        padding: 10px 16px; resize: none; outline: none;
+        font-size: 14px; max-height: 120px; min-height: 42px;
+        font-family: inherit; line-height: 1.4;
+    }
+    .chat-input-area textarea:focus { border-color: #0084ff; }
+    .btn-send {
+        width: 40px; height: 40px; border-radius: 50%;
+        background: #0084ff; color: #fff; border: none;
+        cursor: pointer; display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0; transition: background 0.15s;
+    }
+    .btn-send:hover { background: #0073e6; }
+    .btn-send:disabled { background: #ccc; cursor: not-allowed; }
+
+    .live-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        font-size: 11px; color: #42b72a; font-weight: 600;
+    }
+    .live-dot {
+        width: 7px; height: 7px; border-radius: 50%; background: #42b72a;
+        animation: livePulse 1.5s ease-in-out infinite;
+    }
+    @@keyframes livePulse {
+        0%, 100% { opacity: 1; } 50% { opacity: 0.3; }
+    }
+</style>
+}
+
+<div class="messenger-container">
+
+    @* ═══ LEFT SIDEBAR ═══ *@
+    <div class="messenger-sidebar">
+        <div class="messenger-sidebar-header">
+            <h5>
+                <i class="bi bi-chat-dots-fill me-2" style="color:#0084ff"></i>Chat Support
+            </h5>
+            <span class="live-badge">
+                <span class="live-dot"></span> Live
+            </span>
+        </div>
+
+        <div class="conv-search-wrap">
+            <div class="conv-search-box">
+                <span class="search-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                </span>
+                <input type="text" id="convSearchInput" class="conv-search-input" placeholder="Tìm kiếm đoạn chat..." oninput="filterConvList()">
+            </div>
+            <div class="conv-filter-bar">
+                <button class="conv-filter-btn active" id="filterAll" onclick="setFilter('all')">Tất cả</button>
+                <button class="conv-filter-btn" id="filterUnread" onclick="setFilter('unread')">Chưa đọc</button>
+            </div>
+        </div>
+
+        <div class="messenger-conv-list" id="convList">
+            @if (Model.Count == 0)
             {
-                <span class="badge bg-danger ms-2">@Model.Count</span>
+                <div class="no-conv-msg">
+                    <i class="bi bi-inbox" style="font-size:2rem;opacity:.3;"></i>
+                    <p class="mt-2">Chưa có cuộc trò chuyện nào</p>
+                </div>
             }
-        </h4>
+            else
+            {
+                @foreach (var conv in Model)
+                {
+                    var displayName = conv.Account?.FullName ?? conv.GuestName ?? "Anonymous Guest";
+                    var initial = displayName.Length > 0 ? displayName[0].ToString().ToUpper() : "?";
+                    var dotClass = conv.Status == "EscalatedToAdmin" ? "escalated" : "answered";
+                    var timeAgo = conv.UpdatedAt.AddHours(7).ToString("HH:mm dd/MM");
+                    var preview = !string.IsNullOrEmpty(conv.EscalationReason) ? conv.EscalationReason : "Yêu cầu hỗ trợ";
+
+                    <div class="conv-item" 
+                         id="conv-item-@conv.Id"
+                         data-conv-id="@conv.Id"
+                         data-name="@displayName"
+                         data-phone="@(conv.GuestPhone ?? "")"
+                         data-status="@conv.Status"
+                         onclick="selectConversation(@conv.Id, '@displayName.Replace("'","\\'")', '@(conv.GuestPhone ?? "")', '@conv.Status')">
+                        <div class="conv-avatar">
+                            @initial
+                            <span class="conv-status-dot @dotClass"></span>
+                        </div>
+                        <div class="conv-info">
+                            <span class="conv-name">@displayName</span>
+                            <span class="conv-preview">@preview</span>
+                        </div>
+                        <div class="conv-meta">
+                            <span class="conv-time">@timeAgo</span>
+                            <span class="conv-new-dot" id="new-dot-@conv.Id"></span>
+                        </div>
+                        <div class="conv-actions" id="actions-@conv.Id" onclick="event.stopPropagation();">
+                            <button type="button" class="conv-actions-btn" onclick="toggleConvMenu(event, @conv.Id)" title="Tùy chọn">
+                                <i class="bi bi-three-dots"></i>
+                            </button>
+                            <div class="conv-menu" id="conv-menu-@conv.Id">
+                                <a class="conv-menu-item" href="#" onclick="markAsRead(event, @conv.Id)">
+                                    <span class="item-icon"><i class="bi bi-envelope-open"></i></span>
+                                    <span>Đánh dấu đã đọc</span>
+                                </a>
+                                <a class="conv-menu-item danger" href="#" onclick="deleteConversation(event, @conv.Id)">
+                                    <span class="item-icon"><i class="bi bi-trash"></i></span>
+                                    <span>Xóa đoạn chat</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
     </div>
 
-    @if (TempData["Error"] != null)
-    {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            @TempData["Error"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    @* ═══ RIGHT PANEL ═══ *@
+    <div class="messenger-main">
+
+        @* Empty state *@
+        <div class="messenger-empty-state" id="emptyState">
+            <svg width="80" height="80" viewBox="0 0 24 24" fill="#1c1e21">
+                <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+            </svg>
+            <p>Chọn một cuộc trò chuyện để bắt đầu</p>
         </div>
+
+        @* Chat panel (hidden until conversation selected) *@
+        <div class="messenger-chat" id="messengerChat">
+
+            <div class="chat-header" id="chatHeader">
+                <div class="chat-header-avatar" id="chatAvatar">?</div>
+                <div class="chat-header-info">
+                    <h6 id="chatName">–</h6>
+                    <small id="chatMeta"></small>
+                </div>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="chat-loading" id="chatLoading">
+                    <span class="spinner-border spinner-border-sm me-2"></span> Đang tải...
+                </div>
+            </div>
+
+            <div class="chat-input-area">
+                <textarea id="replyInput" placeholder="Nhập phản hồi... (Enter để gửi, Shift+Enter xuống dòng)" rows="1"></textarea>
+                <button class="btn-send" id="sendBtn" title="Gửi (Enter)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    'use strict';
+
+    /* ─── State ─── */
+    let activeConvId = null;
+    let lastMsgCheckTime = null;
+    let lastConvCheckTime = new Date().toISOString();
+    let msgPollingTimer = null;
+    let convPollingTimer = null;
+    let isSending = false;
+
+    /* ─── DOM refs ─── */
+    const emptyState   = document.getElementById('emptyState');
+    const messengerChat= document.getElementById('messengerChat');
+    const chatMessages = document.getElementById('chatMessages');
+    const chatLoading  = document.getElementById('chatLoading');
+    const chatName     = document.getElementById('chatName');
+    const chatMeta     = document.getElementById('chatMeta');
+    const chatAvatar   = document.getElementById('chatAvatar');
+    const replyInput   = document.getElementById('replyInput');
+    const sendBtn      = document.getElementById('sendBtn');
+
+    /* ─── Select conversation ─── */
+    window.selectConversation = function(convId, name, phone, status) {
+        // Remove active from all items
+        document.querySelectorAll('.conv-item').forEach(el => el.classList.remove('active'));
+        const item = document.getElementById('conv-item-' + convId);
+        if (item) item.classList.add('active');
+
+        // Hide new dot
+        const dot = document.getElementById('new-dot-' + convId);
+        if (dot) dot.classList.remove('visible');
+
+        // Update header
+        chatAvatar.textContent = name.charAt(0).toUpperCase();
+        chatName.textContent   = name;
+        chatMeta.textContent   = phone ? '📞 ' + phone : (status === 'EscalatedToAdmin' ? '🔴 Chờ phản hồi' : '✅ Đã trả lời');
+
+        // Switch panels
+        emptyState.style.display   = 'none';
+        messengerChat.classList.add('visible');
+
+        // Stop previous msg polling
+        if (msgPollingTimer) clearInterval(msgPollingTimer);
+
+        // Load messages
+        activeConvId = convId;
+        lastMsgCheckTime = new Date().toISOString();
+        loadMessages(convId);
+
+        // Start message polling (3s)
+        msgPollingTimer = setInterval(() => pollNewMessages(convId), 3000);
+    };
+
+    /* ─── Load full messages ─── */
+    async function loadMessages(convId) {
+        chatMessages.innerHTML = '';
+        chatLoading.style.display = 'flex';
+        chatMessages.appendChild(chatLoading);
+
+        try {
+            const res = await fetch('/AdminChat/GetMessages/' + convId);
+            if (!res.ok) throw new Error('Failed');
+            const data = await res.json();
+
+            chatMessages.innerHTML = '';
+
+            if (data.messages.length === 0) {
+                chatMessages.innerHTML = '<div style="text-align:center;color:#65676b;font-size:13px;padding:20px">Chưa có tin nhắn</div>';
+                return;
+            }
+
+            data.messages.forEach(m => appendMessage(m.senderType, m.messageText, m.createdAt));
+            scrollBottom();
+            lastMsgCheckTime = data.serverTime;
+        } catch (e) {
+            chatMessages.innerHTML = '<div style="color:red;text-align:center;padding:20px">Lỗi tải tin nhắn</div>';
+        }
     }
 
-    @if (Model.Count == 0)
-    {
-        <div class="alert alert-info">
-            <i class="bi bi-info-circle me-2"></i>
-            No escalated conversations at this time.
-        </div>
+    /* ─── Append a single message bubble ─── */
+    function appendMessage(senderType, text, createdAt) {
+        const rowClass = senderType === 'Admin' ? 'from-admin'
+                       : senderType === 'AI'    ? 'from-ai'
+                       :                          'from-user';
+
+        const label = senderType === 'Admin' ? 'Admin'
+                    : senderType === 'AI'    ? 'Trợ lý AI'
+                    : chatName.textContent || 'User';
+
+        let dateStr = createdAt;
+        if (typeof dateStr === 'string' && !dateStr.endsWith('Z')) dateStr += 'Z';
+        const time = new Date(dateStr).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+        const row = document.createElement('div');
+        row.className = 'msg-row ' + rowClass;
+
+        row.innerHTML = `
+            <div class="msg-label">${escHtml(label)}</div>
+            <div class="msg-bubble">${escHtml(text)}</div>
+            <div class="msg-time">${time}</div>
+        `;
+        chatMessages.appendChild(row);
     }
-    else
-    {
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>Conversation Code</th>
-                        <th>Guest Name</th>
-                        <th>Account</th>
-                        <th>Escalation Reason</th>
-                        <th>Created At</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var conversation in Model)
-                    {
-                        <tr>
-                            <td>
-                                <strong>@conversation.ConversationCode</strong>
-                            </td>
-                            <td>
-                                @if (!string.IsNullOrEmpty(conversation.GuestName))
-                                {
-                                    <span>@conversation.GuestName</span>
-                                }
-                                else
-                                {
-                                    <span class="text-muted">N/A</span>
-                                }
-                            </td>
-                            <td>
-                                @if (conversation.Account != null)
-                                {
-                                    <span>@conversation.Account.FullName</span>
-                                    <br />
-                                    <small class="text-muted">@conversation.Account.Email</small>
-                                }
-                                else if (!string.IsNullOrEmpty(conversation.GuestEmail))
-                                {
-                                    <span class="text-muted">Guest</span>
-                                    <br />
-                                    <small class="text-muted">@conversation.GuestEmail</small>
-                                }
-                                else
-                                {
-                                    <span class="text-muted">Anonymous</span>
-                                }
-                            </td>
-                            <td>
-                                @if (!string.IsNullOrEmpty(conversation.EscalationReason))
-                                {
-                                    <span>@conversation.EscalationReason</span>
-                                }
-                                else
-                                {
-                                    <span class="text-muted">No reason provided</span>
-                                }
-                            </td>
-                            <td>
-                                @conversation.CreatedAt.ToString("dd/MM/yyyy HH:mm")
-                            </td>
-                            <td>
-                                <a asp-action="ViewConversation" 
-                                   asp-route-conversationId="@conversation.Id" 
-                                   class="btn btn-sm btn-primary">
-                                    <i class="bi bi-eye me-1"></i>View
-                                </a>
-                            </td>
-                        </tr>
+
+    /* ─── Poll new messages in active conversation ─── */
+    async function pollNewMessages(convId) {
+        if (convId !== activeConvId || !lastMsgCheckTime) return;
+        try {
+            const url = `/AdminChat/PollNewMessages/${convId}?lastCheck=${encodeURIComponent(lastMsgCheckTime)}`;
+            const res = await fetch(url);
+            if (!res.ok) return;
+            const data = await res.json();
+
+            if (data.hasNew && data.messages.length > 0) {
+                data.messages.forEach(m => appendMessage(m.senderType, m.messageText, m.createdAt));
+                scrollBottom();
+            }
+            lastMsgCheckTime = data.serverTime;
+        } catch (e) { /* silent */ }
+    }
+
+    /* ─── Poll new conversations (sidebar) ─── */
+    async function pollNewConversations() {
+        try {
+            const url = `/AdminChat/PollNewConversations?lastCheck=${encodeURIComponent(lastConvCheckTime)}`;
+            const res = await fetch(url);
+            if (!res.ok) return;
+            const data = await res.json();
+            lastConvCheckTime = data.serverTime;
+
+            if (data.hasNew && data.conversations.length > 0) {
+                data.conversations.forEach(c => {
+                    const dot = document.getElementById('new-dot-' + c.id);
+                    if (dot && c.id !== activeConvId) dot.classList.add('visible');
+                });
+
+                // If brand new conversation not in list, reload sidebar after 2s
+                const ids = Array.from(document.querySelectorAll('.conv-item')).map(el => +el.dataset.convId);
+                const hasNew = data.conversations.some(c => !ids.includes(c.id));
+                if (hasNew) {
+                    setTimeout(() => window.location.reload(), 2000);
+                }
+            }
+        } catch (e) { /* silent */ }
+    }
+
+    /* ─── Send reply ─── */
+    async function sendReply() {
+        if (!activeConvId || isSending) return;
+        const text = replyInput.value.trim();
+        if (!text) return;
+
+        isSending = true;
+        sendBtn.disabled = true;
+
+        try {
+            const res = await fetch('/AdminChat/Respond', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ conversationId: activeConvId, responseText: text })
+            });
+            const result = await res.json();
+
+            if (res.ok && result.success) {
+                replyInput.value = '';
+                appendMessage('Admin', text, new Date().toISOString());
+                scrollBottom();
+                // Update sidebar status dot to green
+                const dot = document.querySelector(`#conv-item-${activeConvId} .conv-status-dot`);
+                if (dot) { dot.className = 'conv-status-dot answered'; }
+            } else {
+                alert(result.message || 'Gửi thất bại');
+            }
+        } catch (e) {
+            alert('Lỗi kết nối, vui lòng thử lại');
+        } finally {
+            isSending = false;
+            sendBtn.disabled = false;
+            replyInput.focus();
+        }
+    }
+
+    /* ─── Helpers ─── */
+    function scrollBottom() {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function escHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    /* ─── Auto-resize textarea ─── */
+    replyInput.addEventListener('input', function () {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+
+    /* ─── Enter to send ─── */
+    replyInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendReply();
+        }
+    });
+
+    sendBtn.addEventListener('click', sendReply);
+
+    /* ─── Toggle custom conv menu ─── */
+    window.toggleConvMenu = function(e, convId) {
+        e.preventDefault();
+        e.stopPropagation();
+        const menu    = document.getElementById('conv-menu-' + convId);
+        const actions = document.getElementById('actions-' + convId);
+        const isOpen  = menu.classList.contains('open');
+        // close all other menus first
+        document.querySelectorAll('.conv-menu.open').forEach(m => {
+            m.classList.remove('open');
+            const a = m.closest('.conv-actions');
+            if (a) a.classList.remove('menu-open');
+        });
+        if (!isOpen) {
+            menu.classList.add('open');
+            actions.classList.add('menu-open');
+        }
+    };
+    // Close menu when clicking anywhere else
+    document.addEventListener('click', function() {
+        document.querySelectorAll('.conv-menu.open').forEach(m => {
+            m.classList.remove('open');
+            const a = m.closest('.conv-actions');
+            if (a) a.classList.remove('menu-open');
+        });
+    });
+
+    /* ─── Search & Filter ─── */
+    let currentFilter = 'all';
+    // Flag: are there any conversations from server? (prevents duplicate empty messages)
+    const hasServerConversations = @(Model.Count > 0 ? "true" : "false");
+
+    window.setFilter = function(filter) {
+        currentFilter = filter;
+        document.getElementById('filterAll').classList.toggle('active', filter === 'all');
+        document.getElementById('filterUnread').classList.toggle('active', filter === 'unread');
+        filterConvList();
+    };
+
+    window.filterConvList = function() {
+        // If no conversations at all from server, nothing to filter
+        if (!hasServerConversations) return;
+
+        const query  = (document.getElementById('convSearchInput')?.value || '').toLowerCase().trim();
+        const items  = document.querySelectorAll('#convList .conv-item');
+        let   anyVisible = false;
+
+        items.forEach(item => {
+            const name    = (item.dataset.name   || '').toLowerCase();
+            const status  = (item.dataset.status || '');
+            const matchSearch = !query || name.includes(query);
+            const matchFilter = currentFilter === 'all' || status === 'EscalatedToAdmin';
+            const visible = matchSearch && matchFilter;
+            item.style.display = visible ? '' : 'none';
+            if (visible) anyVisible = true;
+        });
+
+        // Show/hide "no results" message inside list
+        let emptyMsg = document.getElementById('convListEmpty');
+        if (!anyVisible) {
+            if (!emptyMsg) {
+                emptyMsg = document.createElement('div');
+                emptyMsg.id = 'convListEmpty';
+                emptyMsg.className = 'no-conv-msg';
+                emptyMsg.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p class="mt-2">Không tìm thấy đoạn chat nào</p>';
+                document.getElementById('convList').appendChild(emptyMsg);
+            }
+            emptyMsg.style.display = '';
+        } else if (emptyMsg) {
+            emptyMsg.style.display = 'none';
+        }
+    };
+
+    /* ─── Mark as read ─── */
+    window.markAsRead = async function(e, convId) {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+            const res = await fetch(`/AdminChat/MarkAsRead/${convId}`, { method: 'POST' });
+            if(res.ok) {
+                const item = document.getElementById(`conv-item-${convId}`);
+                if (item) {
+                    const dot = item.querySelector('.conv-status-dot');
+                    if (dot) {
+                        dot.classList.remove('escalated');
+                        dot.classList.add('answered');
                     }
-                </tbody>
-            </table>
-        </div>
-    }
-</div>
+                }
+            }
+        } catch(err) { console.error(err); }
+    };
+
+    /* ─── Delete conversation ─── */
+    window.deleteConversation = async function(e, convId) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Close the menu first
+        const menu = document.getElementById('conv-menu-' + convId);
+        const actions = document.getElementById('actions-' + convId);
+        if (menu) menu.classList.remove('open');
+        if (actions) actions.classList.remove('menu-open');
+
+        const result = await Swal.fire({
+            title: 'Xóa đoạn chat?',
+            text: "Hành động này sẽ xóa vĩnh viễn đoạn chat và không thể hoàn tác!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Có, xóa ngay!',
+            cancelButtonText: 'Hủy'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                const res = await fetch(`/AdminChat/DeleteConversation/${convId}`, { method: 'POST' });
+                if (res.ok) {
+                    // Remove item from sidebar
+                    const item = document.getElementById(`conv-item-${convId}`);
+                    if (item) item.remove();
+                    // If deleted conversation was the active one, show empty state
+                    if (activeConvId === convId) {
+                        activeConvId = null;
+                        const emptyState = document.getElementById('emptyState');
+                        const chatPanel  = document.getElementById('messengerChat');
+                        if (emptyState) emptyState.style.display = 'flex';
+                        if (chatPanel)  chatPanel.style.display  = 'none';
+                    }
+                    Swal.fire({
+                        title: 'Đã xóa!',
+                        text: 'Đoạn chat đã được xóa thành công.',
+                        icon: 'success',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                } else {
+                    const body = await res.json().catch(() => ({}));
+                    Swal.fire('Lỗi!', body.message || 'Đã xảy ra lỗi khi xóa đoạn chat.', 'error');
+                }
+            } catch(err) {
+                console.error('DeleteConversation error:', err);
+                Swal.fire('Lỗi!', 'Đã xảy ra lỗi không xác định.', 'error');
+            }
+        }
+    };
+
+    /* ─── Start sidebar polling ─── */
+    convPollingTimer = setInterval(pollNewConversations, 5000);
+
+    /* ─── Pause polling when tab hidden ─── */
+    document.addEventListener('visibilitychange', function () {
+        if (document.hidden) {
+            clearInterval(msgPollingTimer);
+            clearInterval(convPollingTimer);
+        } else {
+            convPollingTimer = setInterval(pollNewConversations, 5000);
+            if (activeConvId) {
+                msgPollingTimer = setInterval(() => pollNewMessages(activeConvId), 3000);
+            }
+        }
+    });
+})();
+</script>
+}

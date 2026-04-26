@@ -35,6 +35,8 @@
     
     <!-- Bootstrap Icons (CDN) added for dashboard and admin global symbols -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- SweetAlert2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css" rel="stylesheet">
     
     @await RenderSectionAsync("Styles", required: false)
 </head>
@@ -181,6 +183,76 @@
                 }
             });
         })();
+    </script>
+
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.onmouseenter = Swal.stopTimer;
+                    toast.onmouseleave = Swal.resumeTimer;
+                }
+            });
+
+            @if (TempData["Success"] != null)
+            {
+                <text>
+                Toast.fire({
+                    icon: 'success',
+                    title: '@Html.Raw(TempData["Success"].ToString()?.Replace("'", "\\'").Replace("\n", " "))'
+                });
+                </text>
+            }
+
+            @if (TempData["Error"] != null)
+            {
+                <text>
+                Toast.fire({
+                    icon: 'error',
+                    title: '@Html.Raw(TempData["Error"].ToString()?.Replace("'", "\\'").Replace("\n", " "))'
+                });
+                </text>
+            }
+
+            // Hide raw bootstrap alerts to prevent duplication
+            document.querySelectorAll('.alert-success, .alert-danger').forEach(el => {
+                el.style.display = 'none';
+            });
+
+            // Intercept all forms with inline confirm() and replace with SweetAlert2
+            document.querySelectorAll('form[onsubmit*="confirm"]').forEach(form => {
+                const onsubmitAttr = form.getAttribute('onsubmit');
+                const match = onsubmitAttr.match(/confirm\(['"](.*?)['"]\)/);
+                if (match && match[1]) {
+                    form.removeAttribute('onsubmit');
+                    
+                    form.addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        Swal.fire({
+                            title: 'Confirmation Required',
+                            text: match[1],
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonColor: '#dc3545',
+                            cancelButtonColor: '#6c757d',
+                            confirmButtonText: 'Yes, proceed!',
+                            cancelButtonText: 'Cancel'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                form.submit();
+                            }
+                        });
+                    });
+                }
+            });
+        });
     </script>
 
     @await RenderSectionAsync("Scripts", required: false)

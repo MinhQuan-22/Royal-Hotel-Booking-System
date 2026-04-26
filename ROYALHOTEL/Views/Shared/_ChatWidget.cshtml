@@ -5,6 +5,33 @@
         <button type="button" class="chat-widget__close" aria-label="Đóng chat">×</button>
     </div>
     
+    <div class="chat-widget__guest-form" id="chat-guest-form" style="display: none;">
+        <div class="chat-widget__guest-form-header">
+            <h3>Thông tin liên hệ</h3>
+            <p>Vui lòng cung cấp thông tin để chúng tôi hỗ trợ bạn tốt hơn</p>
+        </div>
+
+        <div class="chat-widget__guest-form-body">
+            <div class="form-group">
+                <label for="guest-name">Họ và tên *</label>
+                <input type="text" id="guest-name" class="form-control"
+                       placeholder="Nhập họ tên" maxlength="200" />
+                <span class="error-message" id="guest-name-error"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="guest-phone">Số điện thoại *</label>
+                <input type="tel" id="guest-phone" class="form-control"
+                       placeholder="0xxxxxxxxx" maxlength="10" />
+                <span class="error-message" id="guest-phone-error"></span>
+            </div>
+
+            <button type="button" id="guest-form-submit" class="btn btn-primary">
+                Bắt đầu chat
+            </button>
+        </div>
+    </div>
+    
     <div class="chat-widget__messages" id="chat-messages">
         <div class="chat-widget__welcome">
             <p>Xin chào! Tôi có thể giúp gì cho bạn?</p>

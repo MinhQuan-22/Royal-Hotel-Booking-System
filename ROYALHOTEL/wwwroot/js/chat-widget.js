@@ -3,11 +3,138 @@
  * Handles user interactions with the chat widget
  */
 
+/**
+ * Guest Info Form Component
+ * Handles guest information collection before chat
+ */
+class GuestInfoForm {
+  constructor(chatWidget) {
+    this.chatWidget = chatWidget;
+    this.formContainer = document.getElementById("chat-guest-form");
+    this.nameInput = document.getElementById("guest-name");
+    this.phoneInput = document.getElementById("guest-phone");
+    this.nameError = document.getElementById("guest-name-error");
+    this.phoneError = document.getElementById("guest-phone-error");
+    this.submitBtn = document.getElementById("guest-form-submit");
+
+    this.init();
+  }
+
+  init() {
+    // Add input event listeners for real-time validation
+    this.nameInput.addEventListener("input", () => this.validateName());
+    this.phoneInput.addEventListener("input", () => this.validatePhone());
+    this.submitBtn.addEventListener("click", () => this.submit());
+
+    // Allow Enter key to submit
+    this.phoneInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        this.submit();
+      }
+    });
+  }
+
+  show() {
+    this.formContainer.style.display = "block";
+    this.chatWidget.messagesContainer.style.display = "none";
+    this.chatWidget.inputWrapper.style.display = "none";
+    this.chatWidget.escalationSection.style.display = "none";
+    this.nameInput.focus();
+  }
+
+  hide() {
+    this.formContainer.style.display = "none";
+    this.chatWidget.messagesContainer.style.display = "flex";
+    this.chatWidget.inputWrapper.style.display = "flex";
+  }
+
+  validateName() {
+    const name = this.nameInput.value;
+    const trimmed = name.trim();
+
+    if (!name || trimmed.length === 0) {
+      this.nameError.textContent = "Vui lòng nhập họ tên";
+      this.nameInput.classList.add("error");
+      return false;
+    }
+
+    if (trimmed.length < 2) {
+      this.nameError.textContent = "Họ tên phải có ít nhất 2 ký tự";
+      this.nameInput.classList.add("error");
+      return false;
+    }
+
+    if (name.length > 200) {
+      this.nameError.textContent = "Họ tên không được vượt quá 200 ký tự";
+      this.nameInput.classList.add("error");
+      return false;
+    }
+
+    this.nameError.textContent = "";
+    this.nameInput.classList.remove("error");
+    return true;
+  }
+
+  validatePhone() {
+    const phone = this.phoneInput.value;
+
+    if (!phone || phone.trim().length === 0) {
+      this.phoneError.textContent = "Vui lòng nhập số điện thoại";
+      this.phoneInput.classList.add("error");
+      return false;
+    }
+
+    const phonePattern = /^0\d{9}$/;
+    if (!phonePattern.test(phone)) {
+      this.phoneError.textContent =
+        "Số điện thoại phải có 10 chữ số và bắt đầu bằng số 0";
+      this.phoneInput.classList.add("error");
+      return false;
+    }
+
+    this.phoneError.textContent = "";
+    this.phoneInput.classList.remove("error");
+    return true;
+  }
+
+  validate() {
+    const nameValid = this.validateName();
+    const phoneValid = this.validatePhone();
+    return nameValid && phoneValid;
+  }
+
+  submit() {
+    if (!this.validate()) {
+      return;
+    }
+
+    const guestData = this.getGuestData();
+    this.chatWidget.saveGuestInfoToSession(guestData.name, guestData.phone);
+    this.chatWidget.guestName = guestData.name;
+    this.chatWidget.guestPhone = guestData.phone;
+    this.hide();
+
+    // Show welcome message
+    this.chatWidget.showWelcomeMessage();
+  }
+
+  getGuestData() {
+    return {
+      name: this.nameInput.value.trim(),
+      phone: this.phoneInput.value.trim(),
+    };
+  }
+}
+
 class ChatWidget {
   constructor() {
     this.conversationId = null;
     this.isOpen = false;
     this.isProcessing = false;
+    this.guestName = null;
+    this.guestPhone = null;
+    this.isAuthenticated = false;
 
     // DOM elements
     this.widget = document.getElementById("chat-widget");
@@ -19,13 +146,34 @@ class ChatWidget {
     this.typingIndicator = document.getElementById("chat-typing");
     this.escalationSection = document.getElementById("chat-escalation");
     this.escalationBtn = document.getElementById("chat-escalation-btn");
+    this.inputWrapper = document.querySelector(".chat-widget__input-wrapper");
+
+    // Guest info form
+    this.guestInfoForm = new GuestInfoForm(this);
 
     this.init();
   }
 
   init() {
+    // Check if widget should render based on user role and page URL
+    if (!this.shouldRenderWidget()) {
+      return;
+    }
+
     // Load conversation ID from sessionStorage
     this.conversationId = sessionStorage.getItem("chatConversationId");
+
+    // Check authentication
+    this.isAuthenticated = this.checkAuthentication();
+
+    // Load guest info from session if not authenticated
+    if (!this.isAuthenticated) {
+      const hasGuestInfo = this.loadGuestInfoFromSession();
+      if (!hasGuestInfo) {
+        // Will show guest form when widget opens
+        this.shouldShowGuestForm = true;
+      }
+    }
 
     // Event listeners
     this.toggleBtn.addEventListener("click", () => this.toggleWidget());
@@ -40,9 +188,90 @@ class ChatWidget {
     this.escalationBtn.addEventListener("click", () => this.escalateToAdmin());
 
     // Load conversation history for authenticated users
-    if (this.isAuthenticated()) {
+    if (this.isAuthenticated) {
       this.loadConversationHistory();
     }
+  }
+
+  /**
+   * Determine if chat widget should render based on user role and page URL
+   * Requirements 4.1, 4.2, 4.3, 4.4, 4.5, 4.6
+   */
+  shouldRenderWidget() {
+    const userRole = this.getUserRole();
+    const isAdminPage = this.isAdminPage();
+
+    // Admin users should NEVER see the chat widget on any page
+    if (userRole === "Admin") {
+      return false;
+    }
+
+    // Regular users and guests should not see widget on admin pages
+    if (isAdminPage) {
+      return false;
+    }
+
+    // Show widget on public pages for regular users and guests
+    return true;
+  }
+
+  /**
+   * Get user role from cookies or session
+   * Returns: "Admin", "User", or null for guests
+   */
+  getUserRole() {
+    // Read role from server-injected meta tag (set in _Layout.cshtml via Session)
+    const roleMeta = document.querySelector('meta[name="user-role"]');
+    const role = roleMeta?.content ?? "";
+    return role.length > 0 ? role : null;
+  }
+
+  isAdminPage() {
+    return window.location.pathname.startsWith("/Admin");
+  }
+
+  checkAuthentication() {
+    // Read auth status from server-injected meta tag (set in _Layout.cshtml via Session)
+    // NOTE: .AspNetCore.Session cookie exists for ALL visitors (including guests), so
+    // we must NOT rely on it to detect login status.
+    const authMeta = document.querySelector('meta[name="user-authenticated"]');
+    return authMeta?.content === "true";
+  }
+
+  loadGuestInfoFromSession() {
+    try {
+      const name = sessionStorage.getItem("chatGuestName");
+      const phone = sessionStorage.getItem("chatGuestPhone");
+
+      if (name && phone) {
+        this.guestName = name;
+        this.guestPhone = phone;
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error("SessionStorage unavailable:", e);
+      return false;
+    }
+  }
+
+  saveGuestInfoToSession(name, phone) {
+    try {
+      sessionStorage.setItem("chatGuestName", name);
+      sessionStorage.setItem("chatGuestPhone", phone);
+    } catch (e) {
+      console.error("SessionStorage unavailable:", e);
+    }
+  }
+
+  showWelcomeMessage() {
+    const welcomeDiv = document.createElement("div");
+    welcomeDiv.className = "chat-widget__welcome";
+    welcomeDiv.innerHTML = `
+      <p>Xin chào! Tôi có thể giúp gì cho bạn?</p>
+      <p class="chat-widget__welcome-hint">Hỏi về tiện ích khách sạn, phòng, chính sách...</p>
+    `;
+    this.messagesContainer.appendChild(welcomeDiv);
   }
 
   toggleWidget() {
@@ -56,7 +285,18 @@ class ChatWidget {
   openWidget() {
     this.widget.style.display = "flex";
     this.isOpen = true;
-    this.inputField.focus();
+
+    // Show guest form if needed
+    if (
+      !this.isAuthenticated &&
+      !this.guestName &&
+      !this.guestPhone &&
+      this.shouldShowGuestForm
+    ) {
+      this.guestInfoForm.show();
+    } else {
+      this.inputField.focus();
+    }
 
     // Scroll to bottom
     setTimeout(() => {
@@ -106,6 +346,16 @@ class ChatWidget {
         conversationId: this.conversationId,
         messageText: messageText,
       };
+
+      // Include guest data only for first message of new conversation
+      if (!this.conversationId && !this.isAuthenticated) {
+        if (this.guestName) {
+          requestData.guestName = this.guestName;
+        }
+        if (this.guestPhone) {
+          requestData.guestPhone = this.guestPhone;
+        }
+      }
 
       // Make API call
       const response = await fetch("/api/chat/send", {
@@ -325,15 +575,6 @@ class ChatWidget {
     }
   }
 
-  isAuthenticated() {
-    // Check if user is authenticated by looking for auth cookie or session
-    // This is a simple check - adjust based on your authentication mechanism
-    return (
-      document.cookie.includes(".AspNetCore.Session") ||
-      document.cookie.includes("AuthToken")
-    );
-  }
-
   getSenderLabel(senderType) {
     switch (senderType) {
       case "User":
@@ -348,7 +589,9 @@ class ChatWidget {
   }
 
   formatTime(timestamp) {
-    const date = new Date(timestamp);
+    let dateStr = timestamp;
+    if (typeof dateStr === 'string' && !dateStr.endsWith('Z')) dateStr += 'Z';
+    const date = new Date(dateStr);
     const hours = date.getHours().toString().padStart(2, "0");
     const minutes = date.getMinutes().toString().padStart(2, "0");
     return `${hours}:${minutes}`;

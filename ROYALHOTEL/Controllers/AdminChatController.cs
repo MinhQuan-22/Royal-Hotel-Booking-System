@@ -15,15 +15,27 @@ namespace ROYALHOTEL.Controllers
         private readonly IChatService _chatService;
         private readonly RoyalHotelDbContext _context;
         private readonly ILogger<AdminChatController> _logger;
+        private readonly MessageCleanupService? _messageCleanupService;
 
         public AdminChatController(
             IChatService chatService,
             RoyalHotelDbContext context,
-            ILogger<AdminChatController> logger)
+            ILogger<AdminChatController> logger,
+            IServiceProvider serviceProvider)
         {
             _chatService = chatService;
             _context = context;
             _logger = logger;
+            
+            // Try to get MessageCleanupService for manual trigger (optional)
+            try
+            {
+                _messageCleanupService = serviceProvider.GetService<MessageCleanupService>();
+            }
+            catch
+            {
+                _messageCleanupService = null;
+            }
         }
 
         /// <summary>
@@ -49,11 +61,11 @@ namespace ROYALHOTEL.Controllers
 
             try
             {
-                // Query conversations with Status="EscalatedToAdmin" ordered by CreatedAt descending
+                // Query conversations with Status="EscalatedToAdmin" or "AnsweredByAdmin" ordered by UpdatedAt descending
                 var escalatedConversations = await _context.ChatConversations
                     .Include(c => c.Account)
-                    .Where(c => c.Status == "EscalatedToAdmin")
-                    .OrderByDescending(c => c.CreatedAt)
+                    .Where(c => c.Status == "EscalatedToAdmin" || c.Status == "AnsweredByAdmin")
+                    .OrderByDescending(c => c.UpdatedAt)
                     .ToListAsync();
 
                 _logger.LogInformation(
@@ -67,6 +79,114 @@ namespace ROYALHOTEL.Controllers
                 _logger.LogError(ex, "Error loading escalated conversations");
                 TempData["Error"] = "Không thể tải danh sách cuộc hội thoại";
                 return View(new List<Models.ChatConversation>());
+            }
+        }
+
+        /// <summary>
+        /// API endpoint for polling new escalated conversations
+        /// GET /AdminChat/PollNewConversations
+        /// Returns: JSON with hasNew flag and conversation count
+        /// </summary>
+        [HttpGet]
+        [Route("AdminChat/PollNewConversations")]
+        public async Task<IActionResult> PollNewConversations([FromQuery] DateTime? lastCheck)
+        {
+            if (!IsAdmin())
+            {
+                return Unauthorized(new { hasNew = false, count = 0 });
+            }
+
+            try
+            {
+                // If no lastCheck provided, use 1 minute ago
+                var checkTime = lastCheck ?? DateTime.UtcNow.AddMinutes(-1);
+
+                // Query conversations that were escalated or updated after lastCheck
+                var newConversations = await _context.ChatConversations
+                    .Where(c => (c.Status == "EscalatedToAdmin" || c.Status == "AnsweredByAdmin") 
+                             && c.UpdatedAt > checkTime)
+                    .OrderByDescending(c => c.UpdatedAt)
+                    .Select(c => new
+                    {
+                        c.Id,
+                        c.ConversationCode,
+                        c.GuestName,
+                        c.Status,
+                        c.UpdatedAt
+                    })
+                    .ToListAsync();
+
+                var hasNew = newConversations.Count > 0;
+
+                _logger.LogInformation(
+                    "Poll check: {Count} new/updated conversations since {LastCheck}",
+                    newConversations.Count, checkTime);
+
+                return Ok(new
+                {
+                    hasNew = hasNew,
+                    count = newConversations.Count,
+                    conversations = newConversations,
+                    serverTime = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error polling new conversations");
+                return StatusCode(500, new { hasNew = false, count = 0, error = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// API endpoint for polling new messages in a specific conversation
+        /// GET /AdminChat/PollNewMessages/{conversationId}
+        /// Returns: JSON with hasNew flag and new messages
+        /// </summary>
+        [HttpGet]
+        [Route("AdminChat/PollNewMessages/{conversationId}")]
+        public async Task<IActionResult> PollNewMessages(int conversationId, [FromQuery] DateTime? lastCheck)
+        {
+            if (!IsAdmin())
+            {
+                return Unauthorized(new { hasNew = false, messages = new List<object>() });
+            }
+
+            try
+            {
+                // If no lastCheck provided, use 1 minute ago
+                var checkTime = lastCheck ?? DateTime.UtcNow.AddMinutes(-1);
+
+                // Query new messages after lastCheck
+                var newMessages = await _context.ChatMessages
+                    .Where(m => m.ConversationId == conversationId && m.CreatedAt > checkTime)
+                    .OrderBy(m => m.CreatedAt)
+                    .Select(m => new
+                    {
+                        m.Id,
+                        m.SenderType,
+                        m.MessageText,
+                        m.CreatedAt
+                    })
+                    .ToListAsync();
+
+                var hasNew = newMessages.Count > 0;
+
+                _logger.LogInformation(
+                    "Poll check: {Count} new messages in conversation {ConversationId} since {LastCheck}",
+                    newMessages.Count, conversationId, checkTime);
+
+                return Ok(new
+                {
+                    hasNew = hasNew,
+                    count = newMessages.Count,
+                    messages = newMessages,
+                    serverTime = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error polling new messages for conversation {ConversationId}", conversationId);
+                return StatusCode(500, new { hasNew = false, messages = new List<object>(), error = "Internal server error" });
             }
         }
 
@@ -174,6 +294,194 @@ namespace ROYALHOTEL.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error responding to conversation {ConversationId}", request.ConversationId);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// API endpoint to get all messages for a conversation (for Messenger-style UI)
+        /// GET /AdminChat/GetMessages/{conversationId}
+        /// Returns JSON array of messages ordered by CreatedAt
+        /// </summary>
+        [HttpGet]
+        [Route("AdminChat/GetMessages/{conversationId}")]
+        public async Task<IActionResult> GetMessages(int conversationId)
+        {
+            if (!IsAdmin())
+            {
+                return Unauthorized(new { messages = new List<object>() });
+            }
+
+            try
+            {
+                var conversation = await _context.ChatConversations
+                    .Include(c => c.Account)
+                    .FirstOrDefaultAsync(c => c.Id == conversationId);
+
+                if (conversation == null)
+                {
+                    return NotFound(new { messages = new List<object>(), error = "Conversation not found" });
+                }
+
+                var messages = await _context.ChatMessages
+                    .Where(m => m.ConversationId == conversationId)
+                    .OrderBy(m => m.CreatedAt)
+                    .Select(m => new
+                    {
+                        m.Id,
+                        m.SenderType,
+                        m.MessageText,
+                        m.CreatedAt
+                    })
+                    .ToListAsync();
+
+                // Build display name: prefer Account.FullName, fallback to GuestName
+                var displayName = conversation.Account?.FullName
+                    ?? conversation.GuestName
+                    ?? "Anonymous Guest";
+
+                return Ok(new
+                {
+                    messages,
+                    displayName,
+                    guestPhone = conversation.GuestPhone,
+                    status = conversation.Status,
+                    serverTime = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting messages for conversation {ConversationId}", conversationId);
+                return StatusCode(500, new { messages = new List<object>(), error = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Manual trigger for message cleanup (for testing purposes)
+        /// DELETE /AdminChat/CleanupMessages
+        /// </summary>
+        [HttpDelete]
+        [Route("AdminChat/CleanupMessages")]
+        public async Task<IActionResult> CleanupMessages()
+        {
+            if (!IsAdmin())
+            {
+                return Unauthorized(new { success = false, message = "Unauthorized" });
+            }
+
+            try
+            {
+                // Calculate cutoff date (start of today in UTC)
+                var todayStart = DateTime.UtcNow.Date;
+
+                // Query messages created before today
+                var oldMessages = await _context.ChatMessages
+                    .Where(m => m.CreatedAt < todayStart)
+                    .ToListAsync();
+
+                var messageCount = oldMessages.Count;
+
+                if (messageCount == 0)
+                {
+                    _logger.LogInformation("Manual cleanup: No old messages found to delete");
+                    return Ok(new 
+                    { 
+                        success = true, 
+                        message = "No old messages found to delete",
+                        messagesDeleted = 0,
+                        cutoffDate = todayStart
+                    });
+                }
+
+                // Delete messages
+                _context.ChatMessages.RemoveRange(oldMessages);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation(
+                    "Manual cleanup: Deleted {Count} messages created before {CutoffDate}",
+                    messageCount,
+                    todayStart);
+
+                return Ok(new 
+                { 
+                    success = true, 
+                    message = $"Successfully deleted {messageCount} messages",
+                    messagesDeleted = messageCount,
+                    cutoffDate = todayStart
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during manual message cleanup");
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// API endpoint to mark a conversation as read (AnsweredByAdmin)
+        /// POST /AdminChat/MarkAsRead/{id}
+        /// </summary>
+        [HttpPost]
+        [Route("AdminChat/MarkAsRead/{id}")]
+        public async Task<IActionResult> MarkAsRead(int id)
+        {
+            if (!IsAdmin())
+            {
+                return Unauthorized(new { success = false, message = "Unauthorized" });
+            }
+
+            try
+            {
+                var conversation = await _context.ChatConversations.FindAsync(id);
+                if (conversation == null)
+                {
+                    return NotFound(new { success = false, message = "Conversation not found" });
+                }
+
+                conversation.Status = "AnsweredByAdmin";
+                conversation.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+
+                return Ok(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error marking conversation {ConversationId} as read", id);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// API endpoint to delete a conversation and its messages
+        /// POST /AdminChat/DeleteConversation/{id}
+        /// </summary>
+        [HttpPost]
+        [Route("AdminChat/DeleteConversation/{id}")]
+        public async Task<IActionResult> DeleteConversation(int id)
+        {
+            if (!IsAdmin())
+            {
+                return Unauthorized(new { success = false, message = "Unauthorized" });
+            }
+
+            try
+            {
+                var conversation = await _context.ChatConversations.FindAsync(id);
+                if (conversation == null)
+                {
+                    return NotFound(new { success = false, message = "Conversation not found" });
+                }
+
+                _context.ChatConversations.Remove(conversation);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Deleted conversation {ConversationId}", id);
+
+                return Ok(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting conversation {ConversationId}", id);
                 return StatusCode(500, new { success = false, message = "Internal server error" });
             }
         }

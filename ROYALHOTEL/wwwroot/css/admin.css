@@ -1532,73 +1532,73 @@ body {
 }
 
 .admin-amenity-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(180px, 1fr));
-    gap: 14px;
-    margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 14px;
+  margin-top: 10px;
 }
 
 .admin-amenity-card {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-height: 52px;
-    padding: 12px 14px;
-    border: 1px solid #d9c7a3;
-    border-radius: 12px;
-    background: #fff;
-    cursor: pointer;
-    transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 12px 14px;
+  border: 1px solid #d9c7a3;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .admin-amenity-card:hover {
-    border-color: #b08a1a;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
-    transform: translateY(-1px);
+  border-color: #b08a1a;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
 }
 
 .admin-amenity-card__checkbox {
-    width: 16px;
-    height: 16px;
-    margin: 0;
-    accent-color: #b08a1a;
-    flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #b08a1a;
+  flex-shrink: 0;
 }
 
 .admin-amenity-card__icon {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: #f8f1df;
-    font-size: 15px;
-    flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f1df;
+  font-size: 15px;
+  flex-shrink: 0;
 }
 
 .admin-amenity-card__text {
-    font-size: 15px;
-    font-weight: 500;
-    color: #3d3d3d;
-    line-height: 1.35;
+  font-size: 15px;
+  font-weight: 500;
+  color: #3d3d3d;
+  line-height: 1.35;
 }
 
 .admin-empty-note {
-    color: #777;
-    font-style: italic;
+  color: #777;
+  font-style: italic;
 }
 
 @media (max-width: 1200px) {
-    .admin-amenity-grid {
-        grid-template-columns: repeat(2, minmax(180px, 1fr));
-    }
+  .admin-amenity-grid {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+  }
 }
 
 @media (max-width: 768px) {
-    .admin-amenity-grid {
-        grid-template-columns: 1fr;
-    }
+  .admin-amenity-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* =========================================
@@ -1606,84 +1606,157 @@ body {
    ========================================= */
 
 .kpi-icon {
-    width: 48px;
-    height: 48px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    background-color: rgba(201, 162, 74, 0.15); /* matching brand color */
-    color: #8b6a14;
-    font-size: 20px;
-    margin-bottom: 20px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: rgba(201, 162, 74, 0.15); /* matching brand color */
+  color: #8b6a14;
+  font-size: 20px;
+  margin-bottom: 20px;
 }
 
 .stat-card-custom {
-    display: flex;
-    flex-direction: column;
-    background: #fff;
-    border: 1px solid #d9caa7;
-    border-radius: 8px;
-    padding: 24px;
-    box-shadow: 0 4px 16px rgba(139, 106, 20, 0.08);
-    transition: all 0.25s ease;
-    height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid #d9caa7;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 4px 16px rgba(139, 106, 20, 0.08);
+  transition: all 0.25s ease;
+  height: 100%;
 }
 
 .stat-card-custom:hover {
-    box-shadow: 0 8px 24px rgba(139, 106, 20, 0.12);
-    transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(139, 106, 20, 0.12);
+  transform: translateY(-3px);
 }
 
 .stat-card-custom h6 {
-    margin: 0 0 12px;
-    color: #8b6a14;
-    font-size: 13px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    font-weight: 600;
+  margin: 0 0 12px;
+  color: #8b6a14;
+  font-size: 13px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-weight: 600;
 }
 
 .stat-card-custom h3 {
-    margin: 0 0 4px;
-    font-size: 34px;
-    color: #1a1a1a;
-    font-weight: 600;
-    font-family: "Playfair Display", Georgia, serif;
+  margin: 0 0 4px;
+  font-size: 34px;
+  color: #1a1a1a;
+  font-weight: 600;
+  font-family: "Playfair Display", Georgia, serif;
 }
 
 /* Custom Status Badges */
 .dashboard-badge {
-    display: inline-block;
-    padding: 6px 12px;
-    font-size: 12px;
-    font-weight: 600;
-    border-radius: 6px;
-    text-align: center;
-    white-space: nowrap;
+  display: inline-block;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  text-align: center;
+  white-space: nowrap;
 }
 .badge-success-custom {
-    background-color: #e8f5e9;
-    color: #2e7d32;
+  background-color: #e8f5e9;
+  color: #2e7d32;
 }
 .badge-info-custom {
-    background-color: #e1f5fe;
-    color: #0288d1;
+  background-color: #e1f5fe;
+  color: #0288d1;
 }
 .badge-warning-custom {
-    background-color: #fff8e1;
-    color: #f57f17;
+  background-color: #fff8e1;
+  color: #f57f17;
 }
 
 /* Action Table Headings & Grid */
 .section-heading-custom {
-    color: #8b6a14; 
-    font-family: "Playfair Display", Georgia, serif; 
-    font-size: 26px;
-    font-weight: 500;
+  color: #8b6a14;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 26px;
+  font-weight: 500;
 }
 
-.table-custom td, .table-custom th {
-    padding: 14px 16px;
-    vertical-align: middle;
+.table-custom td,
+.table-custom th {
+  padding: 14px 16px;
+  vertical-align: middle;
+}
+
+/* =========================================
+   ADMIN CHAT CONTACT INFO STYLES
+   ========================================= */
+
+/* Contact info badge styling */
+.contact-info-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 13px;
+  border-radius: 4px;
+}
+
+.contact-info-badge i {
+  font-size: 14px;
+}
+
+.contact-info-badge a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.contact-info-badge a:hover {
+  text-decoration: underline;
+}
+
+/* Phone and email link styling in contact info section */
+.card-body a[href^="tel:"],
+.card-body a[href^="mailto:"] {
+  color: #8b6a14;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.card-body a[href^="tel:"]:hover,
+.card-body a[href^="mailto:"]:hover {
+  color: #6d5410;
+  text-decoration: underline;
+}
+
+.card-body a[href^="tel:"] i,
+.card-body a[href^="mailto:"] i {
+  margin-right: 4px;
+}
+
+/* Badge styling for guest vs logged-in users */
+.badge.bg-secondary {
+  background-color: #6c757d !important;
+}
+
+.badge.bg-success {
+  background-color: #3d7a42 !important;
+}
+
+.badge.bg-info {
+  background-color: #0dcaf0 !important;
+}
+
+/* Contact information card styling */
+.card-body strong {
+  color: #555;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.card-body p {
+  margin-bottom: 0.5rem;
+  color: #333;
 }

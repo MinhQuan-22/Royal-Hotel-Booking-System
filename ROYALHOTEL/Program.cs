@@ -92,6 +92,10 @@ builder.Services.AddMemoryCache();
 // Task 12.3: Runs daily to close conversations inactive for >7 days
 builder.Services.AddHostedService<ROYALHOTEL.Services.Chat.ConversationAutoCloseService>();
 
+// Chat Services: Background service for daily message cleanup
+// Runs daily at 3 AM to delete all messages created before today
+builder.Services.AddHostedService<ROYALHOTEL.Services.Chat.MessageCleanupService>();
+
 // Add services to the container.
 builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
 

@@ -368,6 +368,7 @@ public class ChatService : IChatService
 
             if (existing != null)
             {
+                // For existing conversations, ignore new guest data parameters
                 return existing;
             }
         }
@@ -384,21 +385,23 @@ public class ChatService : IChatService
             UpdatedAt = DateTime.UtcNow
         };
 
-        // For guest users: require GuestName and GuestEmail
+        // For guest users: use provided guest data
         if (!userId.HasValue)
         {
             conversation.GuestName = request.GuestName;
             conversation.GuestEmail = request.GuestEmail;
+            conversation.GuestPhone = request.GuestPhone;
         }
         else
         {
-            // For authenticated users: auto-fill from account
+            // For authenticated users: auto-fill from account, set GuestPhone to null
             var account = await _dbContext.Accounts.FindAsync(userId.Value);
             if (account != null)
             {
                 conversation.GuestName = account.FullName;
                 conversation.GuestEmail = account.Email;
             }
+            conversation.GuestPhone = null;
         }
 
         _dbContext.ChatConversations.Add(conversation);

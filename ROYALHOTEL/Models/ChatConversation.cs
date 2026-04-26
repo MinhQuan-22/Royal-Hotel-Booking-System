@@ -18,6 +18,9 @@ namespace ROYALHOTEL.Models
         [MaxLength(200)]
         public string? GuestEmail { get; set; }
 
+        [MaxLength(20)]
+        public string? GuestPhone { get; set; }
+
         [Required, MaxLength(30)]
         public string Status { get; set; } = "Open"; // Open, EscalatedToAdmin, AnsweredByAdmin, Closed
 
