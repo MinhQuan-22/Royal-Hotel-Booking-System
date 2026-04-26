@@ -1,9 +1,24 @@
 @using Microsoft.AspNetCore.Http
+@using ROYALHOTEL.Data
 @inject IHttpContextAccessor HttpContextAccessor
+@inject RoyalHotelDbContext DbContext
 
 @{
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
     var userName = HttpContextAccessor.HttpContext?.Session.GetString("USER_NAME") ?? "Admin";
+    
+    // Get count of escalated conversations for badge
+    var escalatedCount = 0;
+    try
+    {
+        escalatedCount = DbContext.ChatConversations
+            .Count(c => c.Status == "EscalatedToAdmin");
+    }
+    catch
+    {
+        // Silently fail if database is not available
+    }
+    
     Layout = null;
 }
 
@@ -67,6 +82,15 @@
                 <a asp-controller="AdminReports" asp-action="Index"
                        class="admin-nav-link @(currentController == "AdminReports" ? "active" : "")">
                     Reports
+                </a>
+
+                <a asp-controller="AdminChat" asp-action="Index"
+                   class="admin-nav-link @(currentController == "AdminChat" ? "active" : "")">
+                    Chat Support
+                    @if (escalatedCount > 0)
+                    {
+                        <span class="badge bg-danger ms-2">@escalatedCount</span>
+                    }
                 </a>
 
                 <a asp-controller="Home" asp-action="Index" class="admin-nav-link">

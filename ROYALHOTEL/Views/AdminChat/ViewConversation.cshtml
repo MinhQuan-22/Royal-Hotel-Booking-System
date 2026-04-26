@@ -1,0 +1,200 @@
+@using ROYALHOTEL.Models
+@{
+    ViewData["Title"] = "Conversation Detail";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    
+    var conversation = ViewBag.Conversation as ChatConversation;
+    var messages = ViewBag.Messages as List<ChatMessage> ?? new List<ChatMessage>();
+}
+
+<div class="section-card">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="mb-1">Conversation: @conversation?.ConversationCode</h4>
+            <p class="text-muted mb-0">
+                @if (conversation?.Account != null)
+                {
+                    <span>User: @conversation.Account.FullName (@conversation.Account.Email)</span>
+                }
+                else if (!string.IsNullOrEmpty(conversation?.GuestName))
+                {
+                    <span>Guest: @conversation.GuestName (@conversation.GuestEmail)</span>
+                }
+                else
+                {
+                    <span>Anonymous Guest</span>
+                }
+            </p>
+        </div>
+        <div>
+            <a asp-action="Index" class="btn btn-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Back to List
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(conversation?.EscalationReason))
+    {
+        <div class="alert alert-warning">
+            <strong>Escalation Reason:</strong> @conversation.EscalationReason
+        </div>
+    }
+
+    <!-- Conversation History -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Conversation History</h5>
+        </div>
+        <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+            @if (messages.Count == 0)
+            {
+                <p class="text-muted">No messages in this conversation.</p>
+            }
+            else
+            {
+                @foreach (var message in messages)
+                {
+                    <div class="mb-3 @(message.SenderType == "User" ? "text-start" : "text-end")">
+                        <div class="d-inline-block" style="max-width: 70%;">
+                            <div class="@(message.SenderType == "User" ? "bg-light" : message.SenderType == "Admin" ? "bg-success text-white" : "bg-primary text-white") p-3 rounded">
+                                <div class="mb-1">
+                                    <strong>
+                                        @if (message.SenderType == "User")
+                                        {
+                                            <i class="bi bi-person-fill me-1"></i><span>User</span>
+                                        }
+                                        else if (message.SenderType == "Admin")
+                                        {
+                                            <i class="bi bi-shield-fill me-1"></i><span>Admin</span>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-robot me-1"></i><span>AI Assistant</span>
+                                        }
+                                    </strong>
+                                </div>
+                                <div>@message.MessageText</div>
+                                <div class="mt-2">
+                                    <small class="@(message.SenderType == "User" ? "text-muted" : "text-white-50")">
+                                        @message.CreatedAt.ToString("dd/MM/yyyy HH:mm:ss")
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+    <!-- Admin Response Form -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Send Response</h5>
+        </div>
+        <div class="card-body">
+            <div id="responseAlert" class="alert d-none" role="alert"></div>
+            
+            <div class="mb-3">
+                <label for="responseText" class="form-label">Your Response</label>
+                <textarea 
+                    id="responseText" 
+                    class="form-control" 
+                    rows="4" 
+                    placeholder="Type your response to the user..."
+                    maxlength="2000"></textarea>
+                <div class="form-text">Maximum 2000 characters</div>
+            </div>
+            
+            <button 
+                id="sendResponseBtn" 
+                class="btn btn-primary" 
+                type="button">
+                <i class="bi bi-send me-1"></i>Send Response
+            </button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function() {
+            const conversationId = @conversation?.Id;
+            const sendBtn = document.getElementById('sendResponseBtn');
+            const responseText = document.getElementById('responseText');
+            const responseAlert = document.getElementById('responseAlert');
+
+            function showAlert(message, type) {
+                responseAlert.className = `alert alert-${type}`;
+                responseAlert.textContent = message;
+                responseAlert.classList.remove('d-none');
+                
+                setTimeout(() => {
+                    responseAlert.classList.add('d-none');
+                }, 5000);
+            }
+
+            sendBtn.addEventListener('click', async function() {
+                const text = responseText.value.trim();
+                
+                if (!text) {
+                    showAlert('Please enter a response', 'warning');
+                    return;
+                }
+
+                // Disable button during request
+                sendBtn.disabled = true;
+                sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Sending...';
+
+                try {
+                    const response = await fetch('/AdminChat/Respond', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            conversationId: conversationId,
+                            responseText: text
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok && result.success) {
+                        showAlert('Response sent successfully!', 'success');
+                        responseText.value = '';
+                        
+                        // Reload page after 2 seconds to show the new message
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 2000);
+                    } else {
+                        showAlert(result.message || 'Failed to send response', 'danger');
+                    }
+                } catch (error) {
+                    console.error('Error sending response:', error);
+                    showAlert('An error occurred while sending the response', 'danger');
+                } finally {
+                    sendBtn.disabled = false;
+                    sendBtn.innerHTML = '<i class="bi bi-send me-1"></i>Send Response';
+                }
+            });
+
+            // Allow Enter key to send (with Shift+Enter for new line)
+            responseText.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendBtn.click();
+                }
+            });
+        })();
+    </script>
+}

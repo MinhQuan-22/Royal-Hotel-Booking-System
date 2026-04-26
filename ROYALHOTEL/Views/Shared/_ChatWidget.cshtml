@@ -1,0 +1,52 @@
+@* Chat Widget Partial View *@
+<div id="chat-widget" class="chat-widget" style="display: none;">
+    <div class="chat-widget__header">
+        <span class="chat-widget__title">Hỗ trợ trực tuyến</span>
+        <button type="button" class="chat-widget__close" aria-label="Đóng chat">×</button>
+    </div>
+    
+    <div class="chat-widget__messages" id="chat-messages">
+        <div class="chat-widget__welcome">
+            <p>Xin chào! Tôi có thể giúp gì cho bạn?</p>
+            <p class="chat-widget__welcome-hint">Hỏi về tiện ích khách sạn, phòng, chính sách...</p>
+        </div>
+    </div>
+    
+    <div class="chat-widget__typing" id="chat-typing" style="display: none;">
+        <span class="chat-widget__typing-dot"></span>
+        <span class="chat-widget__typing-dot"></span>
+        <span class="chat-widget__typing-dot"></span>
+    </div>
+    
+    <div class="chat-widget__escalation" id="chat-escalation" style="display: none;">
+        <button type="button" class="chat-widget__escalation-btn" id="chat-escalation-btn">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zM7 11V7h2v4H7zm0-6V3h2v2H7z"/>
+            </svg>
+            Liên hệ admin
+        </button>
+    </div>
+    
+    <div class="chat-widget__input-wrapper">
+        <input 
+            type="text" 
+            class="chat-widget__input" 
+            id="chat-input" 
+            placeholder="Nhập câu hỏi của bạn..." 
+            maxlength="2000"
+            aria-label="Nhập câu hỏi"
+        />
+        <button type="button" class="chat-widget__send" id="chat-send-btn" aria-label="Gửi tin nhắn">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M2 10l16-8-8 16-2-8-6-0z"/>
+            </svg>
+        </button>
+    </div>
+</div>
+
+<button type="button" id="chat-widget-toggle" class="chat-widget-toggle" aria-label="Mở chat hỗ trợ">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+    </svg>
+    <span class="chat-widget-toggle__badge" id="chat-badge" style="display: none;">1</span>
+</button>

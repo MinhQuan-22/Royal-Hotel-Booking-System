@@ -1,0 +1,109 @@
+@model List<ROYALHOTEL.Models.ChatConversation>
+
+@{
+    ViewData["Title"] = "Escalated Conversations";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="section-card">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="mb-0">
+            Escalated Conversations
+            @if (Model.Count > 0)
+            {
+                <span class="badge bg-danger ms-2">@Model.Count</span>
+            }
+        </h4>
+    </div>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (Model.Count == 0)
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            No escalated conversations at this time.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Conversation Code</th>
+                        <th>Guest Name</th>
+                        <th>Account</th>
+                        <th>Escalation Reason</th>
+                        <th>Created At</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var conversation in Model)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@conversation.ConversationCode</strong>
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(conversation.GuestName))
+                                {
+                                    <span>@conversation.GuestName</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">N/A</span>
+                                }
+                            </td>
+                            <td>
+                                @if (conversation.Account != null)
+                                {
+                                    <span>@conversation.Account.FullName</span>
+                                    <br />
+                                    <small class="text-muted">@conversation.Account.Email</small>
+                                }
+                                else if (!string.IsNullOrEmpty(conversation.GuestEmail))
+                                {
+                                    <span class="text-muted">Guest</span>
+                                    <br />
+                                    <small class="text-muted">@conversation.GuestEmail</small>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Anonymous</span>
+                                }
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(conversation.EscalationReason))
+                                {
+                                    <span>@conversation.EscalationReason</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">No reason provided</span>
+                                }
+                            </td>
+                            <td>
+                                @conversation.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                            </td>
+                            <td>
+                                <a asp-action="ViewConversation" 
+                                   asp-route-conversationId="@conversation.Id" 
+                                   class="btn btn-sm btn-primary">
+                                    <i class="bi bi-eye me-1"></i>View
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

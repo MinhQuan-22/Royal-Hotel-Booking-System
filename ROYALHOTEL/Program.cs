@@ -11,6 +11,7 @@ using ROYALHOTEL.Commands.Common;
 using ROYALHOTEL.Commands.Bookings;
 using ROYALHOTEL.Services.Accounts;
 using ROYALHOTEL.Services.Catalog;
+using ROYALHOTEL.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -77,6 +78,20 @@ builder.Services.AddScoped<IUserSessionService, UserSessionService>();
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
 builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>(); // Strategy
 
+// Chat Services: Data validation and utility services
+builder.Services.AddSingleton<ROYALHOTEL.Services.Chat.ConversationCodeGenerator>();
+builder.Services.AddSingleton<ROYALHOTEL.Services.Chat.DataSanitizer>();
+builder.Services.AddSingleton<ROYALHOTEL.Services.Chat.LogMasker>();
+
+// Chat Services: Core business logic and AI integration
+builder.Services.AddHttpClient<ROYALHOTEL.Services.Chat.IAIService, ROYALHOTEL.Services.Chat.AIService>();
+builder.Services.AddScoped<ROYALHOTEL.Services.Chat.IChatService, ROYALHOTEL.Services.Chat.ChatService>();
+builder.Services.AddMemoryCache();
+
+// Chat Services: Background service for auto-closing inactive conversations
+// Task 12.3: Runs daily to close conversations inactive for >7 days
+builder.Services.AddHostedService<ROYALHOTEL.Services.Chat.ConversationAutoCloseService>();
+
 // Add services to the container.
 builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
 
@@ -119,6 +134,10 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+
+// Rate limiting middleware - must be before routing to intercept requests early
+app.UseMiddleware<RateLimiterMiddleware>();
+
 app.UseSession();
 app.UseAuthorization();
 

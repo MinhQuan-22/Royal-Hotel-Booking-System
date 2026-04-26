@@ -23,6 +23,11 @@ public class RoyalHotelDbContext : DbContext
 
     public DbSet<RoomRateChangeLog> RoomRateChangeLogs => Set<RoomRateChangeLog>();
 
+    public DbSet<ChatConversation> ChatConversations => Set<ChatConversation>();
+    public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
+
+    public DbSet<FAQ> FAQs => Set<FAQ>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -340,6 +345,100 @@ public class RoyalHotelDbContext : DbContext
 
             e.HasIndex(x => new { x.RoomId, x.ChangedAt })
                 .HasDatabaseName("IX_RoomRateChangeLog_RoomId_ChangedAt");
+        });
+
+        // =========================
+        // ChatConversation
+        // =========================
+        modelBuilder.Entity<ChatConversation>(e =>
+        {
+            e.ToTable("ChatConversations");
+
+            e.Property(x => x.ConversationCode)
+                .HasMaxLength(50)
+                .IsRequired();
+
+            e.HasIndex(x => x.ConversationCode)
+                .IsUnique();
+
+            e.Property(x => x.GuestName)
+                .HasMaxLength(200);
+
+            e.Property(x => x.GuestEmail)
+                .HasMaxLength(200);
+
+            e.Property(x => x.Status)
+                .HasMaxLength(30)
+                .IsRequired()
+                .HasDefaultValue("Open");
+
+            e.Property(x => x.EscalationReason)
+                .HasMaxLength(500);
+
+            e.HasOne(x => x.Account)
+                .WithMany()
+                .HasForeignKey(x => x.AccountId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            e.HasIndex(x => x.Status)
+                .HasDatabaseName("IX_ChatConversations_Status");
+
+            e.HasIndex(x => x.AccountId)
+                .HasDatabaseName("IX_ChatConversations_AccountId");
+
+            e.HasIndex(x => x.UpdatedAt)
+                .HasDatabaseName("IX_ChatConversations_UpdatedAt");
+        });
+
+        // =========================
+        // ChatMessage
+        // =========================
+        modelBuilder.Entity<ChatMessage>(e =>
+        {
+            e.ToTable("ChatMessages");
+
+            e.Property(x => x.SenderType)
+                .HasMaxLength(20)
+                .IsRequired();
+
+            e.Property(x => x.MessageText)
+                .IsRequired();
+
+            e.Property(x => x.IsEscalationMessage)
+                .HasDefaultValue(false);
+
+            e.HasOne(x => x.Conversation)
+                .WithMany(c => c.Messages)
+                .HasForeignKey(x => x.ConversationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(x => new { x.ConversationId, x.CreatedAt })
+                .HasDatabaseName("IX_ChatMessages_ConversationId_CreatedAt");
+        });
+
+        // =========================
+        // FAQ
+        // =========================
+        modelBuilder.Entity<FAQ>(e =>
+        {
+            e.ToTable("FAQ");
+
+            e.Property(x => x.Question)
+                .HasMaxLength(500)
+                .IsRequired();
+
+            e.Property(x => x.Answer)
+                .IsRequired();
+
+            e.Property(x => x.Category)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            e.Property(x => x.IsActive)
+                .HasDefaultValue(true);
+
+            e.HasIndex(x => new { x.Category, x.IsActive })
+                .HasDatabaseName("IX_FAQ_Category_IsActive");
         });
     }
 }
