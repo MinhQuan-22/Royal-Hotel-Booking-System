@@ -79,7 +79,7 @@ builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"
 builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>(); // Strategy
 
 // Chat Services: Data validation and utility services
-builder.Services.AddSingleton<ROYALHOTEL.Services.Chat.ConversationCodeGenerator>();
+builder.Services.AddScoped<ROYALHOTEL.Services.Chat.ConversationCodeGenerator>();
 builder.Services.AddSingleton<ROYALHOTEL.Services.Chat.DataSanitizer>();
 builder.Services.AddSingleton<ROYALHOTEL.Services.Chat.LogMasker>();
 

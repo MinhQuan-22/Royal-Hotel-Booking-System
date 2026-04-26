@@ -62,17 +62,17 @@ public class AIService : IAIService
     /// Classifies a question as in-scope or out-of-scope using keyword matching
     /// Validates: Requirements 3.1, 3.2, 3.3, 3.4
     /// </summary>
-    public async Task<QuestionClassification> ClassifyQuestionAsync(string messageText)
+    public Task<QuestionClassification> ClassifyQuestionAsync(string messageText)
     {
         if (string.IsNullOrWhiteSpace(messageText))
         {
-            return new QuestionClassification
+            return Task.FromResult(new QuestionClassification
             {
                 IsInScope = false,
                 ConfidenceScore = 0.0,
                 Category = "Invalid",
                 Reason = "Empty message"
-            };
+            });
         }
 
         var lowerText = messageText.ToLower();
@@ -81,13 +81,13 @@ public class AIService : IAIService
         var outOfScopeMatches = OutOfScopeKeywords.Count(keyword => lowerText.Contains(keyword.ToLower()));
         if (outOfScopeMatches > 0)
         {
-            return new QuestionClassification
+            return Task.FromResult(new QuestionClassification
             {
                 IsInScope = false,
                 ConfidenceScore = 0.9,
                 Category = "OutOfScope",
                 Reason = $"Contains out-of-scope keywords: {string.Join(", ", OutOfScopeKeywords.Where(k => lowerText.Contains(k.ToLower())))}"
-            };
+            });
         }
 
         // Check for in-scope keywords
@@ -116,17 +116,17 @@ public class AIService : IAIService
                 classification.Reason += " (Confidence below threshold)";
             }
 
-            return classification;
+            return Task.FromResult(classification);
         }
 
         // No keywords matched - treat as out-of-scope with low confidence
-        return new QuestionClassification
+        return Task.FromResult(new QuestionClassification
         {
             IsInScope = false,
             ConfidenceScore = 0.3,
             Category = "Unknown",
             Reason = "No matching keywords found"
-        };
+        });
     }
 
     /// <summary>
