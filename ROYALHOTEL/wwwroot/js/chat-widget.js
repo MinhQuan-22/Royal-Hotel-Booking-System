@@ -135,6 +135,8 @@ class ChatWidget {
     this.guestName = null;
     this.guestPhone = null;
     this.isAuthenticated = false;
+    this.adminPollingTimer = null;   // polls for admin replies after escalation
+    this.lastPolledMsgCount = 0;    // tracks how many messages have been shown
 
     // DOM elements
     this.widget = document.getElementById("chat-widget");
@@ -513,6 +515,17 @@ class ChatWidget {
 
       // Hide escalation button
       this.hideEscalationButton();
+
+      // ── Start polling for admin replies in real-time ──
+      if (this.conversationId && this.isAuthenticated) {
+        try {
+          const histRes = await fetch(`/api/chat/history/${this.conversationId}`);
+          const msgs = histRes.ok ? await histRes.json() : [];
+          this.startAdminReplyPolling(msgs.length);
+        } catch (e) {
+          this.startAdminReplyPolling(0);
+        }
+      }
     } catch (error) {
       console.error("Error escalating to admin:", error);
       this.displayError(error.message || "Đã xảy ra lỗi. Vui lòng thử lại.");
@@ -569,6 +582,10 @@ class ChatWidget {
           new Date(msg.createdAt),
         );
       });
+
+      // ── Start polling for admin replies (conversation may already be escalated) ──
+      this.startAdminReplyPolling(messages.length);
+
     } catch (error) {
       console.error("Error loading conversation history:", error);
       // Silently fail - don't disrupt user experience
@@ -586,6 +603,41 @@ class ChatWidget {
       default:
         return senderType;
     }
+  }
+
+  /**
+   * Start real-time polling for Admin replies after escalation.
+   * Uses /AdminChat/PollAdminReplies endpoint (no auth required).
+   * Works for both authenticated users and guests.
+   */
+  startAdminReplyPolling(initialCount) {
+    if (this.adminPollingTimer) return; // already running
+    if (!this.conversationId) return;
+
+    // Track the last server time returned by the poll endpoint
+    this.adminPollSince = new Date().toISOString();
+
+    this.adminPollingTimer = setInterval(async () => {
+      if (!this.conversationId) return;
+      try {
+        const since = encodeURIComponent(this.adminPollSince);
+        const res = await fetch(`/AdminChat/PollAdminReplies/${this.conversationId}?since=${since}`);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        if (data.messages && data.messages.length > 0) {
+          data.messages.forEach(msg => {
+            this.displayMessage('Admin', msg.messageText, new Date(msg.createdAt));
+          });
+          this.scrollToBottom();
+        }
+
+        // Advance the since timestamp so we don't re-fetch old messages
+        if (data.serverTime) {
+          this.adminPollSince = data.serverTime;
+        }
+      } catch (e) { /* silent */ }
+    }, 3000);
   }
 
   formatTime(timestamp) {

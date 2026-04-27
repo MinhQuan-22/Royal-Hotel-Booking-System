@@ -485,5 +485,75 @@ namespace ROYALHOTEL.Controllers
                 return StatusCode(500, new { success = false, message = "Internal server error" });
             }
         }
+
+        /// <summary>
+        /// API endpoint for real-time unread count badge in admin nav
+        /// GET /AdminChat/UnreadCount
+        /// Returns count of conversations with status EscalatedToAdmin
+        /// </summary>
+        [HttpGet]
+        [Route("AdminChat/UnreadCount")]
+        public async Task<IActionResult> UnreadCount()
+        {
+            if (!IsAdmin())
+                return Unauthorized(new { count = 0 });
+
+            try
+            {
+                var count = await _context.ChatConversations
+                    .CountAsync(c => c.Status == "EscalatedToAdmin");
+                return Ok(new { count });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting unread count");
+                return StatusCode(500, new { count = 0 });
+            }
+        }
+
+        /// <summary>
+        /// API endpoint for user-side real-time polling of Admin replies.
+        /// No auth required – conversationId acts as the access token (stored in user's sessionStorage).
+        /// GET /AdminChat/PollAdminReplies/{conversationId}?since=ISO8601
+        /// </summary>
+        [HttpGet]
+        [Route("AdminChat/PollAdminReplies/{conversationId}")]
+        public async Task<IActionResult> PollAdminReplies(int conversationId, [FromQuery] string? since)
+        {
+            try
+            {
+                var sinceTime = DateTime.UtcNow.AddHours(-24); // default: last 24h
+                if (!string.IsNullOrEmpty(since) &&
+                    DateTime.TryParse(since, null,
+                        System.Globalization.DateTimeStyles.RoundtripKind, out var parsed))
+                {
+                    sinceTime = parsed;
+                }
+
+                var messages = await _context.ChatMessages
+                    .Where(m => m.ConversationId == conversationId
+                             && m.SenderType == "Admin"
+                             && m.CreatedAt > sinceTime)
+                    .OrderBy(m => m.CreatedAt)
+                    .Select(m => new
+                    {
+                        senderType  = m.SenderType,
+                        messageText = m.MessageText,
+                        createdAt   = m.CreatedAt
+                    })
+                    .ToListAsync();
+
+                return Ok(new
+                {
+                    messages,
+                    serverTime = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error polling admin replies for conversation {Id}", conversationId);
+                return StatusCode(500, new { messages = new List<object>(), serverTime = DateTime.UtcNow });
+            }
+        }
     }
 }

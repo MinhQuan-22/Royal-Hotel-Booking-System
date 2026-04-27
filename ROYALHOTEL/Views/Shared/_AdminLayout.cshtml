@@ -87,12 +87,11 @@
                 </a>
 
                 <a asp-controller="AdminChat" asp-action="Index"
-                   class="admin-nav-link @(currentController == "AdminChat" ? "active" : "")">
+                   class="admin-nav-link @(currentController == "AdminChat" ? "active" : "")"
+                   id="chatSupportNavLink">
                     Chat Support
-                    @if (escalatedCount > 0)
-                    {
-                        <span class="badge bg-danger ms-2">@escalatedCount</span>
-                    }
+                    <span id="chatSupportBadge" class="badge bg-danger ms-2"
+                          style="display:@(escalatedCount > 0 ? "inline" : "none")">@(escalatedCount > 0 ? escalatedCount.ToString() : "")</span>
                 </a>
 
                 <a asp-controller="Home" asp-action="Index" class="admin-nav-link">
@@ -256,5 +255,32 @@
     </script>
 
     @await RenderSectionAsync("Scripts", required: false)
+
+    <script>
+    // ─── Real-time unread badge on Chat Support nav ───
+    (function() {
+        const badge = document.getElementById('chatSupportBadge');
+        if (!badge) return;
+
+        async function pollUnreadCount() {
+            try {
+                const res = await fetch('/AdminChat/UnreadCount');
+                if (!res.ok) return;
+                const data = await res.json();
+                const count = data.count || 0;
+                if (count > 0) {
+                    badge.textContent = count;
+                    badge.style.display = 'inline';
+                } else {
+                    badge.style.display = 'none';
+                    badge.textContent = '';
+                }
+            } catch(e) { /* silent */ }
+        }
+
+        // Poll every 5 seconds
+        setInterval(pollUnreadCount, 5000);
+    })();
+    </script>
 </body>
 </html>

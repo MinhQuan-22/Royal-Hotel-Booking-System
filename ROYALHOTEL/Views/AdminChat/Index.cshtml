@@ -625,6 +625,8 @@
                 replyInput.value = '';
                 appendMessage('Admin', text, new Date().toISOString());
                 scrollBottom();
+                // ── Advance checkpoint so poll won't re-fetch this message ──
+                lastMsgCheckTime = new Date().toISOString();
                 // Update sidebar status dot to green
                 const dot = document.querySelector(`#conv-item-${activeConvId} .conv-status-dot`);
                 if (dot) { dot.className = 'conv-status-dot answered'; }
