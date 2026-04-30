@@ -636,6 +636,23 @@ class ChatWidget {
         if (data.serverTime) {
           this.adminPollSince = data.serverTime;
         }
+
+        // Handle conversation closed by admin
+        if (data.status === "Closed") {
+          clearInterval(this.adminPollingTimer);
+          this.adminPollingTimer = null;
+          this.conversationId = null;
+          sessionStorage.removeItem("chatConversationId");
+
+          const closedDiv = document.createElement("div");
+          closedDiv.className = "chat-widget__message chat-widget__message--ai";
+          const bubbleDiv = document.createElement("div");
+          bubbleDiv.className = "chat-widget__message-bubble";
+          bubbleDiv.textContent = "Admin đã kết thúc cuộc trò chuyện. Bạn hiện đang trò chuyện với Trợ lý AI.";
+          closedDiv.appendChild(bubbleDiv);
+          this.messagesContainer.appendChild(closedDiv);
+          this.scrollToBottom();
+        }
       } catch (e) { /* silent */ }
     }, 3000);
   }

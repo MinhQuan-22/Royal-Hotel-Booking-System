@@ -452,6 +452,42 @@ namespace ROYALHOTEL.Controllers
         }
 
         /// <summary>
+        /// API endpoint to close a conversation
+        /// POST /AdminChat/CloseConversation/{id}
+        /// </summary>
+        [HttpPost]
+        [Route("AdminChat/CloseConversation/{id}")]
+        public async Task<IActionResult> CloseConversation(int id)
+        {
+            if (!IsAdmin())
+            {
+                return Unauthorized(new { success = false, message = "Unauthorized" });
+            }
+
+            try
+            {
+                var conversation = await _context.ChatConversations.FindAsync(id);
+                if (conversation == null)
+                {
+                    return NotFound(new { success = false, message = "Conversation not found" });
+                }
+
+                conversation.Status = "Closed";
+                conversation.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Admin closed conversation {ConversationId}", id);
+
+                return Ok(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error closing conversation {ConversationId}", id);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
         /// API endpoint to delete a conversation and its messages
         /// POST /AdminChat/DeleteConversation/{id}
         /// </summary>
@@ -530,6 +566,10 @@ namespace ROYALHOTEL.Controllers
                     sinceTime = parsed;
                 }
 
+                // Get conversation status
+                var conversation = await _context.ChatConversations.FindAsync(conversationId);
+                var status = conversation?.Status ?? "Closed";
+
                 var messages = await _context.ChatMessages
                     .Where(m => m.ConversationId == conversationId
                              && m.SenderType == "Admin"
@@ -546,13 +586,14 @@ namespace ROYALHOTEL.Controllers
                 return Ok(new
                 {
                     messages,
+                    status,
                     serverTime = DateTime.UtcNow
                 });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error polling admin replies for conversation {Id}", conversationId);
-                return StatusCode(500, new { messages = new List<object>(), serverTime = DateTime.UtcNow });
+                return StatusCode(500, new { messages = new List<object>(), status = "Closed", serverTime = DateTime.UtcNow });
             }
         }
     }

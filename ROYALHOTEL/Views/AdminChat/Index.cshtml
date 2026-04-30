@@ -371,9 +371,10 @@
                 {
                     var displayName = conv.Account?.FullName ?? conv.GuestName ?? "Anonymous Guest";
                     var initial = displayName.Length > 0 ? displayName[0].ToString().ToUpper() : "?";
-                    var dotClass = conv.Status == "EscalatedToAdmin" ? "escalated" : "answered";
+                    var dotClass = conv.Status == "EscalatedToAdmin" ? "escalated" : (conv.Status == "Closed" ? "" : "answered");
                     var timeAgo = conv.UpdatedAt.AddHours(7).ToString("HH:mm dd/MM");
                     var preview = !string.IsNullOrEmpty(conv.EscalationReason) ? conv.EscalationReason : "Yêu cầu hỗ trợ";
+                    if (conv.Status == "Closed") preview = "[Đã kết thúc] " + preview;
 
                     <div class="conv-item" 
                          id="conv-item-@conv.Id"
@@ -435,6 +436,11 @@
                     <h6 id="chatName">–</h6>
                     <small id="chatMeta"></small>
                 </div>
+                <div class="chat-header-actions" style="margin-left: auto;">
+                    <button class="btn btn-sm btn-outline-danger" id="closeConvBtn" onclick="closeConversation()" style="display: none;">
+                        <i class="bi bi-x-circle me-1"></i> Kết thúc
+                    </button>
+                </div>
             </div>
 
             <div class="chat-messages" id="chatMessages">
@@ -493,7 +499,19 @@
         // Update header
         chatAvatar.textContent = name.charAt(0).toUpperCase();
         chatName.textContent   = name;
-        chatMeta.textContent   = phone ? '📞 ' + phone : (status === 'EscalatedToAdmin' ? '🔴 Chờ phản hồi' : '✅ Đã trả lời');
+        chatMeta.textContent   = phone ? '📞 ' + phone : (status === 'EscalatedToAdmin' ? '🔴 Chờ phản hồi' : (status === 'Closed' ? '⚫ Đã kết thúc' : '✅ Đã trả lời'));
+
+        // Toggle close button visibility based on status
+        const closeBtn = document.getElementById('closeConvBtn');
+        if (closeBtn) {
+            closeBtn.style.display = (status === 'Closed') ? 'none' : 'inline-block';
+        }
+
+        // Toggle input area based on status
+        const inputArea = document.querySelector('.chat-input-area');
+        if (inputArea) {
+            inputArea.style.display = (status === 'Closed') ? 'none' : 'flex';
+        }
 
         // Switch panels
         emptyState.style.display   = 'none';
@@ -641,6 +659,52 @@
             replyInput.focus();
         }
     }
+
+    /* ─── Close Conversation ─── */
+    window.closeConversation = async function() {
+        if (!activeConvId) return;
+
+        const confirmed = confirm("Bạn có chắc chắn muốn kết thúc cuộc trò chuyện này không? Người dùng sẽ bị ngắt kết nối với Admin và tiếp tục chat với AI.");
+        if (!confirmed) return;
+
+        try {
+            const res = await fetch(`/AdminChat/CloseConversation/${activeConvId}`, {
+                method: 'POST'
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                // Update UI to reflect closed status
+                const closeBtn = document.getElementById('closeConvBtn');
+                if (closeBtn) closeBtn.style.display = 'none';
+
+                const inputArea = document.querySelector('.chat-input-area');
+                if (inputArea) inputArea.style.display = 'none';
+
+                chatMeta.textContent = '⚫ Đã kết thúc';
+
+                // Update sidebar
+                const dot = document.querySelector(`#conv-item-${activeConvId} .conv-status-dot`);
+                if (dot) dot.className = 'conv-status-dot'; // remove colors
+                
+                const item = document.getElementById(`conv-item-${activeConvId}`);
+                if (item) {
+                    item.dataset.status = 'Closed';
+                    // Update onclick handler
+                    const oldClick = item.getAttribute('onclick');
+                    const newClick = oldClick.replace(/, '[^']*'\)$/, ", 'Closed')");
+                    item.setAttribute('onclick', newClick);
+                }
+
+                appendMessage('Admin', 'Bạn đã kết thúc cuộc trò chuyện.', new Date().toISOString());
+                scrollBottom();
+            } else {
+                alert(data.message || 'Lỗi khi kết thúc cuộc trò chuyện');
+            }
+        } catch (e) {
+            alert('Lỗi hệ thống');
+        }
+    };
 
     /* ─── Helpers ─── */
     function scrollBottom() {
