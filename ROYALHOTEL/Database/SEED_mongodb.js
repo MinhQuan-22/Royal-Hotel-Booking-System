@@ -1,35 +1,30 @@
-// =============================================================
-// hotelcatalog_seed.js
-// MongoDB seed script cho ROYALHOTEL HotelCatalog collection
-// Chạy: mongosh "mongodb://admin:MongoAdmin@123@localhost:27017/RoyalHotelCatalogDb" --file hotelcatalog_seed.js
-// Hoặc tự động mount qua Docker docker-entrypoint-initdb.d
-// =============================================================
+// ============================================================
+// ROYALHOTEL — MongoDB HotelCatalog Seed
+// File: SEED_mongodb.js
+//
+// Run via mongosh:
+//   mongosh "mongodb://admin:MongoAdmin@123@localhost:27017/RoyalHotelCatalogDb" --file SEED_mongodb.js
+//
+// Or automatically via Docker docker-entrypoint-initdb.d (mount this file)
+// hotel_id values MUST match Hotels.Id in SQL Server RoyalHotelDb
+// ============================================================
 
-// Kết nối đúng database (khi chạy qua docker-entrypoint-initdb.d dùng db là MONGO_INITDB_DATABASE)
 const targetDb = db.getSiblingDB("RoyalHotelCatalogDb");
 
-// -------------------------------------------------------
-// Drop và tạo lại collection để seed sạch (chỉ dùng dev)
-// -------------------------------------------------------
+// Drop and recreate for clean seed (dev only — safe because SQL Server is source of truth)
 targetDb.HotelCatalog.drop();
-print("✔ Dropped existing HotelCatalog collection");
 
-// -------------------------------------------------------
-// INDEX
-// -------------------------------------------------------
-targetDb.HotelCatalog.createIndex({ hotel_id: 1 }, { unique: true, name: "idx_hotel_id" });
-targetDb.HotelCatalog.createIndex({ amenities: 1 }, { name: "idx_amenities" });
-targetDb.HotelCatalog.createIndex({ city: 1, amenities: 1 }, { name: "idx_city_amenities" });
-targetDb.HotelCatalog.createIndex({ "rooms.amenities": 1 }, { name: "idx_rooms_amenities" });
+// ── INDEXES ─────────────────────────────────────────────────
+targetDb.HotelCatalog.createIndex({ hotel_id: 1 },                          { unique: true, name: "idx_hotel_id" });
+targetDb.HotelCatalog.createIndex({ amenities: 1 },                         { name: "idx_amenities" });
+targetDb.HotelCatalog.createIndex({ city: 1, amenities: 1 },                { name: "idx_city_amenities" });
+targetDb.HotelCatalog.createIndex({ "rooms.amenities": 1 },                 { name: "idx_rooms_amenities" });
 targetDb.HotelCatalog.createIndex(
   { description: "text", hotel_name: "text" },
   { name: "idx_text_search", default_language: "none" }
 );
-print("✔ Indexes created");
 
-// -------------------------------------------------------
-// HOTEL 1 — Da Nang (SQL Hotels.Id = 1)
-// -------------------------------------------------------
+// ── HOTEL 1 — Da Nang (SQL Hotels.Id = 1) ───────────────────
 targetDb.HotelCatalog.insertOne({
   hotel_id: 1,
   hotel_name: "Royal Luxury Da Nang",
@@ -74,11 +69,8 @@ targetDb.HotelCatalog.insertOne({
   ],
   updated_at: new Date()
 });
-print("✔ Hotel 1 (Da Nang) inserted");
 
-// -------------------------------------------------------
-// HOTEL 2 — Nha Trang (SQL Hotels.Id = 2)
-// -------------------------------------------------------
+// ── HOTEL 2 — Nha Trang (SQL Hotels.Id = 2) ─────────────────
 targetDb.HotelCatalog.insertOne({
   hotel_id: 2,
   hotel_name: "Royal Luxury Nha Trang",
@@ -99,7 +91,7 @@ targetDb.HotelCatalog.insertOne({
       room_name: "Nha Trang Deluxe Ocean View",
       room_type: "Deluxe",
       amenities: ["wifi", "air_conditioning", "tv", "minibar", "safe", "ocean_view", "balcony", "bathtub"],
-      description: "Phòng Deluxe 50m² hướng biển, ban công rộng nhìn thẳng ra vịnh Nha Trang. Bồn tắm freestading sang trọng.",
+      description: "Phòng Deluxe 50m² hướng biển, ban công rộng nhìn thẳng ra vịnh Nha Trang. Bồn tắm freestanding sang trọng.",
       images: ["/images/rooms/nt-dlx-201-1.jpg", "/images/rooms/nt-dlx-201-2.jpg"]
     },
     {
@@ -114,11 +106,8 @@ targetDb.HotelCatalog.insertOne({
   ],
   updated_at: new Date()
 });
-print("✔ Hotel 2 (Nha Trang) inserted");
 
-// -------------------------------------------------------
-// HOTEL 3 — Phu Quoc (SQL Hotels.Id = 3)
-// -------------------------------------------------------
+// ── HOTEL 3 — Phu Quoc (SQL Hotels.Id = 3) ──────────────────
 targetDb.HotelCatalog.insertOne({
   hotel_id: 3,
   hotel_name: "Royal Luxury Phu Quoc",
@@ -149,23 +138,19 @@ targetDb.HotelCatalog.insertOne({
       room_name: "Phu Quoc Family Suite",
       room_type: "Suite",
       amenities: ["wifi", "air_conditioning", "tv", "minibar", "safe", "sea_view", "private_pool", "bathtub", "living_room", "kitchen", "breakfast", "kids_amenities"],
-      description: "Suite Gia Đình 150m² với hồ bơi riêng và bếp nhỏ. Tầm nhìn hoàng hôn tuyệt đẹp ra biển Tây. Khu vui chơi trẻ em và nôi cũi miễn phí theo yêu cầu.",
+      description: "Suite Gia Đình 150m² với hồ bơi riêng và bếp nhỏ. Tầm nhìn hoàng hôn tuyệt đẹp ra biển Tây. Khu vui chơi trẻ em và nôi cũi miễn phí.",
       images: ["/images/rooms/pq-ste-401-1.jpg", "/images/rooms/pq-ste-401-2.jpg"]
     }
   ],
   updated_at: new Date()
 });
-print("✔ Hotel 3 (Phu Quoc) inserted");
 
-// -------------------------------------------------------
-// VERIFY
-// -------------------------------------------------------
-const count = targetDb.HotelCatalog.countDocuments();
-print("\n========================================");
-print(`✔ Seed complete. Total documents: ${count}`);
-print("========================================");
-
-// Quick check indexes
+// ── VERIFY ───────────────────────────────────────────────────
+const count   = targetDb.HotelCatalog.countDocuments();
 const indexes = targetDb.HotelCatalog.getIndexes();
-print(`✔ Indexes created: ${indexes.length}`);
+
+print("\n========================================");
+print(`✔ Seed complete. Total hotels: ${count}`);
+print(`✔ Indexes: ${indexes.length}`);
 indexes.forEach(idx => print(`  - ${idx.name}`));
+print("========================================");
