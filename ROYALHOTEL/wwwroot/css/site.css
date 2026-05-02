@@ -4405,3 +4405,202 @@ a {
 .rh-roomItem__thumb {
   position: relative;
 }
+
+/* ============================================================
+   BRANCH CARDS — Trang chủ chọn chi nhánh
+   ============================================================ */
+.rh-branches {
+  background: #1f1f1f;
+  padding: 60px 0 52px;
+  color: #fff;
+}
+
+.rh-branches__eyebrow {
+  color: rgba(201, 162, 74, 0.9);
+  font-size: 12px;
+  letter-spacing: 3px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.rh-branches__title {
+  margin: 0 0 10px;
+  font-size: 38px;
+  font-weight: 400;
+  color: #fff;
+  font-family: "Playfair Display", Georgia, serif;
+  letter-spacing: 1px;
+}
+
+.rh-branches__sub {
+  color: rgba(255,255,255,0.6);
+  font-size: 14px;
+  margin: 0 0 34px;
+}
+
+.rh-branches__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.rh-branchCard {
+  display: block;
+  position: relative;
+  padding: 32px 28px;
+  border: 1px solid rgba(201, 162, 74, 0.3);
+  border-radius: 4px;
+  background: rgba(255,255,255,0.04);
+  color: #fff;
+  text-decoration: none;
+  transition: all 0.35s ease;
+  overflow: hidden;
+}
+
+.rh-branchCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(201,162,74,0.12) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.rh-branchCard:hover {
+  border-color: var(--gold);
+  background: rgba(201,162,74,0.08);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+}
+
+.rh-branchCard:hover::before {
+  opacity: 1;
+}
+
+.rh-branchCard__icon {
+  font-size: 28px;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.rh-branchCard__city {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: var(--gold);
+  font-family: "Playfair Display", Georgia, serif;
+  margin-bottom: 8px;
+}
+
+.rh-branchCard__name {
+  font-size: 14px;
+  color: rgba(255,255,255,0.85);
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.rh-branchCard__addr {
+  font-size: 12px;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.rh-branchCard__cta {
+  font-size: 13px;
+  color: var(--gold);
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  transition: letter-spacing 0.3s ease;
+}
+
+.rh-branchCard:hover .rh-branchCard__cta {
+  letter-spacing: 1px;
+}
+
+.rh-branches__allLink {
+  text-align: center;
+  margin-top: 32px;
+}
+
+.rh-branches__viewAll {
+  display: inline-block;
+  padding: 12px 32px;
+  border: 1px solid rgba(201, 162, 74, 0.6);
+  color: var(--gold);
+  font-size: 13px;
+  letter-spacing: 1px;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+
+.rh-branches__viewAll:hover {
+  background: var(--gold);
+  color: #fff;
+}
+
+@media (max-width: 768px) {
+  .rh-branches__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+   BRANCH BANNER — Trang Rooms khi đang xem chi nhánh cụ thể
+   ============================================================ */
+.rh-branchBanner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 24px;
+  background: linear-gradient(90deg, #1a1a1a 0%, #2a2520 100%);
+  border-bottom: 2px solid var(--gold);
+  color: #fff;
+  font-size: 14px;
+}
+
+.rh-branchBanner__icon {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.rh-branchBanner__info {
+  flex: 1;
+}
+
+.rh-branchBanner__name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gold);
+  font-family: "Playfair Display", Georgia, serif;
+  margin-bottom: 4px;
+}
+
+.rh-branchBanner__addr {
+  font-size: 13px;
+  color: rgba(255,255,255,0.65);
+}
+
+.rh-branchBanner__clear {
+  padding: 8px 16px;
+  border: 1px solid rgba(201,162,74,0.5);
+  color: rgba(255,255,255,0.75);
+  border-radius: 3px;
+  font-size: 12px;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.rh-branchBanner__clear:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+/* Search bar responsive — thêm cột cho dropdown chi nhánh */
+@media (min-width: 981px) {
+  .rh-search {
+    grid-template-columns: 1fr 1fr 1fr 1fr 160px;
+  }
+}

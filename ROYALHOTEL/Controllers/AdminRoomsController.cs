@@ -41,6 +41,19 @@ namespace ROYALHOTEL.Controllers
                 .ToListAsync();
         }
 
+        private async Task LoadHotelOptions(AdminRoomFormViewModel vm)
+        {
+            vm.HotelOptions = await _context.Hotels
+                .OrderBy(h => h.Id)
+                .Select(h => new SelectListItem
+                {
+                    Value = h.Id.ToString(),
+                    Text = $"{h.City} — {h.Name}",
+                    Selected = h.Id == vm.HotelId
+                })
+                .ToListAsync();
+        }
+
         private void NormalizeRoomForm(AdminRoomFormViewModel vm)
         {
             vm.Code = vm.Code?.Trim() ?? string.Empty;
@@ -64,7 +77,7 @@ namespace ROYALHOTEL.Controllers
 
             return false;
         }
-        public async Task<IActionResult> Index(string? keyword)
+        public async Task<IActionResult> Index(string? keyword, int? hotelId)
         {
             if (!IsAdmin())
             {
@@ -81,11 +94,19 @@ namespace ROYALHOTEL.Controllers
                     r.RoomType.Contains(keyword));
             }
 
+            if (hotelId.HasValue)
+                query = query.Where(r => r.HotelId == hotelId.Value);
+
             var rooms = await query
-                .OrderBy(r => r.Id)
+                .Include(r => r.Hotel)
+                .OrderBy(r => r.HotelId)
+                .ThenBy(r => r.Id)
                 .ToListAsync();
 
+            var hotels = await _context.Hotels.OrderBy(h => h.Id).ToListAsync();
             ViewBag.Keyword = keyword;
+            ViewBag.SelectedHotelId = hotelId;
+            ViewBag.Hotels = hotels;
             return View(rooms);
         }
 
@@ -103,6 +124,7 @@ namespace ROYALHOTEL.Controllers
             };
 
             await LoadAmenityOptions(vm);
+            await LoadHotelOptions(vm);
             return View(vm);
         }
 
@@ -129,6 +151,7 @@ namespace ROYALHOTEL.Controllers
             if (!ModelState.IsValid)
             {
                 await LoadAmenityOptions(vm);
+                await LoadHotelOptions(vm);
                 return View(vm);
             }
 
@@ -141,7 +164,9 @@ namespace ROYALHOTEL.Controllers
                 MaxGuests = vm.MaxGuests,
                 IsActive = vm.IsActive,
                 Description = vm.Description,
-                CoverImageUrl = vm.CoverImageUrl
+                CoverImageUrl = vm.CoverImageUrl,
+                HotelId = vm.HotelId,
+                Rate = vm.BasePricePerNight
             };
 
             _context.Rooms.Add(room);
@@ -213,12 +238,14 @@ namespace ROYALHOTEL.Controllers
                 IsActive = room.IsActive,
                 Description = room.Description,
                 CoverImageUrl = room.CoverImageUrl,
+                HotelId = room.HotelId,
                 SelectedAmenityIds = room.RoomAmenities
                     .Select(x => x.AmenityId)
                     .ToList()
             };
 
             await LoadAmenityOptions(vm);
+            await LoadHotelOptions(vm);
             return View(vm);
         }
 
@@ -245,6 +272,7 @@ namespace ROYALHOTEL.Controllers
             if (!ModelState.IsValid)
             {
                 await LoadAmenityOptions(vm);
+                await LoadHotelOptions(vm);
                 return View(vm);
             }
 
@@ -265,6 +293,8 @@ namespace ROYALHOTEL.Controllers
             room.IsActive = vm.IsActive;
             room.Description = vm.Description;
             room.CoverImageUrl = vm.CoverImageUrl;
+            room.HotelId = vm.HotelId;
+            room.Rate = vm.BasePricePerNight;
 
             _context.RoomAmenities.RemoveRange(room.RoomAmenities);
 
@@ -303,6 +333,7 @@ namespace ROYALHOTEL.Controllers
                     "This room code already exists. Please enter a different room code.");
 
                 await LoadAmenityOptions(vm);
+                await LoadHotelOptions(vm);
                 return View(vm);
             }
         }

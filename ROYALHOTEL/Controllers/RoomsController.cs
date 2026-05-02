@@ -16,6 +16,7 @@ public class RoomsController : Controller
         string? checkIn, string? checkOut,
         string? checkInDate, string? checkOutDate,
         int? guests,
+        int? hotelId,
         string? sort = "price_asc",
         string[]? roomTypes = null,
         string[]? amenities = null,
@@ -36,11 +37,13 @@ public class RoomsController : Controller
             Amenities = amenities,
             MinPrice = minPrice,
             MaxPrice = maxPrice,
-            SearchText = search
+            SearchText = search,
+            HotelId = hotelId
         });
 
         return View(pageData);
     }
+
 
     public async Task<IActionResult> Detail(int id, string? checkIn, string? checkOut, int guests = 1)
     {

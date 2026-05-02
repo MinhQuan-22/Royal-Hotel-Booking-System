@@ -595,6 +595,34 @@ GO
 PRINT 'Stored procedure Quarterly_Revenue_Analytics (Window Functions) created.';
 GO
 
+-- ============================================================
+-- STORED PROCEDURE: sp_GetHotelList
+-- Mục đích: Lấy danh sách chi nhánh kèm số phòng ACTIVE
+-- Dùng cho: Dropdown/card chọn chi nhánh phía giao diện
+-- ============================================================
+IF OBJECT_ID('sp_GetHotelList', 'P') IS NOT NULL DROP PROCEDURE sp_GetHotelList;
+GO
+
+CREATE PROCEDURE sp_GetHotelList
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT
+        h.Id,
+        h.Name,
+        h.Address,
+        h.City,
+        h.Country,
+        COUNT(r.Id) AS ActiveRoomCount
+    FROM Hotels h
+    LEFT JOIN Rooms r ON r.HotelId = h.Id AND r.Status = 'ACTIVE' AND r.IsActive = 1
+    GROUP BY h.Id, h.Name, h.Address, h.City, h.Country
+    ORDER BY h.Id;
+END;
+GO
+PRINT 'Stored procedure sp_GetHotelList created.';
+GO
+
 PRINT '';
 PRINT '=================================================';
 PRINT 'ROYALHOTEL Schema Initialization Complete.';

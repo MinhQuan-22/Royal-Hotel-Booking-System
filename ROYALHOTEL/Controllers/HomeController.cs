@@ -16,6 +16,7 @@ public class HomeController : Controller
     public async Task<IActionResult> Index()
     {
         var featuredRooms = await _roomService.GetFeaturedRoomTypesAsync();
+        var hotels = await _roomService.GetAllHotelsAsync();
 
         var vm = new HomePageVM
         {
@@ -25,9 +26,11 @@ public class HomeController : Controller
         };
 
         ViewBag.FeaturedRooms = featuredRooms;
+        ViewBag.Hotels = hotels;
 
         return View(vm);
     }
+
 
     public IActionResult About()
     {

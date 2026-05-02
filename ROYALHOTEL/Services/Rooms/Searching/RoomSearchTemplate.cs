@@ -24,6 +24,7 @@ public abstract class RoomSearchTemplate
     {
         var query = BuildBaseQuery();
         query = ApplyCandidateFilter(query, criteria);
+        query = ApplyHotelFilter(query, criteria);   // [NEW] Filter theo chi nhánh
         query = ApplyGuestFilter(query, criteria);
         query = ApplyRoomTypeFilter(query, criteria);
         query = ApplyAmenityFilter(query, criteria);
@@ -39,6 +40,18 @@ public abstract class RoomSearchTemplate
 
     protected virtual IQueryable<Room> BuildBaseQuery()
         => Repo.Query();
+
+    /// <summary>
+    /// Filter theo chi nhánh khách sạn (HotelId).
+    /// Nếu HotelId null → hiển thị tất cả chi nhánh.
+    /// </summary>
+    protected IQueryable<Room> ApplyHotelFilter(IQueryable<Room> query, RoomSearchQuery criteria)
+    {
+        if (!criteria.HotelId.HasValue)
+            return query;
+
+        return query.Where(r => r.HotelId == criteria.HotelId.Value);
+    }
 
     /// <summary>
     /// Nếu có RoomIdCandidates từ MongoDB (bước 1), filter SQL chỉ trong tập đó.

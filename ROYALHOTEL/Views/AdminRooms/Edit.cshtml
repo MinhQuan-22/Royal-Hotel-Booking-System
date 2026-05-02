@@ -24,6 +24,14 @@
                 <input asp-for="Id" type="hidden" />
 
                 <div class="admin-form-grid">
+                    <div class="admin-form-group admin-form-group--full">
+                        <label asp-for="HotelId" class="form-label">Chi nhánh (Branch) <span style="color:red">*</span></label>
+                        <select asp-for="HotelId" asp-items="Model.HotelOptions" class="form-control" required>
+                            <option value="0" disabled>-- Chọn chi nhánh khách sạn --</option>
+                        </select>
+                        <span asp-validation-for="HotelId" class="text-danger"></span>
+                    </div>
+
                     <div class="admin-form-group">
                         <label asp-for="Code" class="form-label">Room Code</label>
                         <input asp-for="Code" class="form-control" placeholder="Enter room code" />

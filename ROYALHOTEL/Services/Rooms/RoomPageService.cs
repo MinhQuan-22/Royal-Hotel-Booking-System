@@ -16,6 +16,7 @@ public class RoomIndexPageRequest
     public decimal? MinPrice { get; set; }
     public decimal? MaxPrice { get; set; }
     public string? SearchText { get; set; }
+    public int? HotelId { get; set; }  // Chi nhánh được chọn
 }
 
 public class RoomIndexPageData
@@ -34,6 +35,9 @@ public class RoomIndexPageData
     public decimal MinPrice { get; set; }
     public decimal MaxPrice { get; set; } = 100_000_000m;
     public List<string> SelectedRoomTypes { get; set; } = new();
+    // Chi nhánh
+    public List<Hotel> Hotels { get; set; } = new();
+    public int? SelectedHotelId { get; set; }
 }
 
 public class RoomDetailPageData
@@ -86,9 +90,11 @@ public class RoomPageService : IRoomPageService
         var pricingCheckOut = ParseDateOrNull(request.CheckOut);
 
         var allRoomTypes = await _roomQueryService.GetAllRoomTypesAsync();
-        var featuredRooms = await _roomQueryService.GetFeaturedRoomTypesAsync();
+        // FeaturedRooms lọc theo chi nhánh nếu có chọn
+        var featuredRooms = await _roomQueryService.GetFeaturedRoomTypesAsync(request.HotelId);
         var filterAmenities = await _roomQueryService.GetFilterAmenitiesAsync();
-        
+        var hotels = await _roomQueryService.GetAllHotelsAsync();
+
         // Get top 3 booked specific rooms from stored procedure
         var topBookedRoomIds = await _roomQueryService.GetTopBookedRoomsAsync();
 
@@ -97,16 +103,16 @@ public class RoomPageService : IRoomPageService
         // Khi có amenity filter HOẶC text search → đi qua MongoDB trước
         // ==========================================================
         List<int>? roomIdCandidates = null;
-        var hasMongoFilter = (request.Amenities != null && request.Amenities.Length > 0) 
+        var hasMongoFilter = (request.Amenities != null && request.Amenities.Length > 0)
                           || !string.IsNullOrWhiteSpace(request.SearchText);
-        
+
         if (hasMongoFilter)
         {
             try
             {
                 roomIdCandidates = await _catalogService.SearchRoomCandidatesAsync(
-                    new RoomCatalogQuery 
-                    { 
+                    new RoomCatalogQuery
+                    {
                         AmenityKeys = request.Amenities,
                         TextSearch = request.SearchText
                     });
@@ -132,11 +138,11 @@ public class RoomPageService : IRoomPageService
             AmenityKeys = request.Amenities,
             MinPrice = request.MinPrice,
             MaxPrice = maxPrice,
-            RoomIdCandidates = roomIdCandidates
+            RoomIdCandidates = roomIdCandidates,
+            HotelId = request.HotelId   // [NEW] Truyền HotelId filter
         });
 
         // Reorder rooms: push top-booked specific rooms to the front
-        // Rooms with ID in topBookedRoomIds appear first, then others
         rooms = rooms
             .OrderByDescending(r => topBookedRoomIds.Contains(r.Id))
             .ToList();
@@ -147,6 +153,8 @@ public class RoomPageService : IRoomPageService
             FeaturedRooms = featuredRooms,
             FilterAmenities = filterAmenities,
             AllRoomTypes = allRoomTypes,
+            Hotels = hotels,                            // [NEW]
+            SelectedHotelId = request.HotelId,          // [NEW]
             FeaturedPricingMap = _pricingService.BuildPricingMap(featuredRooms, pricingCheckIn, pricingCheckOut),
             RoomPricingMap = _pricingService.BuildPricingMap(rooms, pricingCheckIn, pricingCheckOut),
             TopBookedRoomIds = topBookedRoomIds,
@@ -159,6 +167,7 @@ public class RoomPageService : IRoomPageService
             SelectedRoomTypes = request.RoomTypes?.ToList() ?? new List<string>()
         };
     }
+
 
     public async Task<RoomDetailPageData?> BuildDetailPageAsync(int id, string? checkIn, string? checkOut, int guests)
     {

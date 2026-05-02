@@ -1,6 +1,8 @@
 @model ROYALHOTEL.Models.HomePageVM
+@using ROYALHOTEL.Models
 @{
   ViewData["Title"] = "Trang chủ";
+  var hotels = ((IEnumerable<Hotel>)(ViewBag.Hotels ?? new List<Hotel>())).ToList();
 }
 
 <section class="rh-hero" style="background-image:url('/assets/home/hero.jpg')">
@@ -49,9 +51,43 @@
                 </select>
                 <span class="rh-search__suffix">▾</span>
             </div>
+            <div class="rh-search__field">
+                <select name="hotelId">
+                    <option value="">Tất cả chi nhánh</option>
+                    @foreach (var h in hotels)
+                    {
+                        <option value="@h.Id">📍 @h.City — @h.Name</option>
+                    }
+                </select>
+                <span class="rh-search__suffix">▾</span>
+            </div>
             <button class="rh-search__btn" type="submit">Đặt phòng</button>
         </form>
 
+    </div>
+</section>
+
+<!-- CHI NHÁNH KHÁCH SẠN -->
+<section class="rh-branches">
+    <div class="rh-container">
+        <div class="rh-branches__eyebrow">ROYAL LUXURY HOTEL</div>
+        <h2 class="rh-branches__title">CHỌN CHI NHÁNH</h2>
+        <p class="rh-branches__sub">Ba điểm đến nghỉ dưỡng đẳng cấp trên khắp miền Việt Nam</p>
+        <div class="rh-branches__grid">
+            @foreach (var h in hotels)
+            {
+                <a class="rh-branchCard" href="/Rooms?hotelId=@h.Id" id="branch-card-@h.Id">
+                    <div class="rh-branchCard__icon">📍</div>
+                    <div class="rh-branchCard__city">@h.City.ToUpper()</div>
+                    <div class="rh-branchCard__name">@h.Name</div>
+                    <div class="rh-branchCard__addr">@h.Address</div>
+                    <div class="rh-branchCard__cta">Xem phòng →</div>
+                </a>
+            }
+        </div>
+        <div class="rh-branches__allLink">
+            <a href="/Rooms" class="rh-branches__viewAll">Xem tất cả phòng &amp; giá →</a>
+        </div>
     </div>
 </section>
 
@@ -104,7 +140,6 @@
     <h2 class="rh-roomsPrice__title">PHÒNG &amp; GIÁ</h2>
 
     @using System.Globalization
-    @using ROYALHOTEL.Models
 
     @{
         var vi = CultureInfo.GetCultureInfo("vi-VN");

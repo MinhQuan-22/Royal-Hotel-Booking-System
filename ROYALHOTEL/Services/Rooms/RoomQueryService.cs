@@ -16,6 +16,7 @@ public class RoomSearchQuery
     public decimal? MaxPrice { get; set; }
     public IReadOnlyList<string>? AmenityKeys { get; set; }
     public string? Sort { get; set; } = "price_asc";
+    public int? HotelId { get; set; }  // Filter theo chi nhánh
 
     /// <summary>
     /// Room ID candidates từ MongoDB (bước 1 của 2-step search flow).
@@ -74,11 +75,23 @@ public class RoomQueryService
             .ToList();
     }
 
-    public async Task<List<Room>> GetFeaturedRoomTypesAsync()
+    public async Task<List<Hotel>> GetAllHotelsAsync()
     {
-        var rooms = await _repo.Query()
-            .Where(r => !string.IsNullOrWhiteSpace(r.RoomType))
+        return await _db.Hotels
+            .AsNoTracking()
+            .OrderBy(h => h.Id)
             .ToListAsync();
+    }
+
+    public async Task<List<Room>> GetFeaturedRoomTypesAsync(int? hotelId = null)
+    {
+        var query = _repo.Query()
+            .Where(r => !string.IsNullOrWhiteSpace(r.RoomType));
+
+        if (hotelId.HasValue)
+            query = query.Where(r => r.HotelId == hotelId.Value);
+
+        var rooms = await query.ToListAsync();
 
         return rooms
             .GroupBy(r => _catalog.NormalizeRoomType(r.RoomType), StringComparer.OrdinalIgnoreCase)

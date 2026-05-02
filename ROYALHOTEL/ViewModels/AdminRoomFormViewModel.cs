@@ -28,13 +28,16 @@ namespace ROYALHOTEL.ViewModels
         public bool IsActive { get; set; } = true;
 
         public string? Description { get; set; }
-        
 
         [StringLength(500)]
         public string? CoverImageUrl { get; set; }
 
-        public List<int> SelectedAmenityIds { get; set; } = new();
+        [Required(ErrorMessage = "Vui lòng chọn chi nhánh.")]
+        [Range(1, int.MaxValue, ErrorMessage = "Vui lòng chọn chi nhánh.")]
+        public int HotelId { get; set; }
 
+        public List<int> SelectedAmenityIds { get; set; } = new();
         public List<SelectListItem> AmenityOptions { get; set; } = new();
+        public List<SelectListItem> HotelOptions { get; set; } = new();
     }
 }

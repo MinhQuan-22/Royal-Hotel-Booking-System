@@ -61,6 +61,11 @@
                     Rooms
                 </a>
 
+                <a asp-controller="AdminHotels" asp-action="Index"
+                   class="admin-nav-link @(currentController == "AdminHotels" ? "active" : "")">
+                    Chi nhánh
+                </a>
+
                 <a asp-controller="AdminPricingRules" asp-action="Index"
                    class="admin-nav-link @(currentController == "AdminPricingRules" ? "active" : "")">
                     Pricing Rules
