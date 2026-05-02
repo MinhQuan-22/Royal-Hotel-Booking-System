@@ -153,42 +153,78 @@ GO
 
 -- ============================================================
 -- TABLE: RoomRateChangeLogs
+-- (Yêu cầu đề bài: log thay đổi giá phòng >50%)
 -- ============================================================
 IF OBJECT_ID('RoomRateChangeLogs', 'U') IS NULL
 BEGIN
     CREATE TABLE RoomRateChangeLogs (
-        Id          INT IDENTITY(1,1) PRIMARY KEY,
-        RoomId      INT             NOT NULL,
-        OldRate     DECIMAL(18,2)   NOT NULL,
-        NewRate     DECIMAL(18,2)   NOT NULL,
-        ChangedAt   DATETIME2       NOT NULL DEFAULT GETUTCDATE(),
-        ChangedBy   NVARCHAR(200)   NULL,
-        Reason      NVARCHAR(500)   NULL,
+        Id            INT IDENTITY(1,1) PRIMARY KEY,
+        RoomId        INT             NOT NULL,
+        OldRate       DECIMAL(18,2)   NOT NULL,
+        NewRate       DECIMAL(18,2)   NOT NULL,
+        ChangePercent DECIMAL(10,2)   NOT NULL DEFAULT 0,
+        IsLargeChange BIT             NOT NULL DEFAULT 0,  -- 1 khi thay đổi > 50%
+        ChangedAt     DATETIME2       NOT NULL DEFAULT GETUTCDATE(),
+        ChangedBy     NVARCHAR(200)   NULL,
+        Reason        NVARCHAR(500)   NULL,
 
         CONSTRAINT FK_RoomRateChangeLogs_Rooms FOREIGN KEY (RoomId) REFERENCES Rooms(Id)
     );
     PRINT 'RoomRateChangeLogs table created.';
 END
+ELSE
+BEGIN
+    -- Thêm cột mới nếu đang upgrade từ schema cũ
+    IF COL_LENGTH('RoomRateChangeLogs', 'ChangePercent') IS NULL
+        ALTER TABLE RoomRateChangeLogs ADD ChangePercent DECIMAL(10,2) NOT NULL DEFAULT 0;
+    IF COL_LENGTH('RoomRateChangeLogs', 'IsLargeChange') IS NULL
+        ALTER TABLE RoomRateChangeLogs ADD IsLargeChange BIT NOT NULL DEFAULT 0;
+END
 GO
 
--- Rate audit trigger
-IF OBJECT_ID('trg_Rooms_RateAudit', 'TR') IS NULL
+-- ============================================================
+-- TRIGGER: trg_Rooms_RateAudit
+-- Yêu cầu đề bài: "Create a SQL Trigger that notifies a log
+-- table whenever a room rate is changed by >50%."
+-- Trigger ghi log TẤT CẢ thay đổi, đánh dấu IsLargeChange=1
+-- khi thay đổi vượt quá 50%
+-- ============================================================
+IF OBJECT_ID('trg_Rooms_RateAudit', 'TR') IS NOT NULL
+    DROP TRIGGER trg_Rooms_RateAudit;
+GO
+
+CREATE TRIGGER trg_Rooms_RateAudit
+ON Rooms AFTER UPDATE
+AS
 BEGIN
-    EXEC sp_executesql N'
-    CREATE TRIGGER trg_Rooms_RateAudit
-    ON Rooms AFTER UPDATE AS
+    SET NOCOUNT ON;
+    IF UPDATE(Rate)
     BEGIN
-        SET NOCOUNT ON;
-        IF UPDATE(Rate)
-        BEGIN
-            INSERT INTO RoomRateChangeLogs (RoomId, OldRate, NewRate, ChangedAt, ChangedBy, Reason)
-            SELECT d.Id, d.Rate, i.Rate, GETUTCDATE(), SYSTEM_USER, N''Rate updated via trigger''
-            FROM inserted i JOIN deleted d ON i.Id = d.Id
-            WHERE i.Rate <> d.Rate;
-        END
-    END';
-    PRINT 'Rate audit trigger created.';
-END
+        INSERT INTO RoomRateChangeLogs
+            (RoomId, OldRate, NewRate, ChangePercent, IsLargeChange, ChangedAt, ChangedBy, Reason)
+        SELECT
+            d.Id,
+            d.Rate,
+            i.Rate,
+            ROUND((ABS(i.Rate - d.Rate) / NULLIF(d.Rate, 0)) * 100, 2),
+            CASE
+                WHEN (ABS(i.Rate - d.Rate) / NULLIF(d.Rate, 0)) * 100 > 50 THEN 1
+                ELSE 0
+            END,
+            GETUTCDATE(),
+            SYSTEM_USER,
+            CASE
+                WHEN (ABS(i.Rate - d.Rate) / NULLIF(d.Rate, 0)) * 100 > 50
+                    THEN N'⚠ LARGE RATE CHANGE (>50%) — Requires review'
+                ELSE N'Rate updated'
+            END
+        FROM inserted i
+        JOIN deleted d ON i.Id = d.Id
+        WHERE i.Rate <> d.Rate;
+    END
+END;
+GO
+PRINT 'Trigger trg_Rooms_RateAudit created (logs all changes, flags >50% as IsLargeChange=1).';
 GO
 
 -- ============================================================
@@ -293,6 +329,42 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_FAQ_Category_IsActive'
 GO
 
 -- ============================================================
+-- TABLE: PaymentTransactions
+-- (Referenced by sp_ConfirmBooking — must exist before the SP)
+-- ============================================================
+IF OBJECT_ID('PaymentTransactions', 'U') IS NULL
+BEGIN
+    CREATE TABLE PaymentTransactions (
+        Id                  INT IDENTITY(1,1) PRIMARY KEY,
+        BookingId           INT             NOT NULL,
+        PaymentMethod       NVARCHAR(50)    NOT NULL,
+        Amount              DECIMAL(18,2)   NOT NULL,
+        Status              NVARCHAR(20)    NOT NULL DEFAULT 'Paid',
+        TransactionType     NVARCHAR(20)    NOT NULL DEFAULT 'Payment',
+        TransactionCode     NVARCHAR(100)   NULL,
+        ParentTransactionId INT             NULL,
+        Note                NVARCHAR(500)   NULL,
+        ProcessedAt         DATETIME2       NULL,
+        CreatedAt           DATETIME2       NOT NULL DEFAULT GETUTCDATE(),
+
+        CONSTRAINT FK_PaymentTransactions_Bookings
+            FOREIGN KEY (BookingId) REFERENCES Bookings(Id) ON DELETE CASCADE,
+        CONSTRAINT FK_PaymentTransactions_Parent
+            FOREIGN KEY (ParentTransactionId) REFERENCES PaymentTransactions(Id),
+        CONSTRAINT CK_PaymentTransactions_Type
+            CHECK (TransactionType IN ('Payment', 'Refund')),
+        CONSTRAINT CK_PaymentTransactions_Status
+            CHECK (Status IN ('Paid', 'Failed', 'Pending'))
+    );
+    PRINT 'PaymentTransactions table created.';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_PaymentTransactions_BookingId')
+    CREATE INDEX IX_PaymentTransactions_BookingId ON PaymentTransactions(BookingId);
+GO
+
+-- ============================================================
 -- STORED PROCEDURE: sp_GetTopBookedRoomTypes
 -- ============================================================
 IF OBJECT_ID('sp_GetTopBookedRoomTypes', 'P') IS NOT NULL DROP PROCEDURE sp_GetTopBookedRoomTypes;
@@ -310,6 +382,217 @@ BEGIN
     GROUP BY r.RoomType
     ORDER BY BookingCount DESC;
 END
+GO
+
+-- ============================================================
+-- STORED PROCEDURE: sp_ConfirmBooking (PESSIMISTIC LOCKING)
+-- Yêu cầu đề bài: "Implement a Pessimistic Locking strategy
+-- in SQL during booking to prevent double-booking."
+-- Kỹ thuật: WITH (UPDLOCK, ROWLOCK) — khóa hàng trước khi
+-- đọc, ngăn transaction khác giành phòng cùng lúc.
+-- ============================================================
+IF OBJECT_ID('sp_ConfirmBooking', 'P') IS NOT NULL DROP PROCEDURE sp_ConfirmBooking;
+GO
+
+CREATE PROCEDURE sp_ConfirmBooking
+    @BookingId     INT,
+    @PaymentMethod NVARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    BEGIN TRANSACTION;
+    BEGIN TRY
+
+        -- ── PESSIMISTIC LOCKING ──────────────────────────────────────
+        -- WITH (UPDLOCK) : báo SQL Server đây sẽ là ghi, không cho
+        --                  transaction khác lấy shared lock trên hàng này
+        -- WITH (ROWLOCK) : khóa cấp hàng, tránh leo thang table lock
+        -- Cơ chế: nếu 2 user cùng xác nhận booking cho 1 phòng,
+        --         chỉ 1 transaction được tiếp tục, transaction kia
+        --         phải chờ đến khi COMMIT/ROLLBACK xong.
+        -- ─────────────────────────────────────────────────────────────
+        DECLARE
+            @RoomId     INT,
+            @CheckIn    DATE,
+            @CheckOut   DATE,
+            @Status     NVARCHAR(20),
+            @IsActive   BIT,
+            @RoomStatus NVARCHAR(20),
+            @TotalAmt   DECIMAL(18,2);
+
+        SELECT
+            @RoomId     = b.RoomId,
+            @CheckIn    = b.CheckIn,
+            @CheckOut   = b.CheckOut,
+            @Status     = b.Status,
+            @TotalAmt   = b.TotalAmount,
+            @IsActive   = r.IsActive,
+            @RoomStatus = r.Status
+        FROM Bookings b WITH (UPDLOCK, ROWLOCK)
+        JOIN Rooms r    WITH (UPDLOCK, ROWLOCK) ON b.RoomId = r.Id
+        WHERE b.Id = @BookingId;
+
+        -- Validation
+        IF @RoomId IS NULL
+            THROW 50010, 'Booking not found.', 1;
+
+        IF @Status <> 'Pending'
+            THROW 50011, 'Only Pending bookings can be confirmed.', 1;
+
+        IF @IsActive = 0 OR @RoomStatus <> 'ACTIVE'
+            THROW 50012, 'Room is not active or currently unavailable.', 1;
+
+        -- Kiểm tra double-booking: phòng đã được xác nhận trong cùng khoảng thời gian?
+        IF EXISTS (
+            SELECT 1 FROM Bookings WITH (UPDLOCK, ROWLOCK)
+            WHERE  RoomId   = @RoomId
+              AND  Id       <> @BookingId
+              AND  Status   IN ('Confirmed', 'CheckedIn')
+              AND  CheckIn  < @CheckOut
+              AND  CheckOut > @CheckIn
+        )
+            THROW 50013, 'Room already booked for the selected dates (double-booking prevented).', 1;
+
+        -- Cập nhật trạng thái booking (optimistic concurrency check)
+        UPDATE Bookings WITH (ROWLOCK)
+        SET    Status = 'Confirmed'
+        WHERE  Id = @BookingId AND Status = 'Pending';
+
+        IF @@ROWCOUNT = 0
+            THROW 50014, 'Booking status changed concurrently. Please retry.', 1;
+
+        -- Ghi nhận transaction thanh toán
+        INSERT INTO PaymentTransactions
+            (BookingId, PaymentMethod, Amount, Status, TransactionType,
+             TransactionCode, ProcessedAt, CreatedAt)
+        VALUES (
+            @BookingId,
+            @PaymentMethod,
+            ISNULL(@TotalAmt, 0),
+            'Paid',
+            'Payment',
+            CONCAT('PAY-', @BookingId, '-', CONVERT(NVARCHAR(8), GETDATE(), 112)),
+            GETUTCDATE(),
+            GETUTCDATE()
+        );
+
+        COMMIT TRANSACTION;
+        PRINT 'sp_ConfirmBooking: Booking confirmed successfully.';
+
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END;
+GO
+PRINT 'Stored procedure sp_ConfirmBooking (Pessimistic Locking) created.';
+GO
+
+-- ============================================================
+-- STORED PROCEDURE: Quarterly_Revenue_Analytics (WINDOW FUNCTIONS)
+-- Yêu cầu đề bài: "Use SQL Window Functions to rank room
+-- performance within each hotel based on revenue."
+-- Kỹ thuật: RANK() OVER (PARTITION BY HotelId ORDER BY Revenue)
+-- ============================================================
+IF OBJECT_ID('Quarterly_Revenue_Analytics', 'P') IS NOT NULL
+    DROP PROCEDURE Quarterly_Revenue_Analytics;
+GO
+
+CREATE PROCEDURE Quarterly_Revenue_Analytics
+    @HotelId  INT = NULL,
+    @Year     INT = NULL,
+    @Quarter  INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- ── WINDOW FUNCTIONS ─────────────────────────────────────────────
+    -- RANK()       OVER (PARTITION BY): xếp hạng phòng theo doanh thu
+    --              trong từng khách sạn theo từng quý
+    -- DENSE_RANK() OVER (PARTITION BY): tương tự RANK nhưng không bỏ số
+    -- ROW_NUMBER() OVER (PARTITION BY): số thứ tự tuyệt đối
+    -- SUM()        OVER (PARTITION BY): tổng doanh thu cả khách sạn
+    --              trong quý (running aggregate without GROUP BY)
+    -- ─────────────────────────────────────────────────────────────────
+    WITH QuarterlyData AS (
+        SELECT
+            h.Id                                AS HotelId,
+            h.Name                              AS HotelName,
+            h.City,
+            r.Id                                AS RoomId,
+            r.Code                              AS RoomCode,
+            r.Name                              AS RoomName,
+            r.RoomType,
+            YEAR(b.CreatedAt)                   AS BookingYear,
+            DATEPART(QUARTER, b.CreatedAt)      AS BookingQuarter,
+            COUNT(b.Id)                         AS BookingCount,
+            SUM(ISNULL(b.TotalAmount, 0))       AS TotalRevenue,
+            AVG(ISNULL(b.TotalAmount, 0))       AS AvgRevenue
+        FROM Bookings b
+        JOIN Rooms   r ON b.RoomId  = r.Id
+        JOIN Hotels  h ON r.HotelId = h.Id
+        WHERE b.Status IN ('Confirmed', 'CheckedIn', 'CheckedOut', 'Completed')
+          AND (@HotelId IS NULL OR h.Id               = @HotelId)
+          AND (@Year    IS NULL OR YEAR(b.CreatedAt)  = @Year)
+          AND (@Quarter IS NULL OR DATEPART(QUARTER, b.CreatedAt) = @Quarter)
+        GROUP BY
+            h.Id, h.Name, h.City,
+            r.Id, r.Code, r.Name, r.RoomType,
+            YEAR(b.CreatedAt), DATEPART(QUARTER, b.CreatedAt)
+    )
+    SELECT
+        HotelId,
+        HotelName,
+        City,
+        RoomId,
+        RoomCode,
+        RoomName,
+        RoomType,
+        BookingYear,
+        BookingQuarter,
+        BookingCount,
+        TotalRevenue,
+        AvgRevenue,
+
+        -- ── WINDOW FUNCTIONS (Project 14 Core Requirement) ──────────
+        RANK() OVER (
+            PARTITION BY HotelId, BookingYear, BookingQuarter
+            ORDER BY TotalRevenue DESC
+        )                                                       AS RevenueRank,
+
+        DENSE_RANK() OVER (
+            PARTITION BY HotelId, BookingYear, BookingQuarter
+            ORDER BY TotalRevenue DESC
+        )                                                       AS DenseRevenueRank,
+
+        ROW_NUMBER() OVER (
+            PARTITION BY HotelId, BookingYear, BookingQuarter
+            ORDER BY TotalRevenue DESC
+        )                                                       AS RowNum,
+
+        -- Tổng doanh thu toàn khách sạn trong quý (aggregate window)
+        SUM(TotalRevenue) OVER (
+            PARTITION BY HotelId, BookingYear, BookingQuarter
+        )                                                       AS HotelQuarterTotalRevenue,
+
+        -- Tỉ lệ đóng góp doanh thu của phòng trong quý (%)
+        ROUND(
+            TotalRevenue * 100.0 / NULLIF(
+                SUM(TotalRevenue) OVER (
+                    PARTITION BY HotelId, BookingYear, BookingQuarter
+                ), 0
+            ), 2
+        )                                                       AS RevenueShare_Pct
+        -- ────────────────────────────────────────────────────────────
+
+    FROM QuarterlyData
+    ORDER BY HotelId, BookingYear, BookingQuarter, RevenueRank;
+END;
+GO
+PRINT 'Stored procedure Quarterly_Revenue_Analytics (Window Functions) created.';
 GO
 
 PRINT '';
