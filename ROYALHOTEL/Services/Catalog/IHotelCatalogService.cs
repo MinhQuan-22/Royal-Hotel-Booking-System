@@ -10,7 +10,10 @@ public class RoomCatalogQuery
     /// <summary>Amenity keys cần filter (ví dụ: "wifi", "pool", "gym")</summary>
     public IReadOnlyList<string>? AmenityKeys { get; set; }
 
-    /// <summary>Tên thành phố (Da Nang, Nha Trang, Phu Quoc…)</summary>
+    /// <summary>Lọc theo hotel_id (SQL Hotels.Id) — giới hạn MongoDB có exact chi nhánh</summary>
+    public int? HotelId { get; set; }
+
+    /// <summary>Tên thành phố (Da Nang, Nha Trang, Phu Quoc…) — optional, ưu tiên HotelId</summary>
     public string? City { get; set; }
 
     /// <summary>Từ khoá tìm kiếm description / hotel name</summary>

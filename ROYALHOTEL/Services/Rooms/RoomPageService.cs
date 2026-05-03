@@ -50,12 +50,18 @@ public class RoomDetailPageData
     public int Guests { get; init; }
     public bool IsAvailable { get; init; } = true;
     public string? AvailabilityMessage { get; init; }
+
+    /// <summary>Thông tin chi nhánh của phòng — trực tiếp từ Room.Hotel</summary>
+    public Hotel? HotelInfo => Room.Hotel;
+
+    /// <summary>HotelId được truyền vào từ Rooms/Index — dùng để giữ context khi quay lại</summary>
+    public int? SelectedHotelId { get; init; }
 }
 
 public interface IRoomPageService
 {
     Task<RoomIndexPageData> BuildIndexPageAsync(RoomIndexPageRequest request);
-    Task<RoomDetailPageData?> BuildDetailPageAsync(int id, string? checkIn, string? checkOut, int guests);
+    Task<RoomDetailPageData?> BuildDetailPageAsync(int id, string? checkIn, string? checkOut, int guests, int? hotelId = null);
 }
 
 public class RoomPageService : IRoomPageService
@@ -114,7 +120,8 @@ public class RoomPageService : IRoomPageService
                     new RoomCatalogQuery
                     {
                         AmenityKeys = request.Amenities,
-                        TextSearch = request.SearchText
+                        TextSearch = request.SearchText,
+                        HotelId = request.HotelId   // ← Truyền chi nhánh vào Mongo
                     });
             }
             catch (Exception ex)
@@ -169,7 +176,7 @@ public class RoomPageService : IRoomPageService
     }
 
 
-    public async Task<RoomDetailPageData?> BuildDetailPageAsync(int id, string? checkIn, string? checkOut, int guests)
+    public async Task<RoomDetailPageData?> BuildDetailPageAsync(int id, string? checkIn, string? checkOut, int guests, int? hotelId = null)
     {
         var room = await _roomRepository.GetByIdAsync(id);
         if (room == null)
@@ -219,7 +226,8 @@ public class RoomPageService : IRoomPageService
             CheckOut = checkOut,
             Guests = guests,
             IsAvailable = isAvailable,
-            AvailabilityMessage = availabilityMessage
+            AvailabilityMessage = availabilityMessage,
+            SelectedHotelId = hotelId   // Giữ context chi nhánh để breadcrumb quay lại
         };
     }
 

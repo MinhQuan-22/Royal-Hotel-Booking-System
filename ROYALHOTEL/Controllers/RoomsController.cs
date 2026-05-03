@@ -45,9 +45,9 @@ public class RoomsController : Controller
     }
 
 
-    public async Task<IActionResult> Detail(int id, string? checkIn, string? checkOut, int guests = 1)
+    public async Task<IActionResult> Detail(int id, string? checkIn, string? checkOut, int guests = 1, int? hotelId = null)
     {
-        var pageData = await _pageService.BuildDetailPageAsync(id, checkIn, checkOut, guests);
+        var pageData = await _pageService.BuildDetailPageAsync(id, checkIn, checkOut, guests, hotelId);
         if (pageData == null)
             return NotFound();
 

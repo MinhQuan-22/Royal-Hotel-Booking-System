@@ -32,19 +32,24 @@ public class MongoHotelCatalogService : IHotelCatalogService
     private static string GenerateCacheKey(RoomCatalogQuery query)
     {
         var keyBuilder = new StringBuilder();
-        
+
+        if (query.HotelId.HasValue)
+        {
+            keyBuilder.Append($"hotel:{query.HotelId.Value}|");
+        }
+
         if (query.AmenityKeys != null && query.AmenityKeys.Any())
         {
             keyBuilder.Append("amenities:");
             keyBuilder.Append(string.Join(",", query.AmenityKeys.OrderBy(k => k)));
         }
-        
+
         if (!string.IsNullOrWhiteSpace(query.City))
         {
             keyBuilder.Append("|city:");
             keyBuilder.Append(query.City.ToLowerInvariant());
         }
-        
+
         if (!string.IsNullOrWhiteSpace(query.TextSearch))
         {
             keyBuilder.Append("|text:");
@@ -117,12 +122,13 @@ public class MongoHotelCatalogService : IHotelCatalogService
     /// <inheritdoc/>
     public async Task<List<int>?> SearchRoomCandidatesAsync(RoomCatalogQuery query)
     {
-        // Không có filter MongoDB → bypass, trả null để query SQL trực tiếp
+        // Không có filter MongoDB nào → bypass, trả null để SQL query trực tiếp
         var hasAmenityFilter = query.AmenityKeys?.Any(k => !string.IsNullOrWhiteSpace(k)) == true;
-        var hasCityFilter = !string.IsNullOrWhiteSpace(query.City);
-        var hasTextFilter = !string.IsNullOrWhiteSpace(query.TextSearch);
+        var hasCityFilter    = !string.IsNullOrWhiteSpace(query.City);
+        var hasHotelFilter   = query.HotelId.HasValue;
+        var hasTextFilter    = !string.IsNullOrWhiteSpace(query.TextSearch);
 
-        if (!hasAmenityFilter && !hasCityFilter && !hasTextFilter)
+        if (!hasAmenityFilter && !hasCityFilter && !hasHotelFilter && !hasTextFilter)
             return null;
 
         // Check cache first
@@ -137,6 +143,15 @@ public class MongoHotelCatalogService : IHotelCatalogService
 
         var builder = Builders<HotelCatalogDocument>.Filter;
         var filters = new List<FilterDefinition<HotelCatalogDocument>>();
+
+        // =============================================================
+        // QUAN TRỌNG: Nếu có HotelId → chỉ lấy document của đúng chi nhánh đó
+        // Trước khi flatten candidates → đảm bảo không lần sang chi nhánh khác
+        // =============================================================
+        if (hasHotelFilter)
+        {
+            filters.Add(builder.Eq(x => x.HotelId, query.HotelId!.Value));
+        }
 
         // Amenity filter: room-level amenities (mỗi key phải thoả ít nhất ở room hoặc hotel level)
         if (hasAmenityFilter)
@@ -156,8 +171,8 @@ public class MongoHotelCatalogService : IHotelCatalogService
             }
         }
 
-        // City filter
-        if (hasCityFilter)
+        // City filter (fallback nếu không có HotelId)
+        if (hasCityFilter && !hasHotelFilter)
         {
             filters.Add(builder.Regex(x => x.City,
                 new MongoDB.Bson.BsonRegularExpression(query.City!.Trim(), "i")));
