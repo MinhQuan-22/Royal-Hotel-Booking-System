@@ -198,7 +198,12 @@ public class CoreBookingService : IBookingService
                     ErrorCode = ex.Number,
                     Message = "Trạng thái booking đã thay đổi trong lúc xử lý."
                 },
-                _ => throw ex
+                _ => new ConfirmPaymentResult
+                {
+                    Success = false,
+                    ErrorCode = ex.Number,
+                    Message = $"Lỗi SQL không xác định: {ex.Message}"
+                }
             };
         }
     }

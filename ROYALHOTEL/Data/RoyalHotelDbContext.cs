@@ -7,6 +7,7 @@ public class RoyalHotelDbContext : DbContext
 {
     public RoyalHotelDbContext(DbContextOptions<RoyalHotelDbContext> options) : base(options) { }
 
+    public DbSet<Hotel> Hotels => Set<Hotel>();
     public DbSet<Room> Rooms => Set<Room>();
     public DbSet<Amenity> Amenities => Set<Amenity>();
     public DbSet<RoomAmenity> RoomAmenities => Set<RoomAmenity>();
@@ -20,9 +21,40 @@ public class RoyalHotelDbContext : DbContext
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<PasswordResetOtp> PasswordResetOtps => Set<PasswordResetOtp>();
 
+    public DbSet<RoomRateChangeLog> RoomRateChangeLogs => Set<RoomRateChangeLog>();
+
+    public DbSet<ChatConversation> ChatConversations => Set<ChatConversation>();
+    public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
+
+    public DbSet<FAQ> FAQs => Set<FAQ>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // =========================
+        // Hotel
+        // =========================
+        modelBuilder.Entity<Hotel>(e =>
+        {
+            e.ToTable("Hotels");
+
+            e.Property(x => x.Name)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            e.Property(x => x.Address)
+                .HasMaxLength(500)
+                .IsRequired();
+
+            e.Property(x => x.City)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            e.Property(x => x.Country)
+                .HasMaxLength(100)
+                .IsRequired();
+        });
 
         // =========================
         // Room / Amenity / Images
@@ -45,9 +77,24 @@ public class RoyalHotelDbContext : DbContext
             .WithMany(r => r.Images)
             .HasForeignKey(i => i.RoomId);
 
-        modelBuilder.Entity<Room>()
-            .Property(x => x.BasePricePerNight)
-            .HasPrecision(18, 2);
+        modelBuilder.Entity<Room>(e =>
+        {
+            e.Property(x => x.BasePricePerNight)
+                .HasPrecision(18, 2);
+
+            e.Property(x => x.Rate)
+                .HasPrecision(18, 2)
+                .IsRequired();
+
+            e.Property(x => x.Status)
+                .HasMaxLength(20)
+                .IsRequired();
+
+            e.HasOne(x => x.Hotel)
+                .WithMany(h => h.Rooms)
+                .HasForeignKey(x => x.HotelId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
 
         // =========================
         // PricingRule
@@ -267,6 +314,131 @@ public class RoyalHotelDbContext : DbContext
 
             e.Property(x => x.AttemptCount)
                 .HasDefaultValue(0);
+        });
+
+        // =========================
+        // RoomRateChangeLog
+        // =========================
+        modelBuilder.Entity<RoomRateChangeLog>(e =>
+        {
+            e.ToTable("RoomRateChangeLog");
+
+            e.Property(x => x.OldRate)
+                .HasPrecision(18, 2)
+                .IsRequired();
+
+            e.Property(x => x.NewRate)
+                .HasPrecision(18, 2)
+                .IsRequired();
+
+            e.Property(x => x.ChangePercent)
+                .HasPrecision(5, 2)
+                .IsRequired();
+
+            e.Property(x => x.ChangedBy)
+                .HasMaxLength(100);
+
+            e.HasOne(x => x.Room)
+                .WithMany()
+                .HasForeignKey(x => x.RoomId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasIndex(x => new { x.RoomId, x.ChangedAt })
+                .HasDatabaseName("IX_RoomRateChangeLog_RoomId_ChangedAt");
+        });
+
+        // =========================
+        // ChatConversation
+        // =========================
+        modelBuilder.Entity<ChatConversation>(e =>
+        {
+            e.ToTable("ChatConversations");
+
+            e.Property(x => x.ConversationCode)
+                .HasMaxLength(50)
+                .IsRequired();
+
+            e.HasIndex(x => x.ConversationCode)
+                .IsUnique();
+
+            e.Property(x => x.GuestName)
+                .HasMaxLength(200);
+
+            e.Property(x => x.GuestEmail)
+                .HasMaxLength(200);
+
+            e.Property(x => x.Status)
+                .HasMaxLength(30)
+                .IsRequired()
+                .HasDefaultValue("Open");
+
+            e.Property(x => x.EscalationReason)
+                .HasMaxLength(500);
+
+            e.HasOne(x => x.Account)
+                .WithMany()
+                .HasForeignKey(x => x.AccountId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            e.HasIndex(x => x.Status)
+                .HasDatabaseName("IX_ChatConversations_Status");
+
+            e.HasIndex(x => x.AccountId)
+                .HasDatabaseName("IX_ChatConversations_AccountId");
+
+            e.HasIndex(x => x.UpdatedAt)
+                .HasDatabaseName("IX_ChatConversations_UpdatedAt");
+        });
+
+        // =========================
+        // ChatMessage
+        // =========================
+        modelBuilder.Entity<ChatMessage>(e =>
+        {
+            e.ToTable("ChatMessages");
+
+            e.Property(x => x.SenderType)
+                .HasMaxLength(20)
+                .IsRequired();
+
+            e.Property(x => x.MessageText)
+                .IsRequired();
+
+            e.Property(x => x.IsEscalationMessage)
+                .HasDefaultValue(false);
+
+            e.HasOne(x => x.Conversation)
+                .WithMany(c => c.Messages)
+                .HasForeignKey(x => x.ConversationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(x => new { x.ConversationId, x.CreatedAt })
+                .HasDatabaseName("IX_ChatMessages_ConversationId_CreatedAt");
+        });
+
+        // =========================
+        // FAQ
+        // =========================
+        modelBuilder.Entity<FAQ>(e =>
+        {
+            e.ToTable("FAQ");
+
+            e.Property(x => x.Question)
+                .HasMaxLength(500)
+                .IsRequired();
+
+            e.Property(x => x.Answer)
+                .IsRequired();
+
+            e.Property(x => x.Category)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            e.Property(x => x.IsActive)
+                .HasDefaultValue(true);
+
+            e.HasIndex(x => new { x.Category, x.IsActive })
+                .HasDatabaseName("IX_FAQ_Category_IsActive");
         });
     }
 }

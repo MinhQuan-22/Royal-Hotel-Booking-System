@@ -1,6 +1,13 @@
 @model ROYALHOTEL.Models.HomePageVM
+@using ROYALHOTEL.Models
 @{
   ViewData["Title"] = "Trang chủ";
+  var hotels = ((IEnumerable<Hotel>)(ViewBag.Hotels ?? new List<Hotel>())).ToList();
+  var hotelImageMap = (ViewBag.HotelImageMap as Dictionary<int, string>) ?? new Dictionary<int, string>();
+
+  // Ảnh fallback mặc định theo index nếu MongoDB không có ảnh
+  var fallbackImages = new[] { "/assets/home/Room1.jpg", "/assets/home/Home1.jpg", "/assets/home/Home2.jpg",
+                                "/assets/home/Room1.jpg", "/assets/home/Home1.jpg" };
 }
 
 <section class="rh-hero" style="background-image:url('/assets/home/hero.jpg')">
@@ -49,9 +56,60 @@
                 </select>
                 <span class="rh-search__suffix">▾</span>
             </div>
+            <div class="rh-search__field">
+                <select name="hotelId">
+                    <option value="">Tất cả chi nhánh</option>
+                    @foreach (var h in hotels)
+                    {
+                        <option value="@h.Id">📍 @h.City — @h.Name</option>
+                    }
+                </select>
+                <span class="rh-search__suffix">▾</span>
+            </div>
             <button class="rh-search__btn" type="submit">Đặt phòng</button>
         </form>
 
+    </div>
+</section>
+
+<!-- CHI NHÁNH KHÁCH SẠN -->
+<section class="rh-branches">
+    <div class="rh-container">
+        <div class="rh-branches__eyebrow">ROYAL LUXURY HOTEL</div>
+        <h2 class="rh-branches__title">CHỌN CHI NHÁNH</h2>
+        <p class="rh-branches__sub">Khám phá các điểm đến nghỉ dưỡng đẳng cấp của Royal Luxury Hotel</p>
+        <div class="rh-branches__grid">
+            @{ int branchIdx = 0; }
+            @foreach (var h in hotels)
+            {
+                var branchImg = hotelImageMap.ContainsKey(h.Id)
+                    ? hotelImageMap[h.Id]
+                    : fallbackImages[branchIdx % fallbackImages.Length];
+                <a class="rh-branchCard" href="/Rooms?hotelId=@h.Id" id="branch-card-@h.Id"
+                   style="background-image:url('@branchImg'); background-size:cover; background-position:center;
+                          position:relative; overflow:hidden; min-height:220px; display:flex;
+                          flex-direction:column; justify-content:flex-end; padding:0; border-radius:16px;">
+                    <div style="position:absolute; inset:0;
+                         background:linear-gradient(to top, rgba(10,10,10,0.85) 0%, rgba(10,10,10,0.2) 60%, transparent 100%);
+                         border-radius:16px;"></div>
+                    <div style="position:relative; z-index:1; padding:20px 22px;">
+                        <div style="font-size:11px; letter-spacing:2px; color:#c9a24a; font-weight:700; text-transform:uppercase; margin-bottom:4px;">@h.Country</div>
+                        <div class="rh-branchCard__city" style="font-size:22px; font-weight:800; color:#fff; margin-bottom:2px;">@h.City.ToUpper()</div>
+                        <div class="rh-branchCard__name" style="font-size:13px; color:rgba(255,255,255,0.7); margin-bottom:10px;">@h.Name</div>
+                        @if (!string.IsNullOrWhiteSpace(h.Address))
+                        {
+                            <div style="font-size:11px; color:rgba(255,255,255,0.5); margin-bottom:10px;">📍 @h.Address</div>
+                        }
+                        <div class="rh-branchCard__cta" style="display:inline-block; background:#c9a24a; color:#0a0a0a;
+                             font-size:12px; font-weight:700; padding:6px 16px; border-radius:20px; letter-spacing:0.5px;">Xem phòng →</div>
+                    </div>
+                </a>
+                branchIdx++;
+            }
+        </div>
+        <div class="rh-branches__allLink">
+            <a href="/Rooms" class="rh-branches__viewAll">Xem tất cả phòng &amp; giá →</a>
+        </div>
     </div>
 </section>
 
@@ -104,7 +162,6 @@
     <h2 class="rh-roomsPrice__title">PHÒNG &amp; GIÁ</h2>
 
     @using System.Globalization
-    @using ROYALHOTEL.Models
 
     @{
         var vi = CultureInfo.GetCultureInfo("vi-VN");

@@ -1,11 +1,28 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using ROYALHOTEL.ViewModels;
+using ROYALHOTEL.Services.Analytics;
+using ROYALHOTEL.Data;
 using System.Collections.Generic;
 
 namespace ROYALHOTEL.Controllers
 {
     public class AdminReportsController : Controller
     {
+        private readonly IAnalyticsService _analyticsService;
+        private readonly ILogger<AdminReportsController> _logger;
+        private readonly RoyalHotelDbContext _context;
+
+        public AdminReportsController(
+            IAnalyticsService analyticsService,
+            ILogger<AdminReportsController> logger,
+            RoyalHotelDbContext context)
+        {
+            _analyticsService = analyticsService;
+            _logger = logger;
+            _context = context;
+        }
+
         private bool IsAdmin()
         {
             var role = HttpContext.Session.GetString("USER_ROLE");
@@ -41,6 +58,79 @@ namespace ROYALHOTEL.Controllers
             };
 
             return View(model);
+        }
+
+        /// <summary>
+        /// Displays quarterly revenue analytics with optional filtering
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> QuarterlyRevenue(
+            int? hotelId = null,
+            int? year = null,
+            int? quarter = null)
+        {
+            if (!IsAdmin())
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            // Get hotels for dropdown
+            var hotels = await _context.Hotels
+                .OrderBy(h => h.Name)
+                .Select(h => new { h.Id, h.Name })
+                .ToListAsync();
+            
+            ViewBag.Hotels = hotels;
+
+            var analytics = await _analyticsService.GetQuarterlyRevenueAnalyticsAsync(
+                hotelId, year, quarter);
+
+            return View(analytics);
+        }
+
+        /// <summary>
+        /// Returns quarterly revenue analytics as JSON for API consumption
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> QuarterlyRevenueJson(
+            int? hotelId = null,
+            int? year = null,
+            int? quarter = null)
+        {
+            if (!IsAdmin())
+            {
+                return Unauthorized();
+            }
+
+            var analytics = await _analyticsService.GetQuarterlyRevenueAnalyticsAsync(
+                hotelId, year, quarter);
+
+            return Json(analytics);
+        }
+
+        /// <summary>
+        /// Displays room rate change history with optional date range filtering
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> RateChangeHistory(
+            int roomId,
+            DateTime? startDate = null,
+            DateTime? endDate = null)
+        {
+            if (!IsAdmin())
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            var changes = await _analyticsService.ParseRateChangeLogAsync(
+                roomId, startDate, endDate);
+
+            var reportHtml = _analyticsService.FormatRateChangeReport(changes);
+
+            ViewBag.ReportHtml = reportHtml;
+            ViewBag.RoomId = roomId;
+
+            return View(changes);
         }
     }
 }

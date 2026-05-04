@@ -16,11 +16,13 @@ public class RoomsController : Controller
         string? checkIn, string? checkOut,
         string? checkInDate, string? checkOutDate,
         int? guests,
+        int? hotelId,
         string? sort = "price_asc",
         string[]? roomTypes = null,
         string[]? amenities = null,
         decimal? minPrice = null,
-        decimal? maxPrice = null)
+        decimal? maxPrice = null,
+        string? search = null)
     {
         var checkInFinal = !string.IsNullOrWhiteSpace(checkIn) ? checkIn : checkInDate;
         var checkOutFinal = !string.IsNullOrWhiteSpace(checkOut) ? checkOut : checkOutDate;
@@ -34,15 +36,18 @@ public class RoomsController : Controller
             RoomTypes = roomTypes,
             Amenities = amenities,
             MinPrice = minPrice,
-            MaxPrice = maxPrice
+            MaxPrice = maxPrice,
+            SearchText = search,
+            HotelId = hotelId
         });
 
         return View(pageData);
     }
 
-    public async Task<IActionResult> Detail(int id, string? checkIn, string? checkOut, int guests = 1)
+
+    public async Task<IActionResult> Detail(int id, string? checkIn, string? checkOut, int guests = 1, int? hotelId = null)
     {
-        var pageData = await _pageService.BuildDetailPageAsync(id, checkIn, checkOut, guests);
+        var pageData = await _pageService.BuildDetailPageAsync(id, checkIn, checkOut, guests, hotelId);
         if (pageData == null)
             return NotFound();
 

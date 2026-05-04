@@ -280,5 +280,36 @@ namespace ROYALHOTEL.Controllers
             TempData["Success"] = "Account updated successfully.";
             return RedirectToAction(nameof(Index));
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(int id)
+        {
+            if (!IsAdmin())
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            var account = await _context.Accounts.FirstOrDefaultAsync(a => a.Id == id);
+            if (account == null)
+            {
+                TempData["Error"] = "Account not found.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // Prevent self-deletion
+            var currentUserId = HttpContext.Session.GetInt32("USER_ID");
+            if (currentUserId == id)
+            {
+                TempData["Error"] = "You cannot delete your own account.";
+                return RedirectToAction("Edit", new { id });
+            }
+
+            _context.Accounts.Remove(account);
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "Account deleted successfully.";
+            return RedirectToAction(nameof(Index));
+        }
     }
 }

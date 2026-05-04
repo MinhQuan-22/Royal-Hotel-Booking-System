@@ -103,7 +103,7 @@ namespace ROYALHOTEL.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Amenities");
+                    b.ToTable("Amenities", (string)null);
                 });
 
             modelBuilder.Entity("ROYALHOTEL.Models.Booking", b =>
@@ -121,16 +121,6 @@ namespace ROYALHOTEL.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("CancelNote")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CancelReason")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<DateTime?>("CancelledAt")
-                        .HasColumnType("datetime2");
 
                     b.Property<DateTime>("CheckIn")
                         .HasColumnType("datetime2");
@@ -164,21 +154,6 @@ namespace ROYALHOTEL.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<decimal?>("RefundAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("RefundPolicyApplied")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<DateTime?>("RefundProcessedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("RefundStatus")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
                     b.Property<int>("RoomId")
                         .HasColumnType("int");
 
@@ -210,23 +185,27 @@ namespace ROYALHOTEL.Migrations
 
                     b.Property<string>("Address")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("City")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Country")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Hotel");
+                    b.ToTable("Hotels", (string)null);
                 });
 
             modelBuilder.Entity("ROYALHOTEL.Models.PasswordResetOtp", b =>
@@ -287,20 +266,10 @@ namespace ROYALHOTEL.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Note")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<int?>("ParentTransactionId")
-                        .HasColumnType("int");
-
                     b.Property<string>("PaymentMethod")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime?>("ProcessedAt")
-                        .HasColumnType("datetime2");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -311,18 +280,9 @@ namespace ROYALHOTEL.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("TransactionType")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasDefaultValue("Payment");
-
                     b.HasKey("Id");
 
                     b.HasIndex("BookingId");
-
-                    b.HasIndex("ParentTransactionId");
 
                     b.ToTable("PaymentTransactions", (string)null);
                 });
@@ -502,6 +462,7 @@ namespace ROYALHOTEL.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("Rate")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("RoomType")
@@ -510,13 +471,14 @@ namespace ROYALHOTEL.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("HotelId");
 
-                    b.ToTable("Rooms");
+                    b.ToTable("Rooms", (string)null);
                 });
 
             modelBuilder.Entity("ROYALHOTEL.Models.RoomAmenity", b =>
@@ -531,7 +493,7 @@ namespace ROYALHOTEL.Migrations
 
                     b.HasIndex("AmenityId");
 
-                    b.ToTable("RoomAmenities");
+                    b.ToTable("RoomAmenities", (string)null);
                 });
 
             modelBuilder.Entity("ROYALHOTEL.Models.RoomImage", b =>
@@ -559,7 +521,45 @@ namespace ROYALHOTEL.Migrations
 
                     b.HasIndex("RoomId");
 
-                    b.ToTable("RoomImages");
+                    b.ToTable("RoomImages", (string)null);
+                });
+
+            modelBuilder.Entity("ROYALHOTEL.Models.RoomRateChangeLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("ChangePercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ChangedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal>("NewRate")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("OldRate")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("RoomId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoomId", "ChangedAt")
+                        .HasDatabaseName("IX_RoomRateChangeLog_RoomId_ChangedAt");
+
+                    b.ToTable("RoomRateChangeLog", (string)null);
                 });
 
             modelBuilder.Entity("ROYALHOTEL.Models.Booking", b =>
@@ -599,14 +599,7 @@ namespace ROYALHOTEL.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ROYALHOTEL.Models.PaymentTransaction", "ParentTransaction")
-                        .WithMany()
-                        .HasForeignKey("ParentTransactionId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.Navigation("Booking");
-
-                    b.Navigation("ParentTransaction");
                 });
 
             modelBuilder.Entity("ROYALHOTEL.Models.Room", b =>
@@ -614,7 +607,7 @@ namespace ROYALHOTEL.Migrations
                     b.HasOne("ROYALHOTEL.Models.Hotel", "Hotel")
                         .WithMany("Rooms")
                         .HasForeignKey("HotelId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Hotel");
@@ -646,6 +639,17 @@ namespace ROYALHOTEL.Migrations
                         .HasForeignKey("RoomId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("ROYALHOTEL.Models.RoomRateChangeLog", b =>
+                {
+                    b.HasOne("ROYALHOTEL.Models.Room", "Room")
+                        .WithMany()
+                        .HasForeignKey("RoomId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Room");
                 });
 
             modelBuilder.Entity("ROYALHOTEL.Models.Account", b =>

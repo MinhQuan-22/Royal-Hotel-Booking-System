@@ -23,6 +23,8 @@ public abstract class RoomSearchTemplate
     public async Task<List<Room>> ExecuteAsync(RoomSearchQuery criteria)
     {
         var query = BuildBaseQuery();
+        query = ApplyCandidateFilter(query, criteria);
+        query = ApplyHotelFilter(query, criteria);   // [NEW] Filter theo chi nhánh
         query = ApplyGuestFilter(query, criteria);
         query = ApplyRoomTypeFilter(query, criteria);
         query = ApplyAmenityFilter(query, criteria);
@@ -38,6 +40,34 @@ public abstract class RoomSearchTemplate
 
     protected virtual IQueryable<Room> BuildBaseQuery()
         => Repo.Query();
+
+    /// <summary>
+    /// Filter theo chi nhánh khách sạn (HotelId).
+    /// Nếu HotelId null → hiển thị tất cả chi nhánh.
+    /// </summary>
+    protected IQueryable<Room> ApplyHotelFilter(IQueryable<Room> query, RoomSearchQuery criteria)
+    {
+        if (!criteria.HotelId.HasValue)
+            return query;
+
+        return query.Where(r => r.HotelId == criteria.HotelId.Value);
+    }
+
+    /// <summary>
+    /// Nếu có RoomIdCandidates từ MongoDB (bước 1), filter SQL chỉ trong tập đó.
+    /// Nếu candidates rỗng (không có kết quả MongoDB) → trả empty query ngay.
+    /// </summary>
+    protected IQueryable<Room> ApplyCandidateFilter(IQueryable<Room> query, RoomSearchQuery criteria)
+    {
+        if (criteria.RoomIdCandidates == null)
+            return query; // Không có MongoDB filter → giữ nguyên
+
+        if (criteria.RoomIdCandidates.Count == 0)
+            return query.Where(r => r.Id == -1); // Không có phòng thỏa mãn → trả rỗng
+
+        var ids = criteria.RoomIdCandidates;
+        return query.Where(r => ids.Contains(r.Id));
+    }
 
     protected virtual IQueryable<Room> ApplyGuestFilter(IQueryable<Room> query, RoomSearchQuery criteria)
     {

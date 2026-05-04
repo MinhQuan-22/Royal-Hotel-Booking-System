@@ -1,4 +1,12 @@
 
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+@{
+    var userRole = HttpContextAccessor.HttpContext?.Session.GetString("USER_ROLE") ?? "";
+    var isAuthenticated = !string.IsNullOrEmpty(userRole);
+    var isAdmin = userRole.ToLower() == "admin";
+}
+
 <!doctype html>
 <html lang="vi">
 <head>
@@ -6,7 +14,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - ROYALHOTEL</title>
 
-    <link rel="stylesheet" href="/css/site.css" />
+    @* Expose role/auth to client-side JS via meta tags *@
+    <meta name="user-role" content="@userRole" />
+    <meta name="user-authenticated" content="@(isAuthenticated ? "true" : "false")" />
+
+    <link rel="stylesheet" href="/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="/css/chat-widget.css" asp-append-version="true" />
 </head>
 <body class="@(ViewData["BodyClass"] as string ?? "")">
     @RenderBody()
@@ -20,7 +33,19 @@
         </button>
     }
 
+    @* Chat Widget – ẩn hoàn toàn với Admin (cả HTML lẫn JS) *@
+    @if (!isAdmin)
+    {
+        <partial name="_ChatWidget" />
+    }
+
     <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @if (!isAdmin)
+    {
+        <script src="~/js/chat-widget.js" asp-append-version="true"></script>
+    }
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

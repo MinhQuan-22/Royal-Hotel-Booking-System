@@ -24,6 +24,7 @@ public class EfRoomRepository : IRoomRepository
     public Task<Room?> GetByIdAsync(int id)
         => _db.Rooms
               .AsNoTracking()
+              .Include(r => r.Hotel)          // Chi nhánh — hiển thị ở Detail page
               .Include(r => r.Images)
               .Include(r => r.RoomAmenities)
                   .ThenInclude(ra => ra.Amenity)

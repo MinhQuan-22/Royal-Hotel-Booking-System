@@ -15,6 +15,8 @@
     var isAvailable = Model.IsAvailable;
     var availabilityMessage = Model.AvailabilityMessage;
     var detailErrorMessage = TempData["DetailErrorMessage"]?.ToString();
+    var hotel = Model.HotelInfo;            // Chi nhánh của phòng này
+    var selectedHotelId = Model.SelectedHotelId; // Context từ Rooms/Index
 
     var imgs = (room.Images ?? new List<RoomImage>()).OrderBy(i => i.SortOrder).ToList();
     var mainImage = room.CoverImageUrl ?? imgs.FirstOrDefault()?.ImageUrl ?? "/assets/rooms/room1.png";
@@ -27,8 +29,6 @@
     var pricingSummary = Model.PricingSummary;
 
     var priceText = pricingSummary.DisplayPricePerNight.ToString("N0", vi);
-    // priceJs: giá trung bình/đêm đã tính strategy phía server.
-    // JS dùng để ước lượng tổng tiền trước khi page reload với ngày mới.
     var priceJs = pricingSummary.DisplayPricePerNight.ToString(CultureInfo.InvariantCulture);
 
     var checkInVal = checkIn ?? "";
@@ -57,15 +57,28 @@
 
 <section class="rh-bcrumb">
     <div class="rh-container rh-bcrumb__inner">
-        <a class="rh-backBtn" asp-controller="Rooms" asp-action="Index"
-           asp-route-checkIn="@(checkIn)" asp-route-checkOut="@(checkOut)" asp-route-guests="@(guests)">
+        <a class="rh-backBtn"
+           asp-controller="Rooms" asp-action="Index"
+           asp-route-checkIn="@checkIn"
+           asp-route-checkOut="@checkOut"
+           asp-route-guests="@guests"
+           asp-route-hotelId="@selectedHotelId">
             ← <span>Quay lại</span>
         </a>
 
         <div class="rh-bcrumb__trail">
-            <a class="rh-bcrumb__link" asp-controller="Rooms" asp-action="Index"
-               asp-route-checkIn="@(checkIn)" asp-route-checkOut="@(checkOut)" asp-route-guests="@(guests)">Phòng</a>
+            <a class="rh-bcrumb__link"
+               asp-controller="Rooms" asp-action="Index"
+               asp-route-checkIn="@checkIn"
+               asp-route-checkOut="@checkOut"
+               asp-route-guests="@guests"
+               asp-route-hotelId="@selectedHotelId">Phòng</a>
             <span class="rh-bcrumb__sep"> › </span>
+            @if (hotel != null)
+            {
+                <span class="rh-bcrumb__link" style="color:#c9a24a;">@hotel.Name</span>
+                <span class="rh-bcrumb__sep"> › </span>
+            }
             <span class="rh-bcrumb__current">@room.Name</span>
         </div>
     </div>
@@ -99,6 +112,23 @@
 
             <div class="rh-roomIntro">
                 <h2 class="rh-roomIntro__title">@room.Name</h2>
+
+                @if (hotel != null)
+                {
+                    <div class="rh-branchBadge" style="display:inline-flex; align-items:center; gap:6px;
+                         background:linear-gradient(135deg,#1a1a1a,#2c2c2c); color:#c9a24a;
+                         border:1px solid rgba(201,162,74,0.35); border-radius:20px;
+                         padding:5px 14px; font-size:13px; font-weight:600;
+                         margin-bottom:10px; letter-spacing:0.5px;">
+                        <span>📍</span>
+                        <span>@hotel.Name</span>
+                        @if (!string.IsNullOrWhiteSpace(hotel.Address))
+                        {
+                            <span style="color:#aaa; font-weight:400; margin-left:4px;">— @hotel.Address</span>
+                        }
+                    </div>
+                }
+
                 <p class="rh-roomIntro__desc">@room.Description</p>
             </div>
 
@@ -130,6 +160,22 @@
                     <span class="rh-bookBox__amount">@priceText</span>
                     <span class="rh-bookBox__unit">VNĐ / đêm</span>
                 </div>
+
+                @if (hotel != null)
+                {
+                    <div style="display:flex; align-items:center; gap:6px; padding:8px 12px;
+                         background:rgba(201,162,74,0.07); border-radius:8px;
+                         border-left:3px solid #c9a24a; margin-bottom:14px; font-size:13px;">
+                        <span style="font-size:15px;">📍</span>
+                        <div>
+                            <div style="font-weight:700; color:#1a1a1a;">@hotel.Name</div>
+                            @if (!string.IsNullOrWhiteSpace(hotel.Address))
+                            {
+                                <div style="color:#666; font-size:12px;">@hotel.Address</div>
+                            }
+                        </div>
+                    </div>
+                }
 
                 @if (!string.IsNullOrWhiteSpace(availabilityMessage))
                 {

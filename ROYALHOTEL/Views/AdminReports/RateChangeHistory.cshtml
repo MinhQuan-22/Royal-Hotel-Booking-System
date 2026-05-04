@@ -1,0 +1,205 @@
+@model IEnumerable<ROYALHOTEL.DTOs.RateChangeDto>
+
+@{
+    ViewData["Title"] = "Room Rate Change History";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="row pt-2 mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h4 class="mb-0" style="color: #8b6a14; font-family: 'Playfair Display', Georgia, serif; font-size: 28px;">Room Rate Change History</h4>
+        <a href="@Url.Action("Index", "AdminReports")" class="btn btn-outline-secondary shadow-sm">
+            <i class="bi bi-arrow-left me-2"></i> Back to Reports
+        </a>
+    </div>
+</div>
+
+<!-- Filter Form -->
+<div class="row pt-2 mb-4">
+    <div class="col-12">
+        <div class="section-card p-4 shadow-sm rounded" style="background-color: #fdfdf9;">
+            <h5 class="mb-3 section-heading-custom" style="font-size: 18px;">Filter Options</h5>
+            <form method="get" action="@Url.Action("RateChangeHistory", "AdminReports")" id="filterForm">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label for="roomId" class="form-label fw-semibold" style="color: #8b6a14;">Room ID <span class="text-danger">*</span></label>
+                        <input type="number" name="roomId" id="roomId" class="form-control" style="border-color: #d9caa7;" 
+                               value="@ViewBag.RoomId" required min="1" placeholder="Enter Room ID">
+                        <small class="text-muted">Required field</small>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="startDate" class="form-label fw-semibold" style="color: #8b6a14;">Start Date</label>
+                        <input type="date" name="startDate" id="startDate" class="form-control" style="border-color: #d9caa7;">
+                        <small class="text-muted">Optional</small>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="endDate" class="form-label fw-semibold" style="color: #8b6a14;">End Date</label>
+                        <input type="date" name="endDate" id="endDate" class="form-control" style="border-color: #d9caa7;">
+                        <small class="text-muted">Optional</small>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn w-100" style="background-color: #8b6a14; color: white; border: none;">
+                            <i class="bi bi-funnel me-2"></i> Apply Filters
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Results Section -->
+<div class="row pt-2 mb-4">
+    <div class="col-12">
+        <div class="section-card h-100 d-flex flex-column p-0 overflow-hidden mb-2 shadow-sm rounded">
+            <div class="p-4 border-bottom d-flex justify-content-between align-items-center" style="border-color: rgba(201, 162, 74, 0.2) !important; background-color: #fdfdf9;">
+                <h4 class="mb-0 section-heading-custom">
+                    Rate Change Audit Log
+                    @if (Model != null && Model.Any())
+                    {
+                        <span class="badge bg-success text-white ms-2" style="font-size: 11px;">@Model.Count() Changes</span>
+                    }
+                </h4>
+                @if (Model != null && Model.Any())
+                {
+                    <div>
+                        <button class="btn btn-sm btn-outline-secondary" style="color: #8b6a14; border-color: #d9caa7;" onclick="window.print()">
+                            <i class="bi bi-printer"></i> Print Report
+                        </button>
+                    </div>
+                }
+            </div>
+
+            <div class="p-4">
+                @if (ViewBag.ReportHtml != null)
+                {
+                    <div id="reportContent">
+                        @Html.Raw(ViewBag.ReportHtml)
+                    </div>
+                }
+                else
+                {
+                    <div class="p-5 text-center">
+                        <i class="bi bi-search" style="font-size: 48px; color: #d9caa7;"></i>
+                        <h5 class="mt-3 text-muted">No Data Available</h5>
+                        <p class="text-muted">Enter a Room ID and click "Apply Filters" to view rate change history.</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Restore filter values from URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomId = urlParams.get('roomId');
+            const startDate = urlParams.get('startDate');
+            const endDate = urlParams.get('endDate');
+
+            if (roomId) document.getElementById('roomId').value = roomId;
+            if (startDate) document.getElementById('startDate').value = startDate;
+            if (endDate) document.getElementById('endDate').value = endDate;
+
+            // Add custom styling to the report table if it exists
+            const reportTable = document.querySelector('#reportContent table');
+            if (reportTable) {
+                reportTable.classList.add('table-hover', 'align-middle', 'mb-0');
+                reportTable.style.backgroundColor = 'transparent';
+
+                // Style the table header
+                const thead = reportTable.querySelector('thead');
+                if (thead) {
+                    thead.style.backgroundColor = 'rgba(201, 162, 74, 0.05)';
+                    const thElements = thead.querySelectorAll('th');
+                    thElements.forEach(th => {
+                        th.style.color = '#8b6a14';
+                        th.style.borderBottom = '2px solid rgba(201, 162, 74, 0.2)';
+                        th.style.fontWeight = '600';
+                        th.style.textTransform = 'uppercase';
+                        th.style.fontSize = '12px';
+                        th.style.padding = '15px';
+                    });
+                }
+
+                // Style table rows
+                const tbody = reportTable.querySelector('tbody');
+                if (tbody) {
+                    const rows = tbody.querySelectorAll('tr');
+                    rows.forEach(row => {
+                        row.style.borderBottom = '1px solid rgba(201, 162, 74, 0.1)';
+                        row.style.transition = 'all 0.2s ease';
+                        
+                        const cells = row.querySelectorAll('td');
+                        cells.forEach(cell => {
+                            cell.style.padding = '15px';
+                        });
+                    });
+                }
+
+                // Enhance positive/negative change styling
+                const successElements = reportTable.querySelectorAll('.text-success');
+                successElements.forEach(el => {
+                    el.style.fontWeight = '600';
+                    el.style.color = '#2e7d32';
+                });
+
+                const dangerElements = reportTable.querySelectorAll('.text-danger');
+                dangerElements.forEach(el => {
+                    el.style.fontWeight = '600';
+                    el.style.color = '#c62828';
+                });
+            }
+
+            // Form validation
+            const form = document.getElementById('filterForm');
+            form.addEventListener('submit', function(e) {
+                const roomId = document.getElementById('roomId').value;
+                if (!roomId || roomId < 1) {
+                    e.preventDefault();
+                    alert('Please enter a valid Room ID (must be greater than 0)');
+                    return false;
+                }
+
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+
+                if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+                    e.preventDefault();
+                    alert('Start Date cannot be after End Date');
+                    return false;
+                }
+            });
+        });
+    </script>
+
+    <style>
+        /* Print styles */
+        @@media print {
+            .btn, .section-card:first-child, nav, footer {
+                display: none !important;
+            }
+            
+            .section-card {
+                box-shadow: none !important;
+                border: 1px solid #ddd !important;
+            }
+
+            #reportContent table {
+                page-break-inside: auto;
+            }
+
+            #reportContent tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
+            }
+        }
+
+        /* Hover effect for table rows */
+        #reportContent table tbody tr:hover {
+            background-color: rgba(201, 162, 74, 0.05) !important;
+        }
+    </style>
+}

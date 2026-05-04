@@ -1,9 +1,24 @@
 @using Microsoft.AspNetCore.Http
+@using ROYALHOTEL.Data
 @inject IHttpContextAccessor HttpContextAccessor
+@inject RoyalHotelDbContext DbContext
 
 @{
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
     var userName = HttpContextAccessor.HttpContext?.Session.GetString("USER_NAME") ?? "Admin";
+    
+    // Get count of escalated conversations for badge
+    var escalatedCount = 0;
+    try
+    {
+        escalatedCount = DbContext.ChatConversations
+            .Count(c => c.Status == "EscalatedToAdmin");
+    }
+    catch
+    {
+        // Silently fail if database is not available
+    }
+    
     Layout = null;
 }
 
@@ -20,6 +35,10 @@
     
     <!-- Bootstrap Icons (CDN) added for dashboard and admin global symbols -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- SweetAlert2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css" rel="stylesheet">
+    
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
     <div class="admin-shell">
@@ -40,6 +59,11 @@
                 <a asp-controller="AdminRooms" asp-action="Index"
                    class="admin-nav-link @(currentController == "AdminRooms" ? "active" : "")">
                     Rooms
+                </a>
+
+                <a asp-controller="AdminHotels" asp-action="Index"
+                   class="admin-nav-link @(currentController == "AdminHotels" ? "active" : "")">
+                    Chi nhánh
                 </a>
 
                 <a asp-controller="AdminPricingRules" asp-action="Index"
@@ -65,6 +89,14 @@
                 <a asp-controller="AdminReports" asp-action="Index"
                        class="admin-nav-link @(currentController == "AdminReports" ? "active" : "")">
                     Reports
+                </a>
+
+                <a asp-controller="AdminChat" asp-action="Index"
+                   class="admin-nav-link @(currentController == "AdminChat" ? "active" : "")"
+                   id="chatSupportNavLink">
+                    Chat Support
+                    <span id="chatSupportBadge" class="badge bg-danger ms-2"
+                          style="display:@(escalatedCount > 0 ? "inline" : "none")">@(escalatedCount > 0 ? escalatedCount.ToString() : "")</span>
                 </a>
 
                 <a asp-controller="Home" asp-action="Index" class="admin-nav-link">
@@ -157,6 +189,103 @@
         })();
     </script>
 
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.onmouseenter = Swal.stopTimer;
+                    toast.onmouseleave = Swal.resumeTimer;
+                }
+            });
+
+            @if (TempData["Success"] != null)
+            {
+                <text>
+                Toast.fire({
+                    icon: 'success',
+                    title: '@Html.Raw(TempData["Success"].ToString()?.Replace("'", "\\'").Replace("\n", " "))'
+                });
+                </text>
+            }
+
+            @if (TempData["Error"] != null)
+            {
+                <text>
+                Toast.fire({
+                    icon: 'error',
+                    title: '@Html.Raw(TempData["Error"].ToString()?.Replace("'", "\\'").Replace("\n", " "))'
+                });
+                </text>
+            }
+
+            // Hide raw bootstrap alerts to prevent duplication
+            document.querySelectorAll('.alert-success, .alert-danger').forEach(el => {
+                el.style.display = 'none';
+            });
+
+            // Intercept all forms with inline confirm() and replace with SweetAlert2
+            document.querySelectorAll('form[onsubmit*="confirm"]').forEach(form => {
+                const onsubmitAttr = form.getAttribute('onsubmit');
+                const match = onsubmitAttr.match(/confirm\(['"](.*?)['"]\)/);
+                if (match && match[1]) {
+                    form.removeAttribute('onsubmit');
+                    
+                    form.addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        Swal.fire({
+                            title: 'Confirmation Required',
+                            text: match[1],
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonColor: '#dc3545',
+                            cancelButtonColor: '#6c757d',
+                            confirmButtonText: 'Yes, proceed!',
+                            cancelButtonText: 'Cancel'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                form.submit();
+                            }
+                        });
+                    });
+                }
+            });
+        });
+    </script>
+
     @await RenderSectionAsync("Scripts", required: false)
+
+    <script>
+    // ─── Real-time unread badge on Chat Support nav ───
+    (function() {
+        const badge = document.getElementById('chatSupportBadge');
+        if (!badge) return;
+
+        async function pollUnreadCount() {
+            try {
+                const res = await fetch('/AdminChat/UnreadCount');
+                if (!res.ok) return;
+                const data = await res.json();
+                const count = data.count || 0;
+                if (count > 0) {
+                    badge.textContent = count;
+                    badge.style.display = 'inline';
+                } else {
+                    badge.style.display = 'none';
+                    badge.textContent = '';
+                }
+            } catch(e) { /* silent */ }
+        }
+
+        // Poll every 5 seconds
+        setInterval(pollUnreadCount, 5000);
+    })();
+    </script>
 </body>
 </html>
