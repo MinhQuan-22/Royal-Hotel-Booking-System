@@ -46,6 +46,24 @@ BEGIN
 END
 GO
 
+IF NOT EXISTS (SELECT 1 FROM Hotels WHERE Id = 4)
+BEGIN
+    SET IDENTITY_INSERT Hotels ON;
+    INSERT INTO Hotels (Id, Name, Address, City, Country)
+    VALUES (4, N'Royal Hotel New York', N'123 Fifth Avenue, Midtown Manhattan', N'New York', N'United States');
+    SET IDENTITY_INSERT Hotels OFF;
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Hotels WHERE Id = 5)
+BEGIN
+    SET IDENTITY_INSERT Hotels ON;
+    INSERT INTO Hotels (Id, Name, Address, City, Country)
+    VALUES (5, N'Royal Hotel Chicago', N'456 Michigan Avenue, Chicago Loop', N'Chicago', N'United States');
+    SET IDENTITY_INSERT Hotels OFF;
+END
+GO
+
 -- ============================================================
 -- ROOMS
 -- Hotel 1 — Da Nang
@@ -92,6 +110,34 @@ GO
 IF NOT EXISTS (SELECT 1 FROM Rooms WHERE Code = 'PQ-STE-401')
     INSERT INTO Rooms (Code, Name, RoomType, BasePricePerNight, MaxGuests, IsActive, Description, CoverImageUrl, CreatedAt, UpdatedAt, HotelId, Rate, Status)
     VALUES ('PQ-STE-401', N'Phu Quoc Family Suite', N'Suite', 3200000, 4, 1, N'Suite Gia Đình 150m² với hồ bơi riêng, bếp nhỏ, tầm nhìn hoàng hôn ra biển Tây.', NULL, SYSDATETIME(), SYSDATETIME(), 3, 3200000, 'ACTIVE');
+GO
+
+-- ============================================================
+-- Hotel 4 — New York
+-- ============================================================
+
+IF NOT EXISTS (SELECT 1 FROM Rooms WHERE Code = 'NY-DLX-201')
+    INSERT INTO Rooms (Code, Name, RoomType, BasePricePerNight, MaxGuests, IsActive, Description, CoverImageUrl, CreatedAt, UpdatedAt, HotelId, Rate, Status)
+    VALUES ('NY-DLX-201', N'New York City View Deluxe', N'Deluxe', 5500000, 2, 1, N'Phòng Deluxe 50m² tầm nhìn ra Manhattan skyline, đầy đủ tiện nghi 5 sao.', NULL, SYSDATETIME(), SYSDATETIME(), 4, 5500000, 'ACTIVE');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Rooms WHERE Code = 'NY-STE-401')
+    INSERT INTO Rooms (Code, Name, RoomType, BasePricePerNight, MaxGuests, IsActive, Description, CoverImageUrl, CreatedAt, UpdatedAt, HotelId, Rate, Status)
+    VALUES ('NY-STE-401', N'New York Penthouse Suite', N'Suite', 12000000, 4, 1, N'Penthouse Suite 200m² với terrace riêng nhìn toàn cảnh New York, butler 24/7.', NULL, SYSDATETIME(), SYSDATETIME(), 4, 12000000, 'ACTIVE');
+GO
+
+-- ============================================================
+-- Hotel 5 — Chicago
+-- ============================================================
+
+IF NOT EXISTS (SELECT 1 FROM Rooms WHERE Code = 'CHI-DLX-201')
+    INSERT INTO Rooms (Code, Name, RoomType, BasePricePerNight, MaxGuests, IsActive, Description, CoverImageUrl, CreatedAt, UpdatedAt, HotelId, Rate, Status)
+    VALUES ('CHI-DLX-201', N'Chicago Lakefront Deluxe', N'Deluxe', 4800000, 2, 1, N'Phòng Deluxe 48m² nhìn ra hồ Michigan, thiết kế hiện đại sang trọng.', NULL, SYSDATETIME(), SYSDATETIME(), 5, 4800000, 'ACTIVE');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Rooms WHERE Code = 'CHI-STE-401')
+    INSERT INTO Rooms (Code, Name, RoomType, BasePricePerNight, MaxGuests, IsActive, Description, CoverImageUrl, CreatedAt, UpdatedAt, HotelId, Rate, Status)
+    VALUES ('CHI-STE-401', N'Chicago Executive Suite', N'Suite', 9000000, 4, 1, N'Suite Executive 180m² với phòng họp riêng, tầm nhìn panorama ra Chicago Loop.', NULL, SYSDATETIME(), SYSDATETIME(), 5, 9000000, 'ACTIVE');
 GO
 
 -- ============================================================

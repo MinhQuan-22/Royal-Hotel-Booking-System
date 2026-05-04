@@ -365,24 +365,34 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_PaymentTransactions_Bo
 GO
 
 -- ============================================================
--- STORED PROCEDURE: sp_GetTopBookedRoomTypes
+-- STORED PROCEDURE: sp_GetTopBookedRooms
+-- Mục đích: Lấy top 3 phòng được đặt nhiều nhất (specific room level)
+-- Yêu cầu: Trả về đúng columns cho TopBookedRoomDto:
+--   RoomId, RoomCode, RoomName, RoomType, BookingCount
+-- Dùng trong: RoomQueryService.GetTopBookedRoomsAsync()
+--   → highlight phòng hot trên trang Rooms/Index
 -- ============================================================
-IF OBJECT_ID('sp_GetTopBookedRoomTypes', 'P') IS NOT NULL DROP PROCEDURE sp_GetTopBookedRoomTypes;
+IF OBJECT_ID('sp_GetTopBookedRooms', 'P') IS NOT NULL DROP PROCEDURE sp_GetTopBookedRooms;
 GO
-CREATE PROCEDURE sp_GetTopBookedRoomTypes
-    @TopN INT = 5
+CREATE PROCEDURE sp_GetTopBookedRooms
+    @TopN INT = 3
 AS
 BEGIN
+    SET NOCOUNT ON;
     SELECT TOP (@TopN)
-        r.RoomType,
-        COUNT(b.Id) AS BookingCount
+        r.Id          AS RoomId,
+        r.Code        AS RoomCode,
+        r.Name        AS RoomName,
+        r.RoomType    AS RoomType,
+        COUNT(b.Id)   AS BookingCount
     FROM Bookings b
     JOIN Rooms r ON b.RoomId = r.Id
     WHERE b.Status NOT IN ('Cancelled')
-    GROUP BY r.RoomType
+    GROUP BY r.Id, r.Code, r.Name, r.RoomType
     ORDER BY BookingCount DESC;
 END
 GO
+PRINT 'Stored procedure sp_GetTopBookedRooms created.';
 
 -- ============================================================
 -- STORED PROCEDURE: sp_ConfirmBooking (PESSIMISTIC LOCKING)

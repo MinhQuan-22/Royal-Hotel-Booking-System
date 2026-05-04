@@ -145,6 +145,80 @@ targetDb.HotelCatalog.insertOne({
   updated_at: new Date()
 });
 
+// ── HOTEL 4 — New York (SQL Hotels.Id = 4) ──────────────────
+targetDb.HotelCatalog.insertOne({
+  hotel_id: 4,
+  hotel_name: "Royal Hotel New York",
+  city: "New York",
+  country: "United States",
+  description: "Khách sạn 5 sao đẳng cấp quốc tế tọa lạc tại trung tâm Midtown Manhattan. Tầm nhìn toàn cảnh New York skyline, nhà hàng fine dining tầng thượng và spa thế giới.",
+  amenities: ["wifi", "pool", "spa", "gym", "parking", "restaurant", "bar", "room_service", "concierge", "business_center", "laundry", "valet"],
+  images: [
+    "/images/hotels/newyork/lobby.jpg",
+    "/images/hotels/newyork/skyline.jpg",
+    "/images/hotels/newyork/restaurant.jpg",
+    "/images/hotels/newyork/spa.jpg"
+  ],
+  rooms: [
+    {
+      room_id: 301,
+      room_code: "NY-DLX-201",
+      room_name: "New York City View Deluxe",
+      room_type: "Deluxe",
+      amenities: ["wifi", "air_conditioning", "tv", "minibar", "safe", "city_view", "king_bed", "marble_bathroom"],
+      description: "Phòng Deluxe 50m² tầm nhìn ra Manhattan skyline. Nội thất hiện đại, bồn tắm cẩm thạch.",
+      images: ["/images/rooms/ny-dlx-201-1.jpg", "/images/rooms/ny-dlx-201-2.jpg"]
+    },
+    {
+      room_id: 302,
+      room_code: "NY-STE-401",
+      room_name: "New York Penthouse Suite",
+      room_type: "Suite",
+      amenities: ["wifi", "air_conditioning", "tv", "minibar", "safe", "city_view", "private_terrace", "bathtub", "living_room", "kitchen", "butler", "jacuzzi"],
+      description: "Penthouse Suite 200m² với terrace riêng 360° nhìn toàn cảnh New York. Butler 24/7.",
+      images: ["/images/rooms/ny-ste-401-1.jpg", "/images/rooms/ny-ste-401-2.jpg"]
+    }
+  ],
+  updated_at: new Date()
+});
+
+// ── HOTEL 5 — Chicago (SQL Hotels.Id = 5) ───────────────────
+targetDb.HotelCatalog.insertOne({
+  hotel_id: 5,
+  hotel_name: "Royal Hotel Chicago",
+  city: "Chicago",
+  country: "United States",
+  description: "Biểu tượng sang trọng tại Chicago Loop nhìn ra hồ Michigan. Kiến trúc Art Deco kết hợp tiện nghi hiện đại, rooftop bar và nhà hàng Michelin.",
+  amenities: ["wifi", "pool", "spa", "gym", "parking", "restaurant", "bar", "room_service", "concierge", "business_center", "laundry", "rooftop_bar"],
+  images: [
+    "/images/hotels/chicago/lobby.jpg",
+    "/images/hotels/chicago/lake.jpg",
+    "/images/hotels/chicago/restaurant.jpg",
+    "/images/hotels/chicago/rooftop.jpg"
+  ],
+  rooms: [
+    {
+      room_id: 401,
+      room_code: "CHI-DLX-201",
+      room_name: "Chicago Lakefront Deluxe",
+      room_type: "Deluxe",
+      amenities: ["wifi", "air_conditioning", "tv", "minibar", "safe", "lake_view", "king_bed", "rainfall_shower"],
+      description: "Phòng Deluxe 48m² nhìn ra hồ Michigan. Thiết kế hiện đại với vòi sen rainfall và sàn gỗ.",
+      images: ["/images/rooms/chi-dlx-201-1.jpg", "/images/rooms/chi-dlx-201-2.jpg"]
+    },
+    {
+      room_id: 402,
+      room_code: "CHI-STE-401",
+      room_name: "Chicago Executive Suite",
+      room_type: "Suite",
+      amenities: ["wifi", "air_conditioning", "tv", "minibar", "safe", "panoramic_view", "bathtub", "living_room", "meeting_room", "butler", "breakfast"],
+      description: "Suite Executive 180m² với phòng họp riêng. Tầm nhìn panorama ra Chicago Loop và hồ Michigan.",
+      images: ["/images/rooms/chi-ste-401-1.jpg", "/images/rooms/chi-ste-401-2.jpg"]
+    }
+  ],
+  updated_at: new Date()
+});
+
 // ── VERIFY ───────────────────────────────────────────────────
 const count   = targetDb.HotelCatalog.countDocuments();
 const indexes = targetDb.HotelCatalog.getIndexes();
