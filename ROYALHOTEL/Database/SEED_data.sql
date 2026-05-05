@@ -274,3 +274,57 @@ SELECT 'FAQ'               AS [Table], COUNT(*) AS [Rows] FROM FAQ;
 PRINT 'ROYALHOTEL Seed Data Complete.';
 PRINT '=================================================';
 GO
+
+-- ============================================================
+-- MASSIVE BOOKING GENERATION (For Advanced Analytics)
+-- Mục đích: Tạo ~400 bookings trong năm 2026 để biểu đồ đẹp
+-- ============================================================
+PRINT 'Generating ~400 sample bookings for 2026...';
+DECLARE @i INT = 1;
+DECLARE @TotalRooms INT = (SELECT COUNT(*) FROM Rooms);
+DECLARE @StartDate DATE = '2026-01-01';
+DECLARE @EndDate DATE = '2026-12-31';
+
+WHILE @i <= 400
+BEGIN
+    DECLARE @RoomId INT = (SELECT TOP 1 Id FROM Rooms ORDER BY NEWID());
+    DECLARE @DaysFromStart INT = ABS(CHECKSUM(NEWID())) % DATEDIFF(DAY, @StartDate, @EndDate);
+    DECLARE @CheckIn DATE = DATEADD(DAY, @DaysFromStart, @StartDate);
+    DECLARE @StayDays INT = (ABS(CHECKSUM(NEWID())) % 4) + 1;
+    DECLARE @CheckOut DATE = DATEADD(DAY, @StayDays, @CheckIn);
+    
+    DECLARE @Rate DECIMAL(18,2) = (SELECT Rate FROM Rooms WHERE Id = @RoomId);
+    DECLARE @TotalAmount DECIMAL(18,2) = @Rate * @StayDays;
+    
+    DECLARE @RandStatus INT = ABS(CHECKSUM(NEWID())) % 100;
+    DECLARE @Status NVARCHAR(20) = 'Completed';
+    DECLARE @RefundAmount DECIMAL(18,2) = 0;
+    
+    IF @RandStatus < 15 
+    BEGIN
+        SET @Status = 'Cancelled';
+        SET @RefundAmount = CASE WHEN @RandStatus < 7 THEN @TotalAmount ELSE @TotalAmount * 0.5 END;
+    END
+    ELSE IF @RandStatus < 30 SET @Status = 'Confirmed';
+    ELSE IF @RandStatus < 60 SET @Status = 'CheckedOut';
+    
+    INSERT INTO Bookings (RoomId, BookingCode, CheckIn, CheckOut, Status, TotalAmount, CreatedAt, RefundAmount, Guests, GuestName, GuestEmail)
+    VALUES (
+        @RoomId, 
+        CONCAT('BK-2026-', @i, '-', ABS(CHECKSUM(NEWID())) % 1000),
+        @CheckIn, 
+        @CheckOut, 
+        @Status, 
+        @TotalAmount, 
+        DATEADD(DAY, - (ABS(CHECKSUM(NEWID())) % 30), @CheckIn), -- Booked 1-30 days before
+        @RefundAmount,
+        (ABS(CHECKSUM(NEWID())) % 2) + 1, -- 1-2 guests
+        N'Guest ' + CAST(@i AS NVARCHAR(10)),
+        'guest' + CAST(@i AS NVARCHAR(10)) + '@example.com'
+    );
+    
+    SET @i = @i + 1;
+END
+PRINT 'Sample bookings generated.';
+GO
+

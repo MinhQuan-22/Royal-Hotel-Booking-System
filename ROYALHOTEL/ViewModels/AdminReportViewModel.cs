@@ -6,8 +6,11 @@ namespace ROYALHOTEL.ViewModels
     {
         // ── Bộ lọc ──────────────────────────────────────────────────
         public string SelectedBranch { get; set; } = "all";
+        public int SelectedHotelId { get; set; } = 0;
         public int SelectedYear { get; set; } = 2026;
         public int SelectedMonth { get; set; } = 0; // 0 = Tất cả tháng
+        
+        public List<(int Id, string Name, string City)> Hotels { get; set; } = new();
 
         // ── Summary Cards ────────────────────────────────────────────
         public decimal GrossRevenue { get; set; }
@@ -75,5 +78,13 @@ namespace ROYALHOTEL.ViewModels
         public string Recommendation { get; set; } = "";
         public string Level { get; set; } = "info";
         public string Icon { get; set; } = "bi-arrow-right";
+    }
+
+    public class TimeAnalysisDto
+    {
+        public string HighestRevenueLabel { get; set; } = "";
+        public string LowestRevenueLabel { get; set; } = "";
+        public string MostBookingLabel { get; set; } = "";
+        public int MostBookingCount { get; set; }
     }
 }

@@ -111,9 +111,26 @@ BEGIN
         BookingCode NVARCHAR(50)    NOT NULL UNIQUE,
         CheckIn     DATE            NOT NULL,
         CheckOut    DATE            NOT NULL,
+        Guests      INT             NOT NULL DEFAULT 1,
         Status      NVARCHAR(20)    NOT NULL DEFAULT 'Pending',
-        TotalAmount DECIMAL(18,2)   NULL,
-        CreatedAt   DATETIME2       NOT NULL DEFAULT GETUTCDATE(),
+        
+        GuestName   NVARCHAR(200)   NULL,
+        GuestEmail  NVARCHAR(200)   NULL,
+        GuestPhone  NVARCHAR(20)    NULL,
+        
+        PricePerNight DECIMAL(18,2)  NULL,
+        TotalAmount   DECIMAL(18,2)  NULL,
+        PaymentMethod NVARCHAR(50)   NULL,
+        CreatedAt     DATETIME2      NOT NULL DEFAULT GETUTCDATE(),
+
+        -- --- REFUND & CANCELLATION ---
+        CancelledAt   DATETIME2      NULL,
+        CancelReason  NVARCHAR(500)  NULL,
+        CancelNote    NVARCHAR(MAX)  NULL,
+        RefundAmount  DECIMAL(18,2)  NULL DEFAULT 0,
+        RefundStatus  NVARCHAR(50)   NULL,
+        RefundPolicyApplied NVARCHAR(500) NULL,
+        RefundProcessedAt   DATETIME2 NULL,
 
         CONSTRAINT FK_Bookings_Rooms    FOREIGN KEY (RoomId)    REFERENCES Rooms(Id),
         CONSTRAINT FK_Bookings_Accounts FOREIGN KEY (AccountId) REFERENCES Accounts(Id) ON DELETE SET NULL,
@@ -125,13 +142,27 @@ BEGIN
 END
 ELSE
 BEGIN
-    IF COL_LENGTH('Bookings', 'Status')      IS NULL ALTER TABLE Bookings ADD Status      NVARCHAR(20)  NOT NULL CONSTRAINT DF_Bookings_Status  DEFAULT 'Pending';
-    IF COL_LENGTH('Bookings', 'TotalAmount') IS NULL ALTER TABLE Bookings ADD TotalAmount DECIMAL(18,2) NULL;
-    IF COL_LENGTH('Bookings', 'BookingCode') IS NULL ALTER TABLE Bookings ADD BookingCode NVARCHAR(50)  NULL;
-    IF COL_LENGTH('Bookings', 'AccountId')   IS NULL ALTER TABLE Bookings ADD AccountId   INT           NULL;
+    -- Ensure columns exist for migration/cleanup scenarios
+    IF COL_LENGTH('Bookings', 'BookingCode') IS NULL ALTER TABLE Bookings ADD BookingCode NVARCHAR(50) NULL;
+    IF COL_LENGTH('Bookings', 'Guests')      IS NULL ALTER TABLE Bookings ADD Guests INT NOT NULL DEFAULT 1;
+    IF COL_LENGTH('Bookings', 'RefundAmount') IS NULL ALTER TABLE Bookings ADD RefundAmount DECIMAL(18,2) NULL DEFAULT 0;
+    IF COL_LENGTH('Bookings', 'GuestName')   IS NULL ALTER TABLE Bookings ADD GuestName NVARCHAR(200) NULL;
+    IF COL_LENGTH('Bookings', 'GuestEmail')  IS NULL ALTER TABLE Bookings ADD GuestEmail NVARCHAR(200) NULL;
+    IF COL_LENGTH('Bookings', 'GuestPhone')  IS NULL ALTER TABLE Bookings ADD GuestPhone NVARCHAR(20) NULL;
+    IF COL_LENGTH('Bookings', 'PricePerNight') IS NULL ALTER TABLE Bookings ADD PricePerNight DECIMAL(18,2) NULL;
+    IF COL_LENGTH('Bookings', 'PaymentMethod') IS NULL ALTER TABLE Bookings ADD PaymentMethod NVARCHAR(50) NULL;
+    IF COL_LENGTH('Bookings', 'CancelledAt')  IS NULL ALTER TABLE Bookings ADD CancelledAt DATETIME2 NULL;
+    IF COL_LENGTH('Bookings', 'CancelReason') IS NULL ALTER TABLE Bookings ADD CancelReason NVARCHAR(500) NULL;
+    IF COL_LENGTH('Bookings', 'CancelNote')   IS NULL ALTER TABLE Bookings ADD CancelNote NVARCHAR(MAX) NULL;
+    IF COL_LENGTH('Bookings', 'RefundStatus') IS NULL ALTER TABLE Bookings ADD RefundStatus NVARCHAR(50) NULL;
+    IF COL_LENGTH('Bookings', 'RefundProcessedAt') IS NULL ALTER TABLE Bookings ADD RefundProcessedAt DATETIME2 NULL;
+    IF COL_LENGTH('Bookings', 'RefundPolicyApplied') IS NULL ALTER TABLE Bookings ADD RefundPolicyApplied NVARCHAR(500) NULL;
+
+    -- Update NULL Guests to default 1 to prevent C# SqlNullValueException
+    EXEC('UPDATE Bookings SET Guests = 1 WHERE Guests IS NULL');
 
     -- Backfill BookingCode
-    UPDATE Bookings SET BookingCode = CONCAT('BK-', Id) WHERE BookingCode IS NULL;
+    EXEC('UPDATE Bookings SET BookingCode = CONCAT(''BK-'', Id) WHERE BookingCode IS NULL');
 
     IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys       WHERE name = 'FK_Bookings_Rooms')
         ALTER TABLE Bookings ADD CONSTRAINT FK_Bookings_Rooms FOREIGN KEY (RoomId) REFERENCES Rooms(Id);
@@ -139,8 +170,6 @@ BEGIN
         ALTER TABLE Bookings ADD CONSTRAINT CK_Bookings_DateRange CHECK (CheckOut > CheckIn);
     IF NOT EXISTS (SELECT 1 FROM sys.check_constraints  WHERE name = 'CK_Bookings_Status')
         ALTER TABLE Bookings ADD CONSTRAINT CK_Bookings_Status CHECK (Status IN ('Pending','Confirmed','CheckedIn','CheckedOut','Completed','Cancelled'));
-    IF NOT EXISTS (SELECT 1 FROM sys.check_constraints  WHERE name = 'CK_Bookings_TotalAmount_NonNegative')
-        ALTER TABLE Bookings ADD CONSTRAINT CK_Bookings_TotalAmount_NonNegative CHECK (TotalAmount IS NULL OR TotalAmount >= 0);
 END
 GO
 
@@ -150,6 +179,7 @@ IF COL_LENGTH('Bookings', 'LockExpiry') IS NULL
 IF COL_LENGTH('Bookings', 'LockedBy')   IS NULL
     ALTER TABLE Bookings ADD LockedBy   NVARCHAR(100) NULL;
 GO
+
 
 -- ============================================================
 -- TABLE: RoomRateChangeLogs
@@ -642,137 +672,71 @@ GO
 
 -- ============================================================
 -- STORED PROCEDURE: sp_GetDashboardKpi
--- Mục đích: Tính KPI tổng hợp cho Admin Dashboard
--- Filter: HotelId (NULL = tất cả), Year (bắt buộc), Month (0 = cả năm)
---
--- Advanced Database Techniques:
---   - Conditional Aggregation (CASE WHEN inside SUM/COUNT)
---   - JOIN: Bookings → Rooms → Hotels (3-table join)
---   - Net Revenue tính ở SQL: GrossRevenue - RefundAmount
---   - Occupancy Rate: OccupiedDays / AvailableDays (cross join)
---   - Cancellation Rate: Window-safe COUNT CASE WHEN
---   - NULL-safe arithmetic: ISNULL(), NULLIF()
+-- Mục đích: Tính toán các chỉ số KPI chính (Doanh thu, Tỷ lệ lấp đầy, Tỷ lệ hủy)
+-- Kỹ thuật: Conditional Aggregation, Complex Date Logic
 -- ============================================================
 IF OBJECT_ID('sp_GetDashboardKpi', 'P') IS NOT NULL
     DROP PROCEDURE sp_GetDashboardKpi;
 GO
 
 CREATE PROCEDURE sp_GetDashboardKpi
-    @HotelId INT  = NULL,  -- NULL = tất cả chi nhánh
-    @Year    INT,           -- Năm lọc (bắt buộc)
-    @Month   INT  = 0       -- 0 = cả năm, 1-12 = tháng cụ thể
+    @HotelId INT  = NULL,
+    @Year    INT,
+    @Month   INT  = 0
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- ── Xác định ngày đầu/cuối kỳ lọc ─────────────────────────────────
-    DECLARE @StartDate DATETIME2, @EndDate DATETIME2;
-    IF @Month = 0
-    BEGIN
-        SET @StartDate = DATEFROMPARTS(@Year, 1,  1);
-        SET @EndDate   = DATEFROMPARTS(@Year, 12, 31);
-        SET @EndDate   = DATEADD(DAY, 1, @EndDate); -- exclusive upper bound
-    END
-    ELSE
-    BEGIN
-        SET @StartDate = DATEFROMPARTS(@Year, @Month, 1);
-        SET @EndDate   = DATEADD(MONTH, 1, @StartDate); -- exclusive upper bound
-    END
+    DECLARE @StartDate DATETIME2 = DATEFROMPARTS(@Year, ISNULL(NULLIF(@Month, 0), 1), 1);
+    DECLARE @EndDate DATETIME2;
+    IF @Month = 0 SET @EndDate = DATEADD(YEAR, 1, @StartDate);
+    ELSE SET @EndDate = DATEADD(MONTH, 1, @StartDate);
 
-    -- ── 1. REVENUE & BOOKING KPIs ───────────────────────────────────────
-    -- Gross Revenue = TotalAmount của booking doanh thu hợp lệ
-    --              + phần KHÔNG hoàn của booking Cancelled
-    -- (nếu RefundAmount < TotalAmount tức là hotel giữ phần chênh lệch)
-    --
-    -- Conditional Aggregation:
-    --   SUM(CASE WHEN ... THEN ... ELSE 0 END)
-    -- ────────────────────────────────────────────────────────────────────
     SELECT
-        -- Gross Revenue: tổng TotalAmount của tất cả booking trong kỳ
-        -- (kể cả Cancelled vì hotel vẫn ghi nhận doanh thu ban đầu)
-        ISNULL(SUM(
-            CASE
-                WHEN b.Status IN ('Confirmed','CheckedIn','CheckedOut','Completed')
-                    THEN ISNULL(b.TotalAmount, 0)
-                WHEN b.Status = 'Cancelled'
-                    -- Giữ lại phần hotel không hoàn (chính sách hủy)
-                    THEN ISNULL(b.TotalAmount, 0) - ISNULL(b.RefundAmount, 0)
-                ELSE 0
-            END
-        ), 0)                                               AS GrossRevenue,
+        -- Total Bookings: Sales performance based on CreatedAt
+        ISNULL(SUM(CASE WHEN b.CreatedAt >= @StartDate AND b.CreatedAt < @EndDate THEN 1 ELSE 0 END), 0) AS TotalBookings,
 
-        -- Refund Amount: tổng tiền đã hoàn cho khách
-        ISNULL(SUM(ISNULL(b.RefundAmount, 0)), 0)           AS RefundAmount,
+        -- Gross Revenue: Based on CheckIn (Earned Revenue)
+        ISNULL(SUM(CASE WHEN b.CheckIn >= @StartDate AND b.CheckIn < @EndDate AND b.Status <> 'Pending' THEN b.TotalAmount ELSE 0 END), 0) AS GrossRevenue,
 
-        -- Net Revenue = GrossRevenue - RefundAmount (tính ở SQL)
-        ISNULL(SUM(
-            CASE
-                WHEN b.Status IN ('Confirmed','CheckedIn','CheckedOut','Completed')
-                    THEN ISNULL(b.TotalAmount, 0) - ISNULL(b.RefundAmount, 0)
-                WHEN b.Status = 'Cancelled'
-                    THEN 0  -- Cancelled: hotel đã giữ lại ở GrossRevenue rồi
-                ELSE 0
-            END
-        ), 0)                                               AS NetRevenue,
+        -- Refund Amount: Based on CheckIn
+        ISNULL(SUM(CASE WHEN b.CheckIn >= @StartDate AND b.CheckIn < @EndDate AND b.Status <> 'Pending' THEN b.RefundAmount ELSE 0 END), 0) AS RefundAmount,
 
-        -- Total Bookings: tất cả booking trong kỳ (mọi status)
-        COUNT(b.Id)                                         AS TotalBookings,
+        -- Net Revenue: Gross - Refund (Calculated at SQL)
+        ISNULL(SUM(CASE WHEN b.CheckIn >= @StartDate AND b.CheckIn < @EndDate AND b.Status <> 'Pending' THEN ISNULL(b.TotalAmount, 0) - ISNULL(b.RefundAmount, 0) ELSE 0 END), 0) AS NetRevenue,
 
-        -- Cancellation Rate %: Cancelled / Total * 100
-        ROUND(
-            COUNT(CASE WHEN b.Status = 'Cancelled' THEN 1 END) * 100.0
-            / NULLIF(COUNT(b.Id), 0)
-        , 2)                                                AS CancellationRate,
-
-        -- ── Occupancy Rate % ───────────────────────────────────────────
-        -- OccupiedDays = SUM(CheckOut - CheckIn) của booking hợp lệ
-        -- AvailableDays = số phòng active trong hotel × số ngày trong kỳ
-        -- Cách tính: (Occupied room-nights / Available room-nights) * 100
-        -- Ghi chú: CheckIn/CheckOut là DATE nên DATEDIFF trả ngày đêm chính xác
+        -- Cancellation Rate: Based on CheckIn bookings
         ROUND(
             ISNULL(SUM(
-                CASE
-                    WHEN b.Status IN ('Confirmed','CheckedIn','CheckedOut','Completed')
-                        THEN CAST(DATEDIFF(DAY, b.CheckIn, b.CheckOut) AS DECIMAL(10,2))
-                    ELSE 0
-                END
+                CASE WHEN b.Status = 'Cancelled' AND b.CheckIn >= @StartDate AND b.CheckIn < @EndDate THEN 1.0 ELSE 0 END
+            ), 0)
+            * 100.0 
+            / NULLIF(SUM(CASE WHEN b.CheckIn >= @StartDate AND b.CheckIn < @EndDate AND b.Status <> 'Pending' THEN 1 ELSE 0 END), 0)
+        , 2) AS CancellationRate,
+
+        -- Occupancy Rate: Based on CheckIn bookings
+        ROUND(
+            ISNULL(SUM(
+                CASE WHEN b.Status IN ('Confirmed','CheckedIn','CheckedOut','Completed') AND b.CheckIn >= @StartDate AND b.CheckIn < @EndDate
+                     THEN CAST(DATEDIFF(DAY, b.CheckIn, b.CheckOut) AS DECIMAL(10,2)) ELSE 0 END
             ), 0)
             * 100.0
             / NULLIF(
-                -- Available room-days = Active rooms × days in period
-                (
-                    SELECT COUNT(r2.Id)
-                    FROM Rooms r2
-                    WHERE r2.IsActive = 1
-                      AND r2.Status = 'ACTIVE'
-                      AND (@HotelId IS NULL OR r2.HotelId = @HotelId)
-                )
+                (SELECT COUNT(r2.Id) FROM Rooms r2 WHERE r2.IsActive = 1 AND r2.Status = 'ACTIVE' AND (@HotelId IS NULL OR r2.HotelId = @HotelId))
                 * DATEDIFF(DAY, @StartDate, @EndDate)
             , 0)
-        , 2)                                                AS OccupancyRate
-
+        , 2) AS OccupancyRate
     FROM Bookings b
     JOIN Rooms   r ON b.RoomId  = r.Id
     JOIN Hotels  h ON r.HotelId = h.Id
-    WHERE
-        -- Filter theo kỳ (dùng CreatedAt làm booking date)
-        b.CreatedAt >= @StartDate
-        AND b.CreatedAt <  @EndDate
-        -- Filter theo hotel
-        AND (@HotelId IS NULL OR h.Id = @HotelId)
-        -- Loại bỏ Pending: chưa thanh toán, không tính doanh thu
-        AND b.Status <> 'Pending';
+    WHERE (b.CheckIn >= @StartDate AND b.CheckIn < @EndDate OR b.CreatedAt >= @StartDate AND b.CreatedAt < @EndDate)
+      AND (@HotelId IS NULL OR h.Id = @HotelId)
+      AND b.Status <> 'Pending';
 END;
-GO
-PRINT 'Stored procedure sp_GetDashboardKpi created (Advanced DB: Conditional Aggregation, Window-safe, 3-table JOIN).';
 GO
 
 -- ============================================================
 -- STORED PROCEDURE: sp_GetDashboardMonthlyRevenue
--- Mục đích: Trả Net Revenue theo từng tháng trong năm được chọn
--- Kỹ thuật: Conditional Aggregation, LEFT JOIN với số tháng (1-12)
---           để luôn trả đủ 12 hàng dù tháng không có data
--- Dùng cho: Biểu đồ "So sánh doanh thu thực tế 12 tháng"
 -- ============================================================
 IF OBJECT_ID('sp_GetDashboardMonthlyRevenue', 'P') IS NOT NULL
     DROP PROCEDURE sp_GetDashboardMonthlyRevenue;
@@ -788,7 +752,6 @@ BEGIN
 
     IF @Month = 0
     BEGIN
-        -- CTE tạo 12 tháng cố định (đảm bảo luôn đủ 12 hàng)
         WITH Months AS (
             SELECT 1 AS MonthNum UNION ALL SELECT 2 UNION ALL SELECT 3
             UNION ALL SELECT 4  UNION ALL SELECT 5 UNION ALL SELECT 6
@@ -796,63 +759,39 @@ BEGIN
             UNION ALL SELECT 10 UNION ALL SELECT 11 UNION ALL SELECT 12
         )
         SELECT
-            m.MonthNum                                              AS MonthNum,
-            CONCAT(N'T', m.MonthNum)                               AS Label,
-            ISNULL(SUM(
-                CASE
-                    WHEN b.Status IN ('Confirmed','CheckedIn','CheckedOut','Completed')
-                        THEN ISNULL(b.TotalAmount, 0) - ISNULL(b.RefundAmount, 0)
-                    ELSE 0
-                END
-            ), 0)                                                   AS NetRevenue,
-            COUNT(b.Id)                                             AS BookingCount
+            m.MonthNum,
+            CONCAT(N'T', m.MonthNum)                            AS Label,
+            ISNULL(SUM(CASE WHEN b.Status IN ('Confirmed','CheckedIn','CheckedOut','Completed', 'Cancelled') 
+                            THEN ISNULL(b.TotalAmount, 0) - ISNULL(b.RefundAmount, 0) ELSE 0 END), 0) AS NetRevenue
         FROM Months m
-        LEFT JOIN Bookings b
-            ON  YEAR(b.CreatedAt)  = @Year
-            AND MONTH(b.CreatedAt) = m.MonthNum
-            AND b.Status NOT IN ('Pending','Cancelled')
-            AND (@HotelId IS NULL OR b.RoomId IN (
-                    SELECT r2.Id FROM Rooms r2 WHERE r2.HotelId = @HotelId
-                 ))
+        LEFT JOIN Bookings b 
+            ON YEAR(b.CheckIn) = @Year AND MONTH(b.CheckIn) = m.MonthNum
+            AND (@HotelId IS NULL OR b.RoomId IN (SELECT Id FROM Rooms WHERE HotelId = @HotelId))
+            AND b.Status <> 'Pending'
         GROUP BY m.MonthNum
         ORDER BY m.MonthNum;
     END
     ELSE
     BEGIN
-        -- Phân tuần: ngày 1-7=T1, 8-14=T2, 15-21=T3, 22+=T4
         SELECT
-            wk.WeekNum                                              AS MonthNum,
-            CONCAT(N'Tuần ', wk.WeekNum)                            AS Label,
-            ISNULL(SUM(
-                CASE
-                    WHEN b.Status IN ('Confirmed','CheckedIn','CheckedOut','Completed')
-                        THEN ISNULL(b.TotalAmount, 0) - ISNULL(b.RefundAmount, 0)
-                    ELSE 0
-                END
-            ), 0)                                                   AS NetRevenue,
-            COUNT(b.Id)                                             AS BookingCount
+            wk.WeekNum,
+            CONCAT(N'Tuần ', wk.WeekNum)                        AS Label,
+            ISNULL(SUM(CASE WHEN b.Status IN ('Confirmed','CheckedIn','CheckedOut','Completed', 'Cancelled') 
+                            THEN ISNULL(b.TotalAmount, 0) - ISNULL(b.RefundAmount, 0) ELSE 0 END), 0) AS NetRevenue
         FROM (VALUES(1),(2),(3),(4)) AS wk(WeekNum)
-        LEFT JOIN Bookings b
-            ON  YEAR(b.CreatedAt)  = @Year
-            AND MONTH(b.CreatedAt) = @Month
-            AND CEILING(CAST(DAY(b.CreatedAt) AS FLOAT) / 7.0) = wk.WeekNum
-            AND b.Status NOT IN ('Pending','Cancelled')
-            AND (@HotelId IS NULL OR b.RoomId IN (
-                    SELECT r2.Id FROM Rooms r2 WHERE r2.HotelId = @HotelId
-                 ))
+        LEFT JOIN Bookings b 
+            ON YEAR(b.CheckIn) = @Year AND MONTH(b.CheckIn) = @Month 
+            AND CEILING(CAST(DAY(b.CheckIn) AS FLOAT) / 7.0) = wk.WeekNum
+            AND (@HotelId IS NULL OR b.RoomId IN (SELECT Id FROM Rooms WHERE HotelId = @HotelId))
+            AND b.Status <> 'Pending'
         GROUP BY wk.WeekNum
         ORDER BY wk.WeekNum;
     END
 END;
 GO
-PRINT 'Stored procedure sp_GetDashboardMonthlyRevenue created.';
-GO
 
 -- ============================================================
 -- STORED PROCEDURE: sp_GetDashboardTopRooms
--- Mục đích: Xếp hạng Top N phòng theo Net Revenue
--- Kỹ thuật: RANK() OVER (PARTITION BY HotelId ORDER BY NetRevenue DESC)
---           — SQL Window Function, đây là core Advanced DB requirement
 -- ============================================================
 IF OBJECT_ID('sp_GetDashboardTopRooms', 'P') IS NOT NULL
     DROP PROCEDURE sp_GetDashboardTopRooms;
@@ -862,88 +801,35 @@ CREATE PROCEDURE sp_GetDashboardTopRooms
     @HotelId INT  = NULL,
     @Year    INT,
     @Month   INT  = 0,
-    @TopN    INT  = 3
+    @TopN    INT  = 5
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    DECLARE @StartDate DATETIME2, @EndDate DATETIME2;
-    IF @Month = 0
-    BEGIN
-        SET @StartDate = DATEFROMPARTS(@Year, 1, 1);
-        SET @EndDate   = DATEADD(YEAR, 1, @StartDate);
-    END
-    ELSE
-    BEGIN
-        SET @StartDate = DATEFROMPARTS(@Year, @Month, 1);
-        SET @EndDate   = DATEADD(MONTH, 1, @StartDate);
-    END
+    DECLARE @StartDate DATETIME2 = DATEFROMPARTS(@Year, ISNULL(NULLIF(@Month, 0), 1), 1);
+    DECLARE @EndDate DATETIME2;
+    IF @Month = 0 SET @EndDate = DATEADD(YEAR, 1, @StartDate);
+    ELSE SET @EndDate = DATEADD(MONTH, 1, @StartDate);
 
-    -- ── WINDOW FUNCTION: RANK() OVER (PARTITION BY HotelId) ─────────
-    -- Xếp hạng phòng theo doanh thu thực tế trong từng khách sạn
-    -- SUM() OVER (PARTITION BY) để tính tổng hotel cho % đóng góp
-    -- ─────────────────────────────────────────────────────────────────
-    ;WITH RoomRevenue AS (
-        SELECT
-            h.Id                                                AS HotelId,
-            h.Name                                              AS HotelName,
-            h.City                                              AS Branch,
-            r.Id                                                AS RoomId,
-            r.Code                                              AS RoomCode,
-            r.Name                                              AS RoomName,
-            r.RoomType,
-            COUNT(b.Id)                                         AS TotalBookings,
-            ISNULL(SUM(
-                ISNULL(b.TotalAmount,0) - ISNULL(b.RefundAmount,0)
-            ), 0)                                               AS NetRevenue
-        FROM Bookings b
-        JOIN Rooms   r ON b.RoomId  = r.Id
-        JOIN Hotels  h ON r.HotelId = h.Id
-        WHERE b.Status IN ('Confirmed','CheckedIn','CheckedOut','Completed')
-          AND b.CreatedAt >= @StartDate
-          AND b.CreatedAt <  @EndDate
-          AND (@HotelId IS NULL OR h.Id = @HotelId)
-        GROUP BY h.Id, h.Name, h.City, r.Id, r.Code, r.Name, r.RoomType
-    ),
-    Ranked AS (
-        SELECT *,
-            -- RANK() OVER: xếp hạng trong từng hotel
-            RANK() OVER (
-                PARTITION BY HotelId
-                ORDER BY NetRevenue DESC
-            )                                                   AS HotelRank,
-            -- RANK() OVER toàn hệ thống (không partition)
-            RANK() OVER (
-                ORDER BY NetRevenue DESC
-            )                                                   AS GlobalRank,
-            -- % đóng góp doanh thu trong hotel
-            ROUND(NetRevenue * 100.0 / NULLIF(
-                SUM(NetRevenue) OVER (PARTITION BY HotelId)
-            , 0), 2)                                            AS ContribPct
-        FROM RoomRevenue
-    )
     SELECT TOP (@TopN)
-        GlobalRank                                              AS Rank,
-        Branch,
-        RoomCode,
-        RoomName,
-        RoomType,
-        NetRevenue,
-        TotalBookings,
-        HotelRank,
-        ContribPct
-    FROM Ranked
-    ORDER BY GlobalRank, NetRevenue DESC;
+        r.Code                                                  AS RoomCode,
+        r.Name                                                  AS RoomName,
+        r.RoomType                                              AS RoomType,
+        h.City                                                  AS Branch,
+        ISNULL(SUM(CASE WHEN b.CheckIn >= @StartDate AND b.CheckIn < @EndDate THEN ISNULL(b.TotalAmount,0) - ISNULL(b.RefundAmount,0) ELSE 0 END), 0) AS NetRevenue,
+        COUNT(CASE WHEN b.CheckIn >= @StartDate AND b.CheckIn < @EndDate THEN b.Id END) AS TotalBookings,
+        RANK() OVER (ORDER BY SUM(ISNULL(b.TotalAmount,0) - ISNULL(b.RefundAmount,0)) DESC) AS Rank
+    FROM Rooms r
+    JOIN Hotels h ON r.HotelId = h.Id
+    LEFT JOIN Bookings b ON b.RoomId = r.Id AND b.Status <> 'Pending'
+    WHERE (@HotelId IS NULL OR h.Id = @HotelId)
+    GROUP BY r.Id, r.Code, r.Name, r.RoomType, h.City
+    ORDER BY NetRevenue DESC;
 END;
-GO
-PRINT 'Stored procedure sp_GetDashboardTopRooms created (Window Function: RANK OVER PARTITION).';
 GO
 
 -- ============================================================
 -- STORED PROCEDURE: sp_GetDashboardRoomOccupancy
--- Mục đích: Tỷ lệ lấp phòng từng phòng trong kỳ
--- Kỹ thuật: Occupied room-nights / days-in-period * 100
---           Conditional aggregation + DATEDIFF
 -- ============================================================
 IF OBJECT_ID('sp_GetDashboardRoomOccupancy', 'P') IS NOT NULL
     DROP PROCEDURE sp_GetDashboardRoomOccupancy;
@@ -958,29 +844,21 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    DECLARE @StartDate DATETIME2, @EndDate DATETIME2, @DaysInPeriod INT;
-    IF @Month = 0
-    BEGIN
-        SET @StartDate    = DATEFROMPARTS(@Year, 1, 1);
-        SET @EndDate      = DATEADD(YEAR, 1, @StartDate);
-        SET @DaysInPeriod = 365;
-    END
-    ELSE
-    BEGIN
-        SET @StartDate    = DATEFROMPARTS(@Year, @Month, 1);
-        SET @EndDate      = DATEADD(MONTH, 1, @StartDate);
-        SET @DaysInPeriod = DATEDIFF(DAY, @StartDate, @EndDate);
-    END
+    DECLARE @StartDate DATETIME2 = DATEFROMPARTS(@Year, ISNULL(NULLIF(@Month, 0), 1), 1);
+    DECLARE @EndDate DATETIME2;
+    IF @Month = 0 SET @EndDate = DATEADD(YEAR, 1, @StartDate);
+    ELSE SET @EndDate = DATEADD(MONTH, 1, @StartDate);
+
+    DECLARE @DaysInPeriod INT = DATEDIFF(DAY, @StartDate, @EndDate);
 
     SELECT TOP (@TopN)
         r.Code                                                  AS RoomCode,
         r.Name                                                  AS RoomName,
         h.City                                                  AS Branch,
-        -- Occupancy % = occupied nights / days-in-period * 100
         ROUND(
             ISNULL(SUM(
                 CASE
-                    WHEN b.Status IN ('Confirmed','CheckedIn','CheckedOut','Completed')
+                    WHEN b.Status IN ('Confirmed','CheckedIn','CheckedOut','Completed') AND b.CheckIn >= @StartDate AND b.CheckIn < @EndDate
                         THEN CAST(DATEDIFF(DAY, b.CheckIn, b.CheckOut) AS DECIMAL(10,2))
                     ELSE 0
                 END
@@ -988,24 +866,17 @@ BEGIN
         , 2)                                                    AS OccupancyPct
     FROM Rooms r
     JOIN Hotels h ON r.HotelId = h.Id
-    LEFT JOIN Bookings b
-        ON  b.RoomId     = r.Id
-        AND b.CreatedAt >= @StartDate
-        AND b.CreatedAt <  @EndDate
-    WHERE r.IsActive = 1
+    LEFT JOIN Bookings b ON b.RoomId = r.Id AND b.Status <> 'Pending'
+    WHERE (@HotelId IS NULL OR h.Id = @HotelId)
+      AND r.IsActive = 1
       AND r.Status = 'ACTIVE'
-      AND (@HotelId IS NULL OR h.Id = @HotelId)
     GROUP BY r.Id, r.Code, r.Name, h.City
     ORDER BY OccupancyPct DESC;
 END;
 GO
-PRINT 'Stored procedure sp_GetDashboardRoomOccupancy created.';
-GO
 
 -- ============================================================
 -- STORED PROCEDURE: sp_GetDashboardCancellationTrend
--- Mục đích: Xu hướng hủy phòng theo tháng hoặc tuần
--- Kỹ thuật: Conditional Aggregation theo Status + MONTH()
 -- ============================================================
 IF OBJECT_ID('sp_GetDashboardCancellationTrend', 'P') IS NOT NULL
     DROP PROCEDURE sp_GetDashboardCancellationTrend;
@@ -1021,7 +892,6 @@ BEGIN
 
     IF @Month = 0
     BEGIN
-        -- Hiện 12 tháng
         WITH Months AS (
             SELECT 1 AS MonthNum UNION ALL SELECT 2 UNION ALL SELECT 3
             UNION ALL SELECT 4  UNION ALL SELECT 5 UNION ALL SELECT 6
@@ -1031,44 +901,143 @@ BEGIN
         SELECT
             m.MonthNum,
             CONCAT(N'T', m.MonthNum)                            AS Label,
-            ISNULL(COUNT(CASE WHEN b.Status = 'Cancelled' THEN 1 END), 0) AS Cancelled,
-            ISNULL(COUNT(b.Id), 0)                              AS TotalBookings,
-            ISNULL(SUM(ISNULL(b.RefundAmount, 0)), 0)           AS RefundAmount
+            ISNULL(COUNT(CASE WHEN b.Status = 'Cancelled' AND b.CheckIn >= DATEFROMPARTS(@Year, m.MonthNum, 1) AND b.CheckIn < DATEADD(MONTH, 1, DATEFROMPARTS(@Year, m.MonthNum, 1)) THEN 1 END), 0) AS Cancelled,
+            ISNULL(COUNT(CASE WHEN b.CheckIn >= DATEFROMPARTS(@Year, m.MonthNum, 1) AND b.CheckIn < DATEADD(MONTH, 1, DATEFROMPARTS(@Year, m.MonthNum, 1)) THEN b.Id END), 0) AS TotalBookings,
+            ISNULL(SUM(CASE WHEN b.CheckIn >= DATEFROMPARTS(@Year, m.MonthNum, 1) AND b.CheckIn < DATEADD(MONTH, 1, DATEFROMPARTS(@Year, m.MonthNum, 1)) THEN ISNULL(b.RefundAmount, 0) ELSE 0 END), 0) AS RefundAmount
         FROM Months m
-        LEFT JOIN Bookings b
-            ON  YEAR(b.CreatedAt)  = @Year
-            AND MONTH(b.CreatedAt) = m.MonthNum
-            AND b.Status <> 'Pending'
-            AND (@HotelId IS NULL OR b.RoomId IN (
-                    SELECT r2.Id FROM Rooms r2 WHERE r2.HotelId = @HotelId
-                 ))
+        LEFT JOIN Bookings b ON b.Status <> 'Pending'
+            AND (@HotelId IS NULL OR b.RoomId IN (SELECT Id FROM Rooms WHERE HotelId = @HotelId))
         GROUP BY m.MonthNum
         ORDER BY m.MonthNum;
     END
     ELSE
     BEGIN
-        -- Hiện 4 tuần trong tháng được chọn
         DECLARE @StartDate DATETIME2 = DATEFROMPARTS(@Year, @Month, 1);
         SELECT
             wk.WeekNum,
             CONCAT(N'Tuần ', wk.WeekNum)                        AS Label,
-            ISNULL(COUNT(CASE WHEN b.Status = 'Cancelled' THEN 1 END), 0) AS Cancelled,
-            ISNULL(COUNT(b.Id), 0)                              AS TotalBookings,
-            ISNULL(SUM(ISNULL(b.RefundAmount, 0)), 0)           AS RefundAmount
+            ISNULL(COUNT(CASE WHEN b.Status = 'Cancelled' AND b.CheckIn >= @StartDate AND MONTH(b.CheckIn) = @Month AND CEILING(CAST(DAY(b.CheckIn) AS FLOAT) / 7.0) = wk.WeekNum THEN 1 END), 0) AS Cancelled,
+            ISNULL(COUNT(CASE WHEN b.CheckIn >= @StartDate AND MONTH(b.CheckIn) = @Month AND CEILING(CAST(DAY(b.CheckIn) AS FLOAT) / 7.0) = wk.WeekNum THEN b.Id END), 0) AS TotalBookings,
+            ISNULL(SUM(CASE WHEN b.CheckIn >= @StartDate AND MONTH(b.CheckIn) = @Month AND CEILING(CAST(DAY(b.CheckIn) AS FLOAT) / 7.0) = wk.WeekNum THEN ISNULL(b.RefundAmount, 0) ELSE 0 END), 0) AS RefundAmount
         FROM (VALUES(1),(2),(3),(4)) AS wk(WeekNum)
-        LEFT JOIN Bookings b
-            ON  YEAR(b.CreatedAt)  = @Year
-            AND MONTH(b.CreatedAt) = @Month
-            -- Phân tuần: ngày 1-7=T1, 8-14=T2, 15-21=T3, 22+=T4
-            AND CEILING(CAST(DAY(b.CreatedAt) AS FLOAT) / 7.0) = wk.WeekNum
-            AND b.Status <> 'Pending'
-            AND (@HotelId IS NULL OR b.RoomId IN (
-                    SELECT r2.Id FROM Rooms r2 WHERE r2.HotelId = @HotelId
-                 ))
+        LEFT JOIN Bookings b ON b.Status <> 'Pending'
+            AND (@HotelId IS NULL OR b.RoomId IN (SELECT Id FROM Rooms WHERE HotelId = @HotelId))
         GROUP BY wk.WeekNum
         ORDER BY wk.WeekNum;
     END
 END;
 GO
-PRINT 'Stored procedure sp_GetDashboardCancellationTrend created.';
+
+-- ============================================================
+-- STORED PROCEDURE: sp_GetAdminReportRoomPerformance
+-- ============================================================
+IF OBJECT_ID('sp_GetAdminReportRoomPerformance', 'P') IS NOT NULL
+    DROP PROCEDURE sp_GetAdminReportRoomPerformance;
+GO
+
+CREATE PROCEDURE sp_GetAdminReportRoomPerformance
+    @HotelId INT  = NULL,
+    @Year    INT,
+    @Month   INT  = 0
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @StartDate DATETIME2 = DATEFROMPARTS(@Year, ISNULL(NULLIF(@Month, 0), 1), 1);
+    DECLARE @EndDate DATETIME2 = DATEADD(MONTH, CASE WHEN @Month=0 THEN 12 ELSE 1 END, @StartDate);
+
+    DECLARE @TotalDays INT = DATEDIFF(DAY, @StartDate, @EndDate);
+
+    SELECT 
+        h.Name AS Branch,
+        r.Code AS RoomCode,
+        r.Name AS RoomName,
+        r.RoomType,
+        SUM(ISNULL(b.TotalAmount, 0)) AS GrossRevenue,
+        SUM(CASE WHEN b.Status = 'Cancelled' THEN 1 ELSE 0 END) AS CancelledCount,
+        SUM(ISNULL(b.RefundAmount, 0)) AS RefundAmount,
+        COUNT(b.Id) AS TotalBookings,
+        ROUND(ISNULL(SUM(CASE WHEN b.Status IN ('Confirmed','CheckedIn','CheckedOut','Completed') THEN CAST(DATEDIFF(DAY, b.CheckIn, b.CheckOut) AS DECIMAL(10,2)) ELSE 0 END), 0) * 100.0 / NULLIF(@TotalDays, 0), 2) AS OccupancyPct,
+        ROUND(SUM(CASE WHEN b.Status = 'Cancelled' THEN 1.0 ELSE 0 END) * 100.0 / NULLIF(COUNT(b.Id), 0), 2) AS CancellationPct
+    FROM Rooms r
+    JOIN Hotels  h ON r.HotelId = h.Id
+    LEFT JOIN Bookings b ON b.RoomId = r.Id
+        AND b.Status <> 'Pending'
+        AND b.CheckIn >= @StartDate
+        AND b.CheckIn <  @EndDate
+    WHERE (@HotelId IS NULL OR h.Id = @HotelId)
+    GROUP BY h.Id, h.Name, h.City, r.Id, r.Code, r.Name, r.RoomType
+    ORDER BY Branch, GrossRevenue DESC;
+END;
+GO
+
+-- ============================================================
+-- STORED PROCEDURE: sp_GetAdminReportTimeAnalysis
+-- ============================================================
+IF OBJECT_ID('sp_GetAdminReportTimeAnalysis', 'P') IS NOT NULL
+    DROP PROCEDURE sp_GetAdminReportTimeAnalysis;
+GO
+
+CREATE PROCEDURE sp_GetAdminReportTimeAnalysis
+    @HotelId INT  = NULL,
+    @Year    INT,
+    @Month   INT  = 0
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    CREATE TABLE #TimePeriods (
+        Label           NVARCHAR(50),
+        NetRevenue      DECIMAL(18,2),
+        TotalBookings   INT
+    );
+
+    IF @Month = 0
+    BEGIN
+        INSERT INTO #TimePeriods (Label, NetRevenue, TotalBookings)
+        SELECT 
+            CONCAT(N'Tháng ', m.MonthNum),
+            ISNULL(SUM(CASE WHEN b.Status IN ('Confirmed','CheckedIn','CheckedOut','Completed', 'Cancelled') 
+                            THEN ISNULL(b.TotalAmount, 0) - ISNULL(b.RefundAmount, 0) ELSE 0 END), 0),
+            COUNT(CASE WHEN b.Status <> 'Pending' THEN b.Id END)
+        FROM (VALUES(1),(2),(3),(4),(5),(6),(7),(8),(9),(10),(11),(12)) AS m(MonthNum)
+        LEFT JOIN Bookings b 
+            ON YEAR(b.CheckIn) = @Year AND MONTH(b.CheckIn) = m.MonthNum
+            AND (@HotelId IS NULL OR b.RoomId IN (SELECT Id FROM Rooms WHERE HotelId = @HotelId))
+            AND b.Status <> 'Pending'
+        GROUP BY m.MonthNum;
+    END
+    ELSE
+    BEGIN
+        INSERT INTO #TimePeriods (Label, NetRevenue, TotalBookings)
+        SELECT 
+            CONCAT(N'Tuần ', wk.WeekNum),
+            ISNULL(SUM(CASE WHEN b.Status IN ('Confirmed','CheckedIn','CheckedOut','Completed', 'Cancelled') 
+                            THEN ISNULL(b.TotalAmount, 0) - ISNULL(b.RefundAmount, 0) ELSE 0 END), 0),
+            COUNT(CASE WHEN b.Status <> 'Pending' THEN b.Id END)
+        FROM (VALUES(1),(2),(3),(4)) AS wk(WeekNum)
+        LEFT JOIN Bookings b 
+            ON YEAR(b.CheckIn) = @Year AND MONTH(b.CheckIn) = @Month 
+            AND CEILING(CAST(DAY(b.CheckIn) AS FLOAT) / 7.0) = wk.WeekNum
+            AND (@HotelId IS NULL OR b.RoomId IN (SELECT Id FROM Rooms WHERE HotelId = @HotelId))
+            AND b.Status <> 'Pending'
+        GROUP BY wk.WeekNum;
+    END
+
+    SELECT TOP 1
+        (SELECT TOP 1 Label FROM #TimePeriods ORDER BY NetRevenue DESC) AS HighestRevenueLabel,
+        (SELECT TOP 1 NetRevenue FROM #TimePeriods ORDER BY NetRevenue DESC) AS HighestRevenueValue,
+
+        (SELECT TOP 1 Label FROM #TimePeriods ORDER BY NetRevenue ASC) AS LowestRevenueLabel,
+        (SELECT TOP 1 NetRevenue FROM #TimePeriods ORDER BY NetRevenue ASC) AS LowestRevenueValue,
+
+        (SELECT TOP 1 Label FROM #TimePeriods ORDER BY TotalBookings DESC) AS MostBookingLabel,
+        (SELECT TOP 1 TotalBookings FROM #TimePeriods ORDER BY TotalBookings DESC) AS MostBookingCount
+    FROM #TimePeriods;
+
+    DROP TABLE #TimePeriods;
+END;
+GO
+
+PRINT 'ROYALHOTEL Schema Initialization Complete with Advanced Analytics.';
 GO

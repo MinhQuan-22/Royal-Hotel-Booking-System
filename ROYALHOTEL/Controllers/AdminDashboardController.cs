@@ -61,7 +61,23 @@ namespace ROYALHOTEL.Controllers
             var cancel    = cancelTask.Result;
             var hotels    = hotelsTask.Result.ToList();
 
-            List<MonthlyRevenuePoint> monthlyRev = actualMonth == 0 ? annualRev : monthlyTask.Result;
+            List<MonthlyRevenuePoint> monthlyRev;
+            if (actualMonth == 0)
+            {
+                // Gộp 12 tháng thành 4 Quý (Tránh trùng lặp với Biểu đồ lớn)
+                monthlyRev = new List<MonthlyRevenuePoint>
+                {
+                    new MonthlyRevenuePoint { Label = "Quý 1", NetRevenue = annualRev.Where(x => x.Label == "T1" || x.Label == "T2" || x.Label == "T3").Sum(x => x.NetRevenue) },
+                    new MonthlyRevenuePoint { Label = "Quý 2", NetRevenue = annualRev.Where(x => x.Label == "T4" || x.Label == "T5" || x.Label == "T6").Sum(x => x.NetRevenue) },
+                    new MonthlyRevenuePoint { Label = "Quý 3", NetRevenue = annualRev.Where(x => x.Label == "T7" || x.Label == "T8" || x.Label == "T9").Sum(x => x.NetRevenue) },
+                    new MonthlyRevenuePoint { Label = "Quý 4", NetRevenue = annualRev.Where(x => x.Label == "T10" || x.Label == "T11" || x.Label == "T12").Sum(x => x.NetRevenue) }
+                };
+            }
+            else
+            {
+                monthlyRev = monthlyTask.Result;
+            }
+
             decimal maxW = monthlyRev.Any() ? monthlyRev.Max(x => x.NetRevenue) : 1;
             if (maxW == 0) maxW = 1;
             foreach (var pt in monthlyRev) pt.MaxValue = maxW;

@@ -19,6 +19,8 @@ namespace ROYALHOTEL.Services.Analytics
 
         /// <summary>sp_GetDashboardCancellationTrend — Xu hướng hủy phòng theo tháng/tuần</summary>
         Task<List<CancellationTrendPoint>> GetCancellationTrendAsync(int? hotelId, int year, int month);
+        Task<List<RoomPerformanceRow>> GetRoomPerformanceReportAsync(int? hotelId, int year, int month);
+        Task<TimeAnalysisDto> GetTimeAnalysisAsync(int? hotelId, int year, int month);
 
         /// <summary>Danh sách Hotels để build dropdown filter</summary>
         Task<IEnumerable<HotelSummaryDto>> GetHotelsAsync();

@@ -170,7 +170,7 @@
 
 /* ── Cancellation bar (double stacked) ──────────────────────── */
 .cancel-chart{display:flex;align-items:flex-end;gap:8px;height:160px}
-.cancel-col{flex:1;display:flex;flex-direction:column-reverse;align-items:center;gap:2px;cursor:pointer}
+.cancel-col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;align-items:center;gap:2px;cursor:pointer}
 .c-bar{width:80%;border-radius:4px 4px 0 0;transition:height .5s ease;min-height:4px;position:relative}
 .c-bar::after{content:attr(data-tip);position:absolute;bottom:calc(100%+4px);left:50%;transform:translateX(-50%);
     background:#1a1a1a;color:#fff;padding:3px 8px;border-radius:5px;font-size:10px;white-space:nowrap;
@@ -254,7 +254,7 @@
 .annual-bars::before{top:25%}
 .annual-bars::after{top:50%}
 .annual-bar-col{
-    flex:1;display:flex;flex-direction:column;
+    flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;
     align-items:center;gap:0;cursor:pointer;position:relative
 }
 .annual-bar-fill{
@@ -617,7 +617,7 @@
     <div class="chart-card">
         <div class="chart-title">
             <i class="bi bi-bar-chart-fill"></i>
-            @(Model.SelectedMonth == 0 ? "Doanh thu các tháng" : "Doanh thu theo tuần")
+            @(Model.SelectedMonth == 0 ? "Doanh thu theo Quý" : "Doanh thu theo tuần")
             <span class="chart-period">@periodLabel</span>
         </div>
         <div class="d-flex gap-4 mb-3 align-items-center">

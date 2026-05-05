@@ -130,6 +130,36 @@ namespace ROYALHOTEL.Services.Analytics
             return rows.ToList();
         }
 
+        // ── Room Performance Report ──────────────────────────────────────────
+        public async Task<List<RoomPerformanceRow>> GetRoomPerformanceReportAsync(int? hotelId, int year, int month)
+        {
+            using var conn = Conn();
+            var p = new DynamicParameters();
+            p.Add("@HotelId", hotelId, DbType.Int32);
+            p.Add("@Year",    year,    DbType.Int32);
+            p.Add("@Month",   month,   DbType.Int32);
+
+            var rows = await conn.QueryAsync<RoomPerformanceRow>(
+                "sp_GetAdminReportRoomPerformance", p, commandType: CommandType.StoredProcedure);
+
+            return rows.ToList();
+        }
+
+        // ── Time Analysis ────────────────────────────────────────────────────
+        public async Task<TimeAnalysisDto> GetTimeAnalysisAsync(int? hotelId, int year, int month)
+        {
+            using var conn = Conn();
+            var p = new DynamicParameters();
+            p.Add("@HotelId", hotelId, DbType.Int32);
+            p.Add("@Year",    year,    DbType.Int32);
+            p.Add("@Month",   month,   DbType.Int32);
+
+            var result = await conn.QuerySingleOrDefaultAsync<TimeAnalysisDto>(
+                "sp_GetAdminReportTimeAnalysis", p, commandType: CommandType.StoredProcedure);
+
+            return result ?? new TimeAnalysisDto();
+        }
+
         // ── Hotels dropdown ──────────────────────────────────────────────────
         public async Task<IEnumerable<HotelSummaryDto>> GetHotelsAsync()
         {
