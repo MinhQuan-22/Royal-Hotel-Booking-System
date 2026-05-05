@@ -1,330 +1,313 @@
 @model ROYALHOTEL.ViewModels.AdminReportViewModel
-
 @{
-    ViewData["Title"] = "Hotel Operations Report";
+    ViewData["Title"] = "Báo cáo phân tích";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    string fmtM(decimal v) => v >= 1_000_000_000 ? $"{v/1_000_000_000:F2}B ₫"
+        : v >= 1_000_000 ? $"{v/1_000_000:F1}M ₫" : $"{v:N0} ₫";
+    var branchOptions = new[]{("all","Tất cả chi nhánh"),("saigon","Royal Hotel Saigon"),
+        ("danang","Royal Hotel Da Nang"),("hanoi","Royal Hotel Ha Noi")};
+    var years = new[]{2024,2025,2026};
+    var months = new (int v,string l)[]{(0,"Tất cả tháng"),(1,"Tháng 1"),(2,"Tháng 2"),
+        (3,"Tháng 3"),(4,"Tháng 4"),(5,"Tháng 5"),(6,"Tháng 6"),
+        (7,"Tháng 7"),(8,"Tháng 8"),(9,"Tháng 9"),(10,"Tháng 10"),(11,"Tháng 11"),(12,"Tháng 12")};
+    string periodLabel = Model.SelectedMonth == 0 ? $"Cả năm {Model.SelectedYear}"
+        : $"Tháng {Model.SelectedMonth}/{Model.SelectedYear}";
+    string branchLabel = Model.SelectedBranch switch {
+        "saigon"=>"Royal Hotel Saigon","danang"=>"Royal Hotel Da Nẵng",
+        "hanoi"=>"Royal Hotel Hà Nội",_=>"Toàn hệ thống"};
 }
-
-<div class="row pt-2 mb-4">
-    <div class="col-12 d-flex justify-content-between align-items-center">
-        <h4 class="mb-0" style="color: #8b6a14; font-family: 'Playfair Display', Georgia, serif; font-size: 28px;">Hotel Operations Report</h4>
-        <button class="btn btn-outline-primary shadow-sm">
-            <i class="bi bi-file-earmark-pdf me-2"></i> Export to PDF
-        </button>
-    </div>
-</div>
-
-<!-- ANALYTICS REPORTS NAVIGATION -->
-<div class="row pt-2 mb-4 g-4">
-    <div class="col-md-6">
-        <a asp-controller="AdminReports" asp-action="QuarterlyRevenue" class="text-decoration-none">
-            <div class="section-card h-100 d-flex flex-column p-4 shadow-sm rounded" style="transition: all 0.3s ease; cursor: pointer;">
-                <div class="d-flex align-items-center mb-3">
-                    <div class="kpi-icon me-3" style="width: 50px; height: 50px; font-size: 24px;">
-                        <i class="bi bi-graph-up-arrow"></i>
-                    </div>
-                    <div>
-                        <h5 class="mb-1 fw-bold" style="color: #8b6a14;">Quarterly Revenue Analytics</h5>
-                        <p class="mb-0 text-muted small">View top 3 revenue-generating rooms per hotel per quarter</p>
-                    </div>
-                </div>
-                <div class="mt-auto">
-                    <span class="badge" style="background-color: rgba(139, 106, 20, 0.1); color: #8b6a14; font-weight: 600; padding: 6px 12px; font-size: 12px;">
-                        <i class="bi bi-bar-chart-line me-1"></i> Advanced Analytics
-                    </span>
-                </div>
-            </div>
-        </a>
-    </div>
-    
-    <div class="col-md-6">
-        <a asp-controller="AdminReports" asp-action="RateChangeHistory" asp-route-roomId="1" class="text-decoration-none">
-            <div class="section-card h-100 d-flex flex-column p-4 shadow-sm rounded" style="transition: all 0.3s ease; cursor: pointer;">
-                <div class="d-flex align-items-center mb-3">
-                    <div class="kpi-icon me-3" style="width: 50px; height: 50px; font-size: 24px; background-color: rgba(2, 136, 209, 0.1);">
-                        <i class="bi bi-clock-history" style="color: #0288d1;"></i>
-                    </div>
-                    <div>
-                        <h5 class="mb-1 fw-bold" style="color: #0288d1;">Room Rate Change History</h5>
-                        <p class="mb-0 text-muted small">Track significant room rate changes and audit pricing decisions</p>
-                    </div>
-                </div>
-                <div class="mt-auto">
-                    <span class="badge" style="background-color: rgba(2, 136, 209, 0.1); color: #0288d1; font-weight: 600; padding: 6px 12px; font-size: 12px;">
-                        <i class="bi bi-shield-check me-1"></i> Audit Trail
-                    </span>
-                </div>
-            </div>
-        </a>
-    </div>
-</div>
-
-<div class="row pt-2 mb-4 g-4">
-    <!-- TOP 3 REVENUE GENERATING ROOMS -->
-    <div class="col-12">
-        <div class="section-card h-100 d-flex flex-column p-0 overflow-hidden mb-2 shadow-sm rounded">
-            <div class="p-4 border-bottom" style="border-color: rgba(201, 162, 74, 0.2) !important; background-color: #fdfdf9;">
-                <h4 class="mb-0 section-heading-custom">Top 3 Revenue Rooms <span class="badge bg-warning text-dark ms-2" style="font-size: 11px;">Current QTR</span></h4>
-            </div>
-
-            <div class="p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0" style="background-color: transparent;">
-                        <thead style="background-color: rgba(201, 162, 74, 0.05);">
-                            <tr>
-                                <th class="text-center" style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; width: 80px; padding: 15px;">Rank</th>
-                                <th style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; width: 120px; padding: 15px;">Code</th>
-                                <th style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; padding: 15px;">Room</th>
-                                <th style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; width: 150px; padding: 15px;">Type</th>
-                                <th class="text-center" style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; width: 120px; padding: 15px;">Occ</th>
-                                <th class="text-end" style="color: #8b6a14; border-bottom: 2px solid rgba(201, 162, 74, 0.2); font-weight: 600; text-transform: uppercase; font-size: 12px; width: 180px; padding: 15px 30px 15px 15px;">Revenue</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @{
-                                int index = 1;
-                            }
-                            @if (Model.TopRevenueRooms != null && Model.TopRevenueRooms.Any())
-                            {
-                                @foreach (var room in Model.TopRevenueRooms)
-                                {
-                                    <tr style="border-bottom: 1px solid rgba(201, 162, 74, 0.1); transition: all 0.2s ease;">
-                                        <!-- Rank Number Only -->
-                                        <td class="text-center py-4">
-                                            <div class="d-inline-flex align-items-center justify-content-center"
-                                                 style="width: 32px; height: 32px; border-radius: 50%; background-color: rgba(139, 106, 20, 0.08);">
-                                                <span class="fw-bold" style="color: #8b6a14; font-size: 15px;">#@index</span>
-                                            </div>
-                                        </td>
-
-                                        <!-- Code -->
-                                        <td class="py-4 px-3">
-                                            <span class="text-secondary fw-semibold" style="font-size: 15px; letter-spacing: 0.5px;">@room.RoomCode</span>
-                                        </td>
-
-                                        <!-- Room Info -->
-                                        <td class="py-4 px-3">
-                                            <h6 class="mb-0 fw-bold text-dark" style="font-size: 16px;">@room.RoomName</h6>
-                                        </td>
-
-                                        <!-- Type -->
-                                        <td class="py-4 px-3">
-                                            <span class="badge rounded-pill" style="background-color: rgba(139, 106, 20, 0.1); color: #8b6a14; font-weight: 600; padding: 6px 12px; font-size: 12px;">@room.RoomType</span>
-                                        </td>
-
-                                        <!-- Occupancy Rate -->
-                                        <td class="text-center py-4 px-3">
-                                            <div class="d-inline-block px-3 py-1 rounded" style="background-color: rgba(46, 125, 50, 0.05);">
-                                                <span class="fw-bold" style="color: #2e7d32; font-size: 15px;">@room.OccupancyRate%</span>
-                                            </div>
-                                        </td>
-
-                                        <!-- Revenue -->
-                                        <td class="text-end py-4" style="padding-right: 30px;">
-                                            <h5 class="mb-1" style="color: #8b6a14; font-family: 'Playfair Display', Georgia, serif; font-size: 20px; font-weight: 700;">
-                                                $@room.RevenueGenerated.ToString("N0")
-                                            </h5>
-                                            <span class="text-muted d-block text-uppercase" style="font-size: 11px; font-weight: 600; letter-spacing: 0.5px;">@room.TotalBookings Bookings</span>
-                                        </td>
-                                    </tr>
-                                    index++;
-                                }
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- MONTHLY REVENUE CHART -->
-<div class="row pt-2 mb-4 g-4">
-    <div class="col-12">
-        <div class="section-card h-100 d-flex flex-column p-0 overflow-hidden mb-2 shadow-sm rounded">
-            <div class="d-flex justify-content-between align-items-center p-4 border-bottom" style="border-color: rgba(201, 162, 74, 0.2) !important; background-color: #fdfdf9;">
-                <h4 class="mb-0 section-heading-custom">Monthly Revenue Statistics <span class="badge text-white ms-2" style="font-size: 15px;">2024</span></h4>
-                <div>
-                    <button class="btn btn-sm btn-outline-secondary" style="color: #8b6a14; border-color: #d9caa7;">
-                        <i class="bi bi-download"></i> CSV
-                    </button>
-                </div>
-            </div>
-            <div class="p-4" style="height: 350px;">
-                <canvas id="monthlyRevenueChart"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- MOVED PRICING TREND CHART -->
-<div class="row pt-2 mb-4 g-4">
-    <div class="col-xl-8 col-lg-12">
-        <div class="section-card mb-2 h-100">
-            <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4" style="border-color: rgba(201, 162, 74, 0.2) !important;">
-                <h4 class="mb-0 section-heading-custom">Room Pricing Trend</h4>
-                <div>
-                    <select class="form-select form-select-sm d-inline-block w-auto" style="border-color: #d9caa7;">
-                        <option value="7days">Last 7 Days</option>
-                        <option value="30days">Last 30 Days</option>
-                    </select>
-                </div>
-            </div>
-            <div style="height: 360px;">
-                <canvas id="roomPriceReportChart"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
-
 @section Styles {
-    <style>
-        .section-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 16px rgba(139, 106, 20, 0.15) !important;
-        }
-        
-        .section-card {
-            border: 1px solid rgba(201, 162, 74, 0.15);
-        }
-    </style>
+<style>
+/* ── Base ── */
+.rep-page{font-family:'Inter','Segoe UI',system-ui,sans-serif}
+/* ── Filter ── */
+.rep-filter{background:linear-gradient(135deg,#fffdf7,#fff);border:1px solid #d9caa7;border-radius:14px;padding:16px 22px;box-shadow:0 4px 20px rgba(139,106,20,.10);margin-bottom:24px}
+.rep-filter-row{display:flex;align-items:flex-end;gap:12px;flex-wrap:nowrap}
+.rep-fg{display:flex;flex-direction:column;flex:1;min-width:0}
+.rep-fg.br{flex:2}.rep-fg.yr{flex:1}.rep-fg.mn{flex:1.5}
+.rep-lbl{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#8b6a14;margin-bottom:5px}
+.rep-filter .form-select{border-color:#d9caa7;font-size:14px;min-height:42px;border-radius:8px;width:100%}
+.rep-btn{background:linear-gradient(135deg,#8b6a14,#b8932e);color:#fff;border:none;border-radius:8px;padding:0 22px;font-weight:700;font-size:14px;height:42px;white-space:nowrap;flex-shrink:0;transition:all .2s}
+.rep-btn:hover{background:linear-gradient(135deg,#6d5410,#8b6a14);transform:translateY(-1px)}
+.rep-badge{background:rgba(139,106,20,.08);color:#8b6a14;border:1px solid rgba(139,106,20,.25);border-radius:20px;padding:5px 14px;font-size:12px;font-weight:700;white-space:nowrap;flex-shrink:0}
+/* ── Section ── */
+.rep-sec{font-size:12px;font-weight:800;color:#8b6a14;text-transform:uppercase;letter-spacing:.9px;margin:24px 0 14px;display:flex;align-items:center;gap:8px;border-left:4px solid #c9a24a;padding-left:10px}
+/* ── Summary cards ── */
+.rep-sum-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px}
+.rep-sum{background:#fff;border:1px solid #e0d4b0;border-radius:14px;padding:20px 16px;box-shadow:0 4px 20px rgba(139,106,20,.08);position:relative;overflow:hidden;transition:all .28s;cursor:default}
+.rep-sum::before{content:'';position:absolute;top:0;left:0;width:100%;height:3px;border-radius:14px 14px 0 0}
+.s-gross::before{background:linear-gradient(90deg,#c9a24a,#f0c14b)}
+.s-refund::before{background:linear-gradient(90deg,#ab47bc,#6a1b9a)}
+.s-net::before{background:linear-gradient(90deg,#7a5c10,#c9a24a)}
+.s-occ::before{background:linear-gradient(90deg,#1565c0,#42a5f5)}
+.s-revpar::before{background:linear-gradient(90deg,#2e7d32,#66bb6a)}
+.rep-sum:hover{transform:translateY(-4px);box-shadow:0 12px 32px rgba(139,106,20,.15)}
+.sum-lbl{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#bbb;margin-bottom:8px}
+.sum-val{font-size:32px;font-weight:900;font-family:'Inter',system-ui,sans-serif;font-variant-numeric:tabular-nums lining-nums;color:#1a1a1a;line-height:1.1;letter-spacing:-1px}
+.sum-sub{font-size:11px;color:#aaa;margin-top:6px}
+/* ── Table ── */
+.rep-table-card{background:#fff;border:1px solid #e0d4b0;border-radius:14px;overflow:hidden;box-shadow:0 4px 18px rgba(139,106,20,.08);margin-bottom:24px}
+.rep-table-hd{padding:16px 20px;background:linear-gradient(135deg,#fffdf7,#fff);border-bottom:1px solid #eadfcb;display:flex;justify-content:space-between;align-items:center}
+.rep-table-hd h5{margin:0;font-size:17px;font-weight:800;color:#1a1a1a}
+.rep-table-hd small{font-size:11px;color:#aaa}
+.rtbl{margin-bottom:0;font-size:13px}
+.rtbl thead th{background:#fcfaf5;color:#8b6a14;font-size:10px;text-transform:uppercase;letter-spacing:.8px;font-weight:800;border-bottom:2px solid #eadfcb;padding:11px 12px;white-space:nowrap}
+.rtbl tbody td{padding:11px 12px;border-bottom:1px solid #f5f0e4;vertical-align:middle}
+.rtbl tbody tr:hover td{background:#fffdf5}
+.rtbl tbody tr:last-child td{border-bottom:none}
+.branch-badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.5px}
+.br-sgn{background:rgba(139,106,20,.12);color:#8b6a14}
+.br-dan{background:rgba(21,101,192,.12);color:#1565c0}
+.br-han{background:rgba(46,125,50,.12);color:#2e7d32}
+.act-badge{display:inline-block;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700}
+.act-success{background:rgba(46,125,50,.1);color:#2e7d32}
+.act-warning{background:rgba(230,81,0,.1);color:#e65100}
+.act-danger {background:rgba(198,40,40,.1);color:#c62828}
+.act-info   {background:rgba(21,101,192,.1);color:#1565c0}
+.num{font-variant-numeric:tabular-nums;font-weight:700}
+/* ── Top 3 podium ── */
+.top3-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+.top3-card{background:#fff;border:1px solid #e0d4b0;border-radius:14px;padding:22px 18px;text-align:center;box-shadow:0 4px 18px rgba(139,106,20,.08);transition:all .25s;position:relative;overflow:hidden}
+.top3-card:hover{transform:translateY(-4px);box-shadow:0 14px 36px rgba(139,106,20,.15)}
+.top3-card.rank1{border-color:#f0c14b}
+.top3-rank{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;margin:0 auto 14px}
+.rk1{background:linear-gradient(135deg,#ffd700,#ffb300);color:#1a1a1a}
+.rk2{background:linear-gradient(135deg,#c0c0c0,#9e9e9e);color:#1a1a1a}
+.rk3{background:linear-gradient(135deg,#cd7f32,#a0522d);color:#fff}
+.top3-code{font-size:15px;font-weight:800;color:#1a1a1a;margin-bottom:2px}
+.top3-name{font-size:12px;color:#888;margin-bottom:12px}
+.top3-rev{font-size:28px;font-weight:900;font-variant-numeric:tabular-nums;color:#8b6a14;line-height:1.1;letter-spacing:-1px}
+.top3-rev small{font-size:14px;color:#bbb;font-weight:600}
+.top3-occ{font-size:12px;color:#888;margin-top:8px}
+.top3-note{font-size:10px;color:#aaa;font-style:italic;margin-top:4px;text-align:center}
+.contrib-bar{height:5px;border-radius:999px;background:#f5f0e4;margin-top:10px;overflow:hidden}
+.contrib-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#8b6a14,#f0c14b)}
+/* ── Time Analysis ── */
+.time-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.time-card{background:#fff;border:1px solid #e0d4b0;border-radius:12px;padding:18px 16px;text-align:center;box-shadow:0 3px 14px rgba(139,106,20,.07)}
+.time-ico{font-size:26px;margin-bottom:10px}
+.time-lbl{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#bbb;margin-bottom:6px}
+.time-val{font-size:17px;font-weight:800;color:#1a1a1a}
+.time-sub{font-size:11px;color:#aaa;margin-top:4px}
+/* ── Pricing recs ── */
+.prec-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:24px}
+.prec-card{border-radius:12px;padding:20px;border-left:4px solid;box-shadow:0 3px 14px rgba(0,0,0,.06);transition:transform .2s}
+.prec-card:hover{transform:translateY(-2px)}
+.prec-success{border-color:#2e7d32;background:linear-gradient(135deg,#fff,#f1fbee)}
+.prec-warning{border-color:#e65100;background:linear-gradient(135deg,#fff,#fff8f0)}
+.prec-danger {border-color:#c62828;background:linear-gradient(135deg,#fff,#fff5f5)}
+.prec-info   {border-color:#1565c0;background:linear-gradient(135deg,#fff,#f0f6ff)}
+.prec-ico{font-size:22px;margin-bottom:10px}
+.prec-success .prec-ico{color:#2e7d32}
+.prec-warning .prec-ico{color:#e65100}
+.prec-danger  .prec-ico{color:#c62828}
+.prec-info    .prec-ico{color:#1565c0}
+.prec-ttl{font-size:13px;font-weight:800;color:#1a1a1a;margin-bottom:6px}
+.prec-body{font-size:13px;color:#555;line-height:1.6}
+.prec-meta{display:flex;gap:16px;margin-top:10px}
+.prec-meta span{font-size:11px;color:#aaa;font-weight:600}
+.prec-meta strong{color:#555}
+@@media(max-width:1200px){.rep-sum-grid{grid-template-columns:repeat(3,1fr)}.top3-grid{grid-template-columns:1fr}.time-grid{grid-template-columns:repeat(2,1fr)}.prec-grid{grid-template-columns:1fr}}
+@@media(max-width:768px){.rep-filter-row{flex-wrap:wrap}.rep-sum-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
 }
 
-@section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            // Load Mock Data dynamically from C# ViewModel to Chart JS using System.Text.Json Serializer
-            const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PricingLabels));
-            const stdData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.StandardPricingData));
-            const dlxData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.DeluxePricingData));
+<div class="rep-page">
 
-            const monthlyLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyRevenueLabels));
-            const monthlyData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyRevenueData));
+<!-- ══ FILTER BAR ══════════════════════════════════════════════════════════ -->
+<form method="get" action="@Url.Action("Index","AdminReports")" class="rep-filter">
+    <div class="rep-filter-row">
+        <div class="rep-fg br">
+            <div class="rep-lbl"><i class="bi bi-building me-1"></i>Chi nhánh</div>
+            <select name="branch" class="form-select">
+                @foreach (var (v,l) in branchOptions) {
+                    if (Model.SelectedBranch==v) { <option value="@v" selected>@l</option> }
+                    else { <option value="@v">@l</option> }
+                }
+            </select>
+        </div>
+        <div class="rep-fg yr">
+            <div class="rep-lbl"><i class="bi bi-calendar3 me-1"></i>Năm</div>
+            <select name="year" class="form-select">
+                @foreach (var y in years) {
+                    if (Model.SelectedYear==y) { <option value="@y" selected>@y</option> }
+                    else { <option value="@y">@y</option> }
+                }
+            </select>
+        </div>
+        <div class="rep-fg mn">
+            <div class="rep-lbl"><i class="bi bi-calendar-month me-1"></i>Tháng</div>
+            <select name="month" class="form-select">
+                @foreach (var (v,l) in months) {
+                    if (Model.SelectedMonth==v) { <option value="@v" selected>@l</option> }
+                    else { <option value="@v">@l</option> }
+                }
+            </select>
+        </div>
+        <button type="submit" class="rep-btn"><i class="bi bi-funnel me-2"></i>Áp dụng bộ lọc</button>
+        <span class="rep-badge"><i class="bi bi-clock me-1"></i>@periodLabel • @branchLabel</span>
+    </div>
+</form>
 
-            const ctx = document.getElementById('roomPriceReportChart');
-            if (ctx) {
-                new Chart(ctx.getContext('2d'), {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [
-                            {
-                                label: 'Standard Room ($)',
-                                data: stdData,
-                                borderColor: '#8b6a14',
-                                backgroundColor: 'rgba(139, 106, 20, 0.1)',
-                                borderWidth: 3,
-                                tension: 0.3,
-                                pointBackgroundColor: '#fff',
-                                pointBorderColor: '#8b6a14',
-                                pointRadius: 4,
-                                fill: true
-                            },
-                            {
-                                label: 'Deluxe Room ($)',
-                                data: dlxData,
-                                borderColor: '#0288d1',
-                                backgroundColor: 'transparent',
-                                borderWidth: 3,
-                                tension: 0.3,
-                                pointBackgroundColor: '#fff',
-                                pointBorderColor: '#0288d1',
-                                pointRadius: 4,
-                                borderDash: [5, 5]
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        interaction: {
-                            intersect: false,
-                            mode: 'index',
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: false,
-                                suggestedMin: 50,
-                                grid: { color: 'rgba(0, 0, 0, 0.05)', drawBorder: false }
-                            },
-                            x: {
-                                grid: { display: false, drawBorder: false }
-                            }
-                        },
-                        plugins: {
-                            legend: {
-                                position: 'top',
-                                labels: { font: { family: "'Inter', sans-serif", size: 13 }, usePointStyle: true, boxWidth: 8 }
-                            },
-                            tooltip: {
-                                backgroundColor: 'rgba(26, 26, 26, 0.9)',
-                                titleFont: { size: 14 },
-                                bodyFont: { size: 13 },
-                                padding: 12,
-                                cornerRadius: 8,
-                                displayColors: true
-                            }
-                        }
-                    }
-                });
-            }
+<!-- ══ SUMMARY CARDS ═══════════════════════════════════════════════════════ -->
+<div class="rep-sec"><i class="bi bi-graph-up"></i> Tổng quan kỳ báo cáo</div>
+<div class="rep-sum-grid">
+    <div class="rep-sum s-gross">
+        <div class="sum-lbl">Doanh thu gộp</div>
+        <div class="sum-val">@fmtM(Model.GrossRevenue)</div>
+        <div class="sum-sub">Tổng booking trước hoàn tiền</div>
+    </div>
+    <div class="rep-sum s-refund">
+        <div class="sum-lbl">Tiền hoàn</div>
+        <div class="sum-val" style="color:#6a1b9a">@fmtM(Model.RefundAmount)</div>
+        <div class="sum-sub">Hoàn trả khách hủy phòng</div>
+    </div>
+    <div class="rep-sum s-net">
+        <div class="sum-lbl">Doanh thu thực tế</div>
+        <div class="sum-val" style="color:#8b6a14">@fmtM(Model.NetRevenue)</div>
+        <div class="sum-sub">= Gross − Hoàn tiền</div>
+    </div>
+    <div class="rep-sum s-occ">
+        <div class="sum-lbl">Tỷ lệ lấp phòng TB</div>
+        <div class="sum-val" style="color:#1565c0">@Model.AvgOccupancyRate</div>
+        <div class="sum-sub">Trung bình toàn kỳ</div>
+    </div>
+    <div class="rep-sum s-revpar">
+        <div class="sum-lbl">RevPAR</div>
+        <div class="sum-val" style="color:#2e7d32">@fmtM(Model.RevPAR)</div>
+        <div class="sum-sub">Revenue Per Available Room/ngày</div>
+    </div>
+</div>
 
-            const ctxMonthly = document.getElementById('monthlyRevenueChart');
-            if (ctxMonthly) {
-                new Chart(ctxMonthly.getContext('2d'), {
-                    type: 'bar',
-                    data: {
-                        labels: monthlyLabels,
-                        datasets: [{
-                            label: 'Total Revenue ($)',
-                            data: monthlyData,
-                            backgroundColor: 'rgba(139, 106, 20, 0.7)',
-                            borderColor: '#8b6a14',
-                            borderWidth: 1,
-                            borderRadius: 4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                grid: { color: 'rgba(0, 0, 0, 0.05)', drawBorder: false },
-                                ticks: {
-                                    callback: function(value) {
-                                        return '$' + value.toLocaleString();
-                                    }
-                                }
-                            },
-                            x: {
-                                grid: { display: false, drawBorder: false }
-                            }
-                        },
-                        plugins: {
-                            legend: {
-                                display: false
-                            },
-                            tooltip: {
-                                backgroundColor: 'rgba(26, 26, 26, 0.9)',
-                                callbacks: {
-                                    label: function(context) {
-                                        let label = context.dataset.label || '';
-                                        if (label) {
-                                            label += ': ';
-                                        }
-                                        if (context.parsed.y !== null) {
-                                            label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y);
-                                        }
-                                        return label;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-        });
-    </script>
-}
+<!-- ══ ROOM PERFORMANCE TABLE ═══════════════════════════════════════════════ -->
+<div class="rep-sec"><i class="bi bi-table"></i> Hiệu suất từng phòng</div>
+<div class="rep-table-card">
+    <div class="rep-table-hd">
+        <h5><i class="bi bi-table me-2" style="color:#8b6a14"></i>Bảng hiệu suất phòng chi tiết</h5>
+        <small>@periodLabel • @branchLabel • @Model.RoomPerformance.Count phòng</small>
+    </div>
+    <div class="table-responsive">
+        <table class="table rtbl">
+            <thead>
+                <tr>
+                    <th>Chi nhánh</th>
+                    <th>Phòng</th>
+                    <th>Loại</th>
+                    <th>Doanh thu gộp</th>
+                    <th>Tiền hoàn</th>
+                    <th>Doanh thu TT</th>
+                    <th>Bookings</th>
+                    <th>Lấp phòng</th>
+                    <th>Tỷ lệ hủy</th>
+                    <th>Đề xuất</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model.RoomPerformance.OrderByDescending(x=>x.NetRevenue)) {
+                    var brCls = r.Branch=="Saigon"?"br-sgn":r.Branch=="Da Nang"?"br-dan":"br-han";
+                    <tr>
+                        <td><span class="branch-badge @brCls">@r.Branch</span></td>
+                        <td><strong>@r.RoomCode</strong><br><span style="font-size:11px;color:#aaa">@r.RoomName</span></td>
+                        <td><span style="font-size:11px;color:#888">@r.RoomType</span></td>
+                        <td class="num">@fmtM(r.GrossRevenue)</td>
+                        <td class="num" style="color:#6a1b9a">@fmtM(r.RefundAmount)</td>
+                        <td class="num" style="color:#8b6a14;font-size:14px">@fmtM(r.NetRevenue)</td>
+                        <td class="num">@r.TotalBookings</td>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:8px">
+                                <div style="flex:1;height:8px;background:#f5f0e4;border-radius:999px;overflow:hidden;min-width:50px">
+                                    <div style="width:@((int)r.OccupancyPct)%;height:100%;border-radius:999px;background:@(r.OccupancyPct>80?"#2e7d32":r.OccupancyPct>60?"#1565c0":"#c62828")"></div>
+                                </div>
+                                <span class="num" style="color:@(r.OccupancyPct>80?"#2e7d32":r.OccupancyPct>60?"#1565c0":"#c62828")">@r.OccupancyPct.ToString("F1")%</span>
+                            </div>
+                        </td>
+                        <td class="num" style="color:@(r.CancellationPct>12?"#c62828":"#888")">@r.CancellationPct.ToString("F1")%</td>
+                        <td><span class="act-badge act-@r.ActionLevel">@r.SuggestedAction</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ══ TOP 3 RANKING ════════════════════════════════════════════════════════ -->
+<div class="rep-sec"><i class="bi bi-trophy-fill"></i> Xếp hạng phòng theo doanh thu thực tế</div>
+@{ decimal totalNet = Model.NetRevenue > 0 ? Model.NetRevenue : 1; }
+<div class="top3-grid">
+    @foreach (var r in Model.TopRooms) {
+        <div class="top3-card @(r.Rank==1?"rank1":"")">
+            <div class="top3-rank rk@r.Rank">@r.Rank</div>
+            <div class="top3-code">@r.RoomCode</div>
+            <div class="top3-name">@r.RoomName • @r.Branch</div>
+            <div class="top3-rev">@fmtM(r.NetRevenue)<br><small>@r.RoomType</small></div>
+            <div class="top3-occ">Lấp phòng: <strong>@r.OccupancyPct.ToString("F1")%</strong> | Booking: <strong>@r.TotalBookings</strong></div>
+            <div class="contrib-bar"><div class="contrib-fill" style="width:@r.ContributionPct%"></div></div>
+            <div style="font-size:11px;color:#aaa;margin-top:4px">Đóng góp @r.ContributionPct.ToString("F1")% DT thực tế</div>
+        </div>
+    }
+</div>
+<div class="top3-note" style="margin-top:-10px;margin-bottom:20px">
+    <i class="bi bi-info-circle me-1"></i>
+    Xếp hạng được tính bằng <code>RANK() OVER (PARTITION BY branch ORDER BY net_revenue DESC)</code> — SQL Window Function
+</div>
+
+<!-- ══ PHÂN TÍCH THEO THỜI GIAN ════════════════════════════════════════════ -->
+<div class="rep-sec"><i class="bi bi-calendar-range"></i> Phân tích theo thời gian</div>
+<div class="time-grid">
+    <div class="time-card">
+        <div class="time-ico">🔥</div>
+        <div class="time-lbl">Tháng cao nhất</div>
+        <div class="time-val" style="color:#8b6a14">@Model.HighestRevenueMonth</div>
+        <div class="time-sub">@fmtM(Model.HighestRevenueValue)</div>
+    </div>
+    <div class="time-card">
+        <div class="time-ico">📉</div>
+        <div class="time-lbl">Tháng thấp nhất</div>
+        <div class="time-val" style="color:#c62828">@Model.LowestRevenueMonth</div>
+        <div class="time-sub">@fmtM(Model.LowestRevenueValue)</div>
+    </div>
+    <div class="time-card">
+        <div class="time-ico">📅</div>
+        <div class="time-lbl">Tháng đặt nhiều nhất</div>
+        <div class="time-val" style="color:#1565c0">@Model.MostBookingMonth</div>
+        <div class="time-sub">@Model.MostBookingCount lượt booking</div>
+    </div>
+    <div class="time-card">
+        <div class="time-ico">🏖</div>
+        <div class="time-lbl">Cao điểm / Thấp điểm</div>
+        <div class="time-val" style="font-size:13px">@Model.PeakPeriod</div>
+        <div class="time-sub">Thấp: @Model.LowPeriod</div>
+    </div>
+</div>
+
+<!-- ══ KHUYẾN NGHỊ ĐIỀU CHỈNH GIÁ ══════════════════════════════════════════ -->
+<div class="rep-sec"><i class="bi bi-currency-dollar"></i> Khuyến nghị điều chỉnh giá</div>
+<div class="prec-grid">
+    @foreach (var p in Model.PricingRecs) {
+        <div class="prec-card prec-@p.Level">
+            <div class="prec-ico"><i class="bi @p.Icon"></i></div>
+            <div class="prec-ttl">@p.RoomCode — @p.RoomName (@p.Branch)</div>
+            <div class="prec-body">@p.Recommendation</div>
+            <div class="prec-meta">
+                <span>Lấp phòng: <strong style="color:@(p.OccupancyPct>80?"#2e7d32":"#c62828")">@p.OccupancyPct.ToString("F1")%</strong></span>
+                <span>Tỷ lệ hủy: <strong style="color:@(p.CancellationPct>12?"#c62828":"#555")">@p.CancellationPct.ToString("F1")%</strong></span>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Nav buttons -->
+<div class="d-flex justify-content-between gap-2 mb-4">
+    <a href="@Url.Action("Index","AdminDashboard",new{branch=Model.SelectedBranch,year=Model.SelectedYear,month=Model.SelectedMonth})"
+       class="btn" style="background:#f5f0e4;color:#8b6a14;border:1px solid #d9caa7;font-weight:700;padding:10px 20px;border-radius:8px">
+        <i class="bi bi-arrow-left me-2"></i>Quay lại Dashboard
+    </a>
+    <div class="d-flex gap-2">
+        <a href="@Url.Action("QuarterlyRevenue","AdminReports")"
+           class="btn" style="background:linear-gradient(135deg,#8b6a14,#c9a24a);color:#fff;border:none;font-weight:700;padding:10px 20px;border-radius:8px">
+            <i class="bi bi-bar-chart-steps me-2"></i>Doanh thu theo quý
+        </a>
+    </div>
+</div>
+
+</div>

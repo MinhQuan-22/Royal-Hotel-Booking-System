@@ -61,10 +61,6 @@
 
         <!-- SEARCH -->
         <form class="rh-search" method="get" asp-controller="Rooms" asp-action="Index">
-            @if (Model.SelectedHotelId.HasValue)
-            {
-                <input type="hidden" name="hotelId" value="@Model.SelectedHotelId" />
-            }
             <div class="rh-search__field">
                 <input type="date" name="checkIn" aria-label="Ngày đến" value="@(checkIn ?? "")" required />
             </div>
@@ -80,6 +76,16 @@
                     <option value="4" selected="@(guests == 4 ? "selected" : (string?)null)">4</option>
                     <option value="5" selected="@(guests == 5 ? "selected" : (string?)null)">5</option>
                     <option value="6" selected="@(guests == 6 ? "selected" : (string?)null)">6</option>
+                </select>
+                <span class="rh-search__suffix">▾</span>
+            </div>
+            <div class="rh-search__field">
+                <select name="hotelId" aria-label="Chi nhánh">
+                    <option value="" selected="@(!Model.SelectedHotelId.HasValue ? "selected" : (string?)null)">Tất cả chi nhánh</option>
+                    @foreach (var h in Model.Hotels)
+                    {
+                        <option value="@h.Id" selected="@(Model.SelectedHotelId == h.Id ? "selected" : (string?)null)">📍 @h.City — @h.Name</option>
+                    }
                 </select>
                 <span class="rh-search__suffix">▾</span>
             </div>
@@ -154,18 +160,6 @@
     </div>
 </section>
 
-<!-- BRANCH BANNER khi đang xem chi nhánh cụ thể -->
-@if (selectedHotel != null)
-{
-    <div class="rh-branchBanner">
-        <span class="rh-branchBanner__icon">🏨</span>
-        <div class="rh-branchBanner__info">
-            <div class="rh-branchBanner__name">@selectedHotel.Name</div>
-            <div class="rh-branchBanner__addr">📍 @selectedHotel.Address — @selectedHotel.City, @selectedHotel.Country</div>
-        </div>
-        <a href="/Rooms" class="rh-branchBanner__clear">Xem tất cả chi nhánh ×</a>
-    </div>
-}
 
 <!-- RESULT BODY -->
 <section class="rh-roomsResultBody">

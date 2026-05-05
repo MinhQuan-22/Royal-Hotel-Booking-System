@@ -39,6 +39,10 @@ builder.Services.AddScoped<IPricingRuleAdminService, PricingRuleAdminService>();
 // Analytics Service: Quarterly revenue analytics and rate change audit reporting
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 
+// Dashboard Repository: Dapper-based KPI analytics (sp_GetDashboardKpi)
+// Tách riêng khỏi EF stack, không conflict với booking/payment logic
+builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
+
 // Adapter Pattern: Register notification service
 builder.Services.AddScoped<IBookingNotificationService, EmailNotificationAdapter>();
 
