@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = "Chat Support";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    var previewByConversation = ViewBag.PreviewByConversation as Dictionary<int, string>;
 }
 
 @section Styles {
@@ -136,6 +137,10 @@
         font-size: 12px; color: #65676b; margin-top: 2px;
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         display: block;
+    }
+    .conv-preview.unread {
+        font-weight: 700;
+        color: #1c1e21;
     }
     .conv-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; margin-left: 8px; }
     .conv-time { font-size: 11px; color: #65676b; }
@@ -285,6 +290,34 @@
     .msg-row.from-admin .msg-bubble { background: #0084ff; color: #fff; border-bottom-right-radius: 4px; }
     .msg-time { font-size: 11px; color: #65676b; margin-top: 3px; }
     .msg-row.from-admin .msg-time { text-align: right; }
+    .msg-row.continuation-point {
+        position: relative;
+        animation: continuationPulse 2.2s ease-in-out 1;
+    }
+    .msg-row.continuation-point::before {
+        content: "Điểm tiếp tục gần nhất";
+        display: inline-block;
+        align-self: flex-start;
+        margin-bottom: 6px;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+        background: linear-gradient(135deg, #f4e4b7, #e8c778);
+        color: #6f5317;
+        box-shadow: 0 2px 8px rgba(201, 162, 74, 0.28);
+    }
+    .msg-row.continuation-point .msg-bubble {
+        box-shadow: 0 0 0 2px rgba(201, 162, 74, 0.38), 0 6px 14px rgba(201, 162, 74, 0.24);
+    }
+    @@keyframes continuationPulse {
+        0%   { transform: translateY(0); }
+        25%  { transform: translateY(-1px); }
+        50%  { transform: translateY(0); }
+        75%  { transform: translateY(-1px); }
+        100% { transform: translateY(0); }
+    }
 
     /* Loading spinner */
     .chat-loading {
@@ -373,7 +406,9 @@
                     var initial = displayName.Length > 0 ? displayName[0].ToString().ToUpper() : "?";
                     var dotClass = conv.Status == "EscalatedToAdmin" ? "escalated" : (conv.Status == "Closed" ? "" : "answered");
                     var timeAgo = conv.UpdatedAt.AddHours(7).ToString("HH:mm dd/MM");
-                    var preview = !string.IsNullOrEmpty(conv.EscalationReason) ? conv.EscalationReason : "Yêu cầu hỗ trợ";
+                    var preview = (previewByConversation != null && previewByConversation.ContainsKey(conv.Id))
+                        ? (previewByConversation[conv.Id] ?? "Yêu cầu hỗ trợ")
+                        : (!string.IsNullOrEmpty(conv.EscalationReason) ? conv.EscalationReason : "Yêu cầu hỗ trợ");
                     if (conv.Status == "Closed") preview = "[Đã kết thúc] " + preview;
 
                     <div class="conv-item" 
@@ -389,7 +424,7 @@
                         </div>
                         <div class="conv-info">
                             <span class="conv-name">@displayName</span>
-                            <span class="conv-preview">@preview</span>
+                            <span class="conv-preview @(conv.Status == "EscalatedToAdmin" ? "unread" : "")" id="preview-@conv.Id">@preview</span>
                         </div>
                         <div class="conv-meta">
                             <span class="conv-time">@timeAgo</span>
@@ -437,8 +472,8 @@
                     <small id="chatMeta"></small>
                 </div>
                 <div class="chat-header-actions" style="margin-left: auto;">
-                    <button class="btn btn-sm btn-outline-danger" id="closeConvBtn" onclick="closeConversation()" style="display: none;">
-                        <i class="bi bi-x-circle me-1"></i> Kết thúc
+                    <button class="btn btn-sm" id="closeConvBtn" onclick="closeConversation()" style="display: none; background-color: #c9a24a; color: white; border: none; font-weight: 600; padding: 6px 16px; border-radius: 6px; box-shadow: 0 2px 4px rgba(201,162,74,0.3); transition: all 0.2s ease;">
+                        <i class="bi bi-check2-circle me-1"></i> Kết thúc đoạn chat
                     </button>
                 </div>
             </div>
@@ -495,6 +530,10 @@
         // Hide new dot
         const dot = document.getElementById('new-dot-' + convId);
         if (dot) dot.classList.remove('visible');
+        
+        // Remove unread bold styling from preview
+        const preview = document.getElementById('preview-' + convId);
+        if (preview) preview.classList.remove('unread');
 
         // Update header
         chatAvatar.textContent = name.charAt(0).toUpperCase();
@@ -547,8 +586,8 @@
                 return;
             }
 
-            data.messages.forEach(m => appendMessage(m.senderType, m.messageText, m.createdAt));
-            scrollBottom();
+            data.messages.forEach((m, idx) => appendMessage(m.senderType, m.messageText, m.createdAt, idx));
+            highlightContinuationPoint(data.messages);
             lastMsgCheckTime = data.serverTime;
         } catch (e) {
             chatMessages.innerHTML = '<div style="color:red;text-align:center;padding:20px">Lỗi tải tin nhắn</div>';
@@ -556,7 +595,7 @@
     }
 
     /* ─── Append a single message bubble ─── */
-    function appendMessage(senderType, text, createdAt) {
+    function appendMessage(senderType, text, createdAt, messageIndex = null) {
         const rowClass = senderType === 'Admin' ? 'from-admin'
                        : senderType === 'AI'    ? 'from-ai'
                        :                          'from-user';
@@ -571,6 +610,10 @@
 
         const row = document.createElement('div');
         row.className = 'msg-row ' + rowClass;
+        row.dataset.senderType = senderType;
+        if (messageIndex !== null && messageIndex !== undefined) {
+            row.dataset.msgIndex = String(messageIndex);
+        }
 
         row.innerHTML = `
             <div class="msg-label">${escHtml(label)}</div>
@@ -578,6 +621,54 @@
             <div class="msg-time">${time}</div>
         `;
         chatMessages.appendChild(row);
+    }
+
+    function clearContinuationHighlight() {
+        chatMessages
+            .querySelectorAll('.msg-row.continuation-point')
+            .forEach(el => el.classList.remove('continuation-point'));
+    }
+
+    function findContinuationIndex(messages) {
+        if (!Array.isArray(messages) || messages.length === 0) return -1;
+
+        let lastAdminIndex = -1;
+        for (let i = 0; i < messages.length; i++) {
+            if (messages[i].senderType === 'Admin') {
+                lastAdminIndex = i;
+            }
+        }
+
+        if (lastAdminIndex < 0) {
+            return messages.length > 0 ? 0 : -1;
+        }
+
+        for (let i = lastAdminIndex + 1; i < messages.length; i++) {
+            if (messages[i].senderType !== 'Admin') {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    function highlightContinuationPoint(messages) {
+        clearContinuationHighlight();
+
+        const continuationIndex = findContinuationIndex(messages);
+        if (continuationIndex < 0) {
+            scrollBottom();
+            return;
+        }
+
+        const target = chatMessages.querySelector(`.msg-row[data-msg-index="${continuationIndex}"]`);
+        if (!target) {
+            scrollBottom();
+            return;
+        }
+
+        target.classList.add('continuation-point');
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
     /* ─── Poll new messages in active conversation ─── */
@@ -608,16 +699,50 @@
 
             if (data.hasNew && data.conversations.length > 0) {
                 data.conversations.forEach(c => {
-                    const dot = document.getElementById('new-dot-' + c.id);
-                    if (dot && c.id !== activeConvId) dot.classList.add('visible');
+                    const existingItem = document.getElementById('conv-item-' + c.id);
+                    
+                    if (existingItem) {
+                        // Conversation exists - update it (for re-escalated conversations)
+                        const dot = existingItem.querySelector('.conv-status-dot');
+                        if (dot) {
+                            dot.className = 'conv-status-dot';
+                            if (c.status === 'EscalatedToAdmin') {
+                                dot.classList.add('escalated');
+                            } else if (c.status === 'AnsweredByAdmin') {
+                                dot.classList.add('answered');
+                            }
+                        }
+                        
+                        // Update status in dataset
+                        existingItem.dataset.status = c.status;
+                        
+                        // Update preview text if available
+                        const preview = document.getElementById('preview-' + c.id);
+                        if (preview && c.preview) {
+                            preview.textContent = c.preview;
+                        }
+                        
+                        // Show new message indicator if not currently viewing this conversation
+                        const newDot = document.getElementById('new-dot-' + c.id);
+                        if (newDot && c.id !== activeConvId) {
+                            newDot.classList.add('visible');
+                        }
+                        
+                        // Add unread bold styling for escalated conversations
+                        if (preview && c.status === 'EscalatedToAdmin' && c.id !== activeConvId) {
+                            preview.classList.add('unread');
+                        }
+                        
+                        // Move conversation to top of list (most recent)
+                        const convList = document.getElementById('convList');
+                        if (convList && existingItem.parentNode === convList) {
+                            convList.insertBefore(existingItem, convList.firstChild);
+                        }
+                    } else {
+                        // Brand new conversation not in list - reload to show it
+                        setTimeout(() => window.location.reload(), 2000);
+                    }
                 });
-
-                // If brand new conversation not in list, reload sidebar after 2s
-                const ids = Array.from(document.querySelectorAll('.conv-item')).map(el => +el.dataset.convId);
-                const hasNew = data.conversations.some(c => !ids.includes(c.id));
-                if (hasNew) {
-                    setTimeout(() => window.location.reload(), 2000);
-                }
             }
         } catch (e) { /* silent */ }
     }
@@ -644,7 +769,10 @@
                 appendMessage('Admin', text, new Date().toISOString());
                 scrollBottom();
                 // ── Advance checkpoint so poll won't re-fetch this message ──
-                lastMsgCheckTime = new Date().toISOString();
+                // Add 1 second buffer to ensure we don't fetch this message again
+                const now = new Date();
+                now.setSeconds(now.getSeconds() + 1);
+                lastMsgCheckTime = now.toISOString();
                 // Update sidebar status dot to green
                 const dot = document.querySelector(`#conv-item-${activeConvId} .conv-status-dot`);
                 if (dot) { dot.className = 'conv-status-dot answered'; }
@@ -664,8 +792,30 @@
     window.closeConversation = async function() {
         if (!activeConvId) return;
 
-        const confirmed = confirm("Bạn có chắc chắn muốn kết thúc cuộc trò chuyện này không? Người dùng sẽ bị ngắt kết nối với Admin và tiếp tục chat với AI.");
-        if (!confirmed) return;
+        const confirmation = await Swal.fire({
+            title: 'Kết thúc đoạn chat?',
+            html: `
+                <div style="text-align:left;line-height:1.6;color:#5c4a2e">
+                    <div style="font-weight:600;color:#2f2a22;margin-bottom:6px;">
+                        Bạn sắp ngắt kết nối trực tiếp với khách hàng này.
+                    </div>
+                    <div>Khách hàng sẽ quay lại trò chuyện với Trợ lý AI cho đến khi yêu cầu liên hệ admin lần nữa.</div>
+                </div>
+            `,
+            icon: 'warning',
+            iconColor: '#c9a24a',
+            showCancelButton: true,
+            confirmButtonText: 'Kết thúc chat',
+            cancelButtonText: 'Tiếp tục hỗ trợ',
+            reverseButtons: true,
+            customClass: {
+                popup: 'rh-chat-close-popup',
+                confirmButton: 'rh-chat-close-confirm',
+                cancelButton: 'rh-chat-close-cancel'
+            },
+            buttonsStyling: false
+        });
+        if (!confirmation.isConfirmed) return;
 
         try {
             const res = await fetch(`/AdminChat/CloseConversation/${activeConvId}`, {
@@ -823,6 +973,10 @@
                         dot.classList.remove('escalated');
                         dot.classList.add('answered');
                     }
+                    
+                    // Remove unread bold styling from preview
+                    const preview = document.getElementById('preview-' + convId);
+                    if (preview) preview.classList.remove('unread');
                 }
             }
         } catch(err) { console.error(err); }
@@ -900,4 +1054,37 @@
     });
 })();
 </script>
+<style>
+    .rh-chat-close-popup {
+        border-radius: 16px !important;
+        box-shadow: 0 14px 34px rgba(0, 0, 0, 0.18) !important;
+        padding: 1.3rem 1.4rem 1.1rem !important;
+    }
+    .rh-chat-close-confirm,
+    .rh-chat-close-cancel {
+        border: none !important;
+        border-radius: 999px !important;
+        padding: 10px 18px !important;
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        margin: 0 4px !important;
+        transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease !important;
+    }
+    .rh-chat-close-confirm {
+        background: linear-gradient(135deg, #c9a24a, #b68a2a) !important;
+        color: #fff !important;
+        box-shadow: 0 6px 14px rgba(182, 138, 42, 0.32) !important;
+    }
+    .rh-chat-close-confirm:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 9px 18px rgba(182, 138, 42, 0.38) !important;
+    }
+    .rh-chat-close-cancel {
+        background: #f4f1eb !important;
+        color: #5b4c32 !important;
+    }
+    .rh-chat-close-cancel:hover {
+        background: #ece6db !important;
+    }
+</style>
 }

@@ -241,7 +241,7 @@
                         var isChecked = selectedAmenities.Contains(amenity.AmenityKey);
                         <label class="rh-check">
                             <input type="checkbox" name="amenities" value="@amenity.AmenityKey" @(isChecked ? "checked" : "")>
-                            <span>@($"{amenity.IconClass} {amenity.Name}".Trim())</span>
+                            <span><i class="fas @amenity.IconClass" style="color: #c9a24a; width: 16px; text-align: center; margin-right: 4px;"></i> @amenity.Name</span>
                         </label>
                     }
                 </div>
@@ -274,9 +274,8 @@
                 {
                     var thumb = r.CoverImageUrl ?? r.Images.OrderBy(x => x.SortOrder).FirstOrDefault()?.ImageUrl ?? "/assets/rooms/room1.png";
                     var displayAmenities = RoomAmenityViewHelper.GetDisplayAmenities(r, filterAmenities);
-                    var tagTexts = displayAmenities
-                        .Select(a => ($"{a.IconClass} {a.Name}").Trim())
-                        .Where(t => !string.IsNullOrWhiteSpace(t))
+                    var tagItems = displayAmenities
+                        .Where(a => !string.IsNullOrWhiteSpace(a.Name))
                         .ToList();
 
                     var roomPricing = roomPricingMap.TryGetValue(r.Id, out var roomSummary)
@@ -309,9 +308,9 @@
                             </div>
 
                             <div class="rh-roomItem__tags">
-                                @foreach (var t in tagTexts)
+                                @foreach (var t in tagItems)
                                 {
-                                    <span class="rh-tag">@t</span>
+                                    <span class="rh-tag"><i class="fas @t.IconClass" style="color: #c9a24a; margin-right: 2px;"></i> @t.Name</span>
                                 }
                             </div>
 

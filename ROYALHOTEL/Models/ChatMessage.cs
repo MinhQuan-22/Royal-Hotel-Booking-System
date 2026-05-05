@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace ROYALHOTEL.Models
 {
@@ -8,6 +9,8 @@ namespace ROYALHOTEL.Models
 
         [Required]
         public int ConversationId { get; set; }
+
+        [JsonIgnore]
         public ChatConversation? Conversation { get; set; }
 
         [Required, MaxLength(20)]

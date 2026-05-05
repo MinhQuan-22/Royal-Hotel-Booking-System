@@ -79,12 +79,13 @@
         <h2 class="rh-branches__title">CHỌN CHI NHÁNH</h2>
         <p class="rh-branches__sub">Khám phá các điểm đến nghỉ dưỡng đẳng cấp của Royal Luxury Hotel</p>
         <div class="rh-branches__grid">
-            @{ int branchIdx = 0; }
+            @{ 
+                int branchIdx = 0; 
+                var validBranchImages = new[] { "/assets/home/Home1.jpg", "/assets/home/Home2.jpg", "/assets/rooms/bannerroom.jpg", "/assets/home/gym.jpg", "/assets/home/pool.jpg" };
+            }
             @foreach (var h in hotels)
             {
-                var branchImg = hotelImageMap.ContainsKey(h.Id)
-                    ? hotelImageMap[h.Id]
-                    : fallbackImages[branchIdx % fallbackImages.Length];
+                var branchImg = validBranchImages[branchIdx % validBranchImages.Length];
                 <a class="rh-branchCard" href="/Rooms?hotelId=@h.Id" id="branch-card-@h.Id"
                    style="background-image:url('@branchImg'); background-size:cover; background-position:center;
                           position:relative; overflow:hidden; min-height:220px; display:flex;

@@ -135,8 +135,8 @@ class ChatWidget {
     this.guestName = null;
     this.guestPhone = null;
     this.isAuthenticated = false;
-    this.adminPollingTimer = null;   // polls for admin replies after escalation
-    this.lastPolledMsgCount = 0;    // tracks how many messages have been shown
+    this.adminPollingTimer = null; // polls for admin replies after escalation
+    this.lastPolledMsgCount = 0; // tracks how many messages have been shown
 
     // DOM elements
     this.widget = document.getElementById("chat-widget");
@@ -162,19 +162,21 @@ class ChatWidget {
       return;
     }
 
-    // Load conversation ID from sessionStorage
-    this.conversationId = sessionStorage.getItem("chatConversationId");
+    // IMPORTANT: Clear all chat data on page load to start fresh
+    // This ensures chat history is not persisted across page reloads
+    sessionStorage.removeItem("chatConversationId");
+    sessionStorage.removeItem("chatGuestName");
+    sessionStorage.removeItem("chatGuestPhone");
+    this.conversationId = null;
+    this.guestName = null;
+    this.guestPhone = null;
 
     // Check authentication
     this.isAuthenticated = this.checkAuthentication();
 
-    // Load guest info from session if not authenticated
+    // For guest users, always show the guest form when widget opens
     if (!this.isAuthenticated) {
-      const hasGuestInfo = this.loadGuestInfoFromSession();
-      if (!hasGuestInfo) {
-        // Will show guest form when widget opens
-        this.shouldShowGuestForm = true;
-      }
+      this.shouldShowGuestForm = true;
     }
 
     // Event listeners
@@ -189,10 +191,8 @@ class ChatWidget {
     });
     this.escalationBtn.addEventListener("click", () => this.escalateToAdmin());
 
-    // Load conversation history for authenticated users
-    if (this.isAuthenticated) {
-      this.loadConversationHistory();
-    }
+    // DO NOT load conversation history - start fresh on every page load
+    // This ensures users always start with a clean chat interface
   }
 
   /**
@@ -288,15 +288,14 @@ class ChatWidget {
     this.widget.style.display = "flex";
     this.isOpen = true;
 
-    // Show guest form if needed
-    if (
-      !this.isAuthenticated &&
-      !this.guestName &&
-      !this.guestPhone &&
-      this.shouldShowGuestForm
-    ) {
+    // Show guest form for unauthenticated users
+    if (!this.isAuthenticated && this.shouldShowGuestForm) {
       this.guestInfoForm.show();
     } else {
+      // Show welcome message for all users on first open
+      if (this.messagesContainer.children.length === 0) {
+        this.showWelcomeMessage();
+      }
       this.inputField.focus();
     }
 
@@ -386,8 +385,20 @@ class ChatWidget {
       // Hide typing indicator
       this.hideTypingIndicator();
 
-      // Display AI response
-      this.displayMessage("AI", data.responseText, new Date(data.timestamp));
+      // Display AI response only when backend actually returns one
+      if (data.responseText && data.responseText.trim().length > 0) {
+        this.displayMessage("AI", data.responseText, new Date(data.timestamp));
+      } else {
+        // If backend returns empty response:
+        // - If showContactAdmin = true: There was an error, show error message
+        // - If showContactAdmin = false: Conversation is being handled by admin, don't show anything
+        if (data.showContactAdmin) {
+          this.displayError(
+            "Không thể xử lý câu hỏi. Vui lòng liên hệ admin để được hỗ trợ.",
+          );
+        }
+        // else: Do nothing - admin is handling the conversation, no need to show any message
+      }
 
       // Show escalation button if needed
       if (data.showContactAdmin) {
@@ -461,11 +472,45 @@ class ChatWidget {
   }
 
   showEscalationButton() {
-    this.escalationSection.style.display = "block";
+    // Remove old escalation button if exists
+    const oldBtn = this.messagesContainer.querySelector(
+      ".chat-widget__escalation-inline",
+    );
+    if (oldBtn) {
+      oldBtn.remove();
+    }
+
+    // Create inline escalation button that appears in message flow
+    const escalationDiv = document.createElement("div");
+    escalationDiv.className = "chat-widget__escalation-inline";
+    escalationDiv.innerHTML = `
+      <button type="button" class="chat-widget__escalation-btn-inline" id="chat-escalation-btn-inline">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zM7 11V7h2v4H7zm0-6V3h2v2H7z"/>
+        </svg>
+        Liên hệ admin
+      </button>
+    `;
+
+    // Append to messages container so it flows with messages
+    this.messagesContainer.appendChild(escalationDiv);
+    this.scrollToBottom();
+
+    // Add click handler
+    const inlineBtn = document.getElementById("chat-escalation-btn-inline");
+    if (inlineBtn) {
+      inlineBtn.addEventListener("click", () => this.escalateToAdmin());
+    }
   }
 
   hideEscalationButton() {
-    this.escalationSection.style.display = "none";
+    // Remove inline button from messages
+    const inlineBtn = this.messagesContainer.querySelector(
+      ".chat-widget__escalation-inline",
+    );
+    if (inlineBtn) {
+      inlineBtn.remove();
+    }
   }
 
   async escalateToAdmin() {
@@ -519,7 +564,9 @@ class ChatWidget {
       // ── Start polling for admin replies in real-time ──
       if (this.conversationId && this.isAuthenticated) {
         try {
-          const histRes = await fetch(`/api/chat/history/${this.conversationId}`);
+          const histRes = await fetch(
+            `/api/chat/history/${this.conversationId}`,
+          );
           const msgs = histRes.ok ? await histRes.json() : [];
           this.startAdminReplyPolling(msgs.length);
         } catch (e) {
@@ -585,7 +632,6 @@ class ChatWidget {
 
       // ── Start polling for admin replies (conversation may already be escalated) ──
       this.startAdminReplyPolling(messages.length);
-
     } catch (error) {
       console.error("Error loading conversation history:", error);
       // Silently fail - don't disrupt user experience
@@ -621,13 +667,19 @@ class ChatWidget {
       if (!this.conversationId) return;
       try {
         const since = encodeURIComponent(this.adminPollSince);
-        const res = await fetch(`/AdminChat/PollAdminReplies/${this.conversationId}?since=${since}`);
+        const res = await fetch(
+          `/AdminChat/PollAdminReplies/${this.conversationId}?since=${since}`,
+        );
         if (!res.ok) return;
         const data = await res.json();
 
         if (data.messages && data.messages.length > 0) {
-          data.messages.forEach(msg => {
-            this.displayMessage('Admin', msg.messageText, new Date(msg.createdAt));
+          data.messages.forEach((msg) => {
+            this.displayMessage(
+              "Admin",
+              msg.messageText,
+              new Date(msg.createdAt),
+            );
           });
           this.scrollToBottom();
         }
@@ -641,25 +693,26 @@ class ChatWidget {
         if (data.status === "Closed") {
           clearInterval(this.adminPollingTimer);
           this.adminPollingTimer = null;
-          this.conversationId = null;
-          sessionStorage.removeItem("chatConversationId");
 
           const closedDiv = document.createElement("div");
           closedDiv.className = "chat-widget__message chat-widget__message--ai";
           const bubbleDiv = document.createElement("div");
           bubbleDiv.className = "chat-widget__message-bubble";
-          bubbleDiv.textContent = "Admin đã kết thúc cuộc trò chuyện. Bạn hiện đang trò chuyện với Trợ lý AI.";
+          bubbleDiv.textContent =
+            "Admin đã kết thúc cuộc trò chuyện. Bạn hiện đang trò chuyện với Trợ lý AI.";
           closedDiv.appendChild(bubbleDiv);
           this.messagesContainer.appendChild(closedDiv);
           this.scrollToBottom();
         }
-      } catch (e) { /* silent */ }
+      } catch (e) {
+        /* silent */
+      }
     }, 3000);
   }
 
   formatTime(timestamp) {
     let dateStr = timestamp;
-    if (typeof dateStr === 'string' && !dateStr.endsWith('Z')) dateStr += 'Z';
+    if (typeof dateStr === "string" && !dateStr.endsWith("Z")) dateStr += "Z";
     const date = new Date(dateStr);
     const hours = date.getHours().toString().padStart(2, "0");
     const minutes = date.getMinutes().toString().padStart(2, "0");

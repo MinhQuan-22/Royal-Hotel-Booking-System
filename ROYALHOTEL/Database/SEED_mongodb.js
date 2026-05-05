@@ -24,47 +24,38 @@ targetDb.HotelCatalog.createIndex(
   { name: "idx_text_search", default_language: "none" }
 );
 
-// ── HOTEL 1 — Da Nang (SQL Hotels.Id = 1) ───────────────────
+// ── HOTEL 1 — New York (SQL Hotels.Id = 1) ───────────────────
 targetDb.HotelCatalog.insertOne({
   hotel_id: 1,
-  hotel_name: "Royal Luxury Da Nang",
-  city: "Da Nang",
-  country: "Vietnam",
-  description: "Khách sạn 5 sao hàng đầu Đà Nẵng nằm ngay bờ biển Mỹ Khê. Tọa lạc tại trung tâm thành phố, Royal Luxury Da Nang mang đến trải nghiệm nghỉ dưỡng đẳng cấp với hồ bơi vô cực, spa cao cấp và nhà hàng fusion cuisine. Tầm nhìn trực diện biển từ mọi phòng nghỉ.",
-  amenities: ["wifi", "pool", "gym", "spa", "parking", "restaurant", "bar", "room_service", "laundry", "concierge"],
+  hotel_name: "Royal Hotel New York",
+  city: "New York",
+  country: "United States",
+  description: "Khách sạn 5 sao đẳng cấp quốc tế tọa lạc tại trung tâm Midtown Manhattan. Tầm nhìn toàn cảnh New York skyline, nhà hàng fine dining tầng thượng và spa thế giới.",
+  amenities: ["wifi", "pool", "spa", "gym", "parking", "restaurant", "bar", "room_service", "concierge", "business_center", "laundry", "valet"],
   images: [
-    "/images/hotels/danang/lobby.jpg",
-    "/images/hotels/danang/pool.jpg",
-    "/images/hotels/danang/beach.jpg",
-    "/images/hotels/danang/spa.jpg"
+    "/images/hotels/newyork/lobby.jpg",
+    "/images/hotels/newyork/skyline.jpg",
+    "/images/hotels/newyork/restaurant.jpg",
+    "/images/hotels/newyork/spa.jpg"
   ],
   rooms: [
     {
-      room_id: 1,
-      room_code: "DN-STD-101",
-      room_name: "Da Nang Standard Ocean View",
-      room_type: "Standard",
-      amenities: ["wifi", "air_conditioning", "tv", "minibar", "safe", "ocean_view"],
-      description: "Phòng Standard với tầm nhìn hướng biển tuyệt đẹp. Diện tích 35m², giường king size, ban công riêng.",
-      images: ["/images/rooms/dn-std-101-1.jpg", "/images/rooms/dn-std-101-2.jpg"]
-    },
-    {
-      room_id: 2,
-      room_code: "DN-DLX-201",
-      room_name: "Da Nang Deluxe Sea Breeze",
+      room_id: 301,
+      room_code: "NY-DLX-201",
+      room_name: "New York City View Deluxe",
       room_type: "Deluxe",
-      amenities: ["wifi", "air_conditioning", "tv", "minibar", "safe", "ocean_view", "bathtub", "balcony"],
-      description: "Phòng Deluxe rộng 55m² với bồn tắm đứng, tầm nhìn panorama ra biển. Đầy đủ tiện nghi 5 sao.",
-      images: ["/images/rooms/dn-dlx-201-1.jpg", "/images/rooms/dn-dlx-201-2.jpg"]
+      amenities: ["wifi", "air_conditioning", "tv", "minibar", "safe", "city_view", "king_bed", "marble_bathroom"],
+      description: "Phòng Deluxe 50m² tầm nhìn ra Manhattan skyline. Nội thất hiện đại, bồn tắm cẩm thạch.",
+      images: ["/images/rooms/ny-dlx-201-1.jpg", "/images/rooms/ny-dlx-201-2.jpg"]
     },
     {
-      room_id: 3,
-      room_code: "DN-STE-301",
-      room_name: "Da Nang Presidential Suite",
+      room_id: 302,
+      room_code: "NY-STE-401",
+      room_name: "New York Penthouse Suite",
       room_type: "Suite",
-      amenities: ["wifi", "air_conditioning", "tv", "minibar", "safe", "ocean_view", "bathtub", "balcony", "living_room", "kitchen", "butler"],
-      description: "Suite Tổng thống 120m² với phòng khách riêng, bếp nhỏ và butler riêng phục vụ 24/7. Tầm nhìn 180° ra vịnh Đà Nẵng.",
-      images: ["/images/rooms/dn-ste-301-1.jpg", "/images/rooms/dn-ste-301-2.jpg"]
+      amenities: ["wifi", "air_conditioning", "tv", "minibar", "safe", "city_view", "private_terrace", "bathtub", "living_room", "kitchen", "butler", "jacuzzi"],
+      description: "Penthouse Suite 200m² với terrace riêng 360° nhìn toàn cảnh New York. Butler 24/7.",
+      images: ["/images/rooms/ny-ste-401-1.jpg", "/images/rooms/ny-ste-401-2.jpg"]
     }
   ],
   updated_at: new Date()
@@ -145,38 +136,47 @@ targetDb.HotelCatalog.insertOne({
   updated_at: new Date()
 });
 
-// ── HOTEL 4 — New York (SQL Hotels.Id = 4) ──────────────────
+// ── HOTEL 4 — Los Angeles (SQL Hotels.Id = 4) ──────────────────
 targetDb.HotelCatalog.insertOne({
   hotel_id: 4,
-  hotel_name: "Royal Hotel New York",
-  city: "New York",
+  hotel_name: "Royal Hotel Los Angeles",
+  city: "Los Angeles",
   country: "United States",
-  description: "Khách sạn 5 sao đẳng cấp quốc tế tọa lạc tại trung tâm Midtown Manhattan. Tầm nhìn toàn cảnh New York skyline, nhà hàng fine dining tầng thượng và spa thế giới.",
-  amenities: ["wifi", "pool", "spa", "gym", "parking", "restaurant", "bar", "room_service", "concierge", "business_center", "laundry", "valet"],
+  description: "Khách sạn 5 sao hàng đầu Los Angeles nằm ngay đại lộ Sunset. Tọa lạc tại trung tâm thành phố, Royal Hotel Los Angeles mang đến trải nghiệm nghỉ dưỡng đẳng cấp với hồ bơi vô cực, spa cao cấp và nhà hàng fusion cuisine.",
+  amenities: ["wifi", "pool", "gym", "spa", "parking", "restaurant", "bar", "room_service", "laundry", "concierge"],
   images: [
-    "/images/hotels/newyork/lobby.jpg",
-    "/images/hotels/newyork/skyline.jpg",
-    "/images/hotels/newyork/restaurant.jpg",
-    "/images/hotels/newyork/spa.jpg"
+    "/images/hotels/danang/lobby.jpg",
+    "/images/hotels/danang/pool.jpg",
+    "/images/hotels/danang/beach.jpg",
+    "/images/hotels/danang/spa.jpg"
   ],
   rooms: [
     {
-      room_id: 301,
-      room_code: "NY-DLX-201",
-      room_name: "New York City View Deluxe",
-      room_type: "Deluxe",
-      amenities: ["wifi", "air_conditioning", "tv", "minibar", "safe", "city_view", "king_bed", "marble_bathroom"],
-      description: "Phòng Deluxe 50m² tầm nhìn ra Manhattan skyline. Nội thất hiện đại, bồn tắm cẩm thạch.",
-      images: ["/images/rooms/ny-dlx-201-1.jpg", "/images/rooms/ny-dlx-201-2.jpg"]
+      room_id: 1,
+      room_code: "LA-STD-101",
+      room_name: "LA Standard Ocean View",
+      room_type: "Standard",
+      amenities: ["wifi", "air_conditioning", "tv", "minibar", "safe", "ocean_view"],
+      description: "Phòng Standard với tầm nhìn hướng biển tuyệt đẹp. Diện tích 35m², giường king size, ban công riêng.",
+      images: ["/images/rooms/dn-std-101-1.jpg", "/images/rooms/dn-std-101-2.jpg"]
     },
     {
-      room_id: 302,
-      room_code: "NY-STE-401",
-      room_name: "New York Penthouse Suite",
+      room_id: 2,
+      room_code: "LA-DLX-201",
+      room_name: "LA Deluxe Sea Breeze",
+      room_type: "Deluxe",
+      amenities: ["wifi", "air_conditioning", "tv", "minibar", "safe", "ocean_view", "bathtub", "balcony"],
+      description: "Phòng Deluxe rộng 55m² với bồn tắm đứng, tầm nhìn panorama ra biển. Đầy đủ tiện nghi 5 sao.",
+      images: ["/images/rooms/dn-dlx-201-1.jpg", "/images/rooms/dn-dlx-201-2.jpg"]
+    },
+    {
+      room_id: 3,
+      room_code: "LA-STE-301",
+      room_name: "LA Presidential Suite",
       room_type: "Suite",
-      amenities: ["wifi", "air_conditioning", "tv", "minibar", "safe", "city_view", "private_terrace", "bathtub", "living_room", "kitchen", "butler", "jacuzzi"],
-      description: "Penthouse Suite 200m² với terrace riêng 360° nhìn toàn cảnh New York. Butler 24/7.",
-      images: ["/images/rooms/ny-ste-401-1.jpg", "/images/rooms/ny-ste-401-2.jpg"]
+      amenities: ["wifi", "air_conditioning", "tv", "minibar", "safe", "ocean_view", "bathtub", "balcony", "living_room", "kitchen", "butler"],
+      description: "Suite Tổng thống 120m² với phòng khách riêng, bếp nhỏ và butler riêng phục vụ 24/7. Tầm nhìn 180° ra biển Thái Bình Dương.",
+      images: ["/images/rooms/dn-ste-301-1.jpg", "/images/rooms/dn-ste-301-2.jpg"]
     }
   ],
   updated_at: new Date()

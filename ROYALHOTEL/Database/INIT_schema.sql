@@ -182,12 +182,14 @@ GO
 
 
 -- ============================================================
--- TABLE: RoomRateChangeLogs
+-- TABLE: RoomRateChangeLog
 -- (Yêu cầu đề bài: log thay đổi giá phòng >50%)
+-- NOTE: Tên bảng dùng số ít để khớp với EF DbContext ToTable("RoomRateChangeLog")
+-- và AnalyticsService đọc qua _context.RoomRateChangeLogs
 -- ============================================================
-IF OBJECT_ID('RoomRateChangeLogs', 'U') IS NULL
+IF OBJECT_ID('RoomRateChangeLog', 'U') IS NULL
 BEGIN
-    CREATE TABLE RoomRateChangeLogs (
+    CREATE TABLE RoomRateChangeLog (
         Id            INT IDENTITY(1,1) PRIMARY KEY,
         RoomId        INT             NOT NULL,
         OldRate       DECIMAL(18,2)   NOT NULL,
@@ -198,17 +200,16 @@ BEGIN
         ChangedBy     NVARCHAR(200)   NULL,
         Reason        NVARCHAR(500)   NULL,
 
-        CONSTRAINT FK_RoomRateChangeLogs_Rooms FOREIGN KEY (RoomId) REFERENCES Rooms(Id)
+        CONSTRAINT FK_RoomRateChangeLog_Rooms FOREIGN KEY (RoomId) REFERENCES Rooms(Id)
     );
-    PRINT 'RoomRateChangeLogs table created.';
+    PRINT 'RoomRateChangeLog table created.';
 END
 ELSE
 BEGIN
-    -- Thêm cột mới nếu đang upgrade từ schema cũ
-    IF COL_LENGTH('RoomRateChangeLogs', 'ChangePercent') IS NULL
-        ALTER TABLE RoomRateChangeLogs ADD ChangePercent DECIMAL(10,2) NOT NULL DEFAULT 0;
-    IF COL_LENGTH('RoomRateChangeLogs', 'IsLargeChange') IS NULL
-        ALTER TABLE RoomRateChangeLogs ADD IsLargeChange BIT NOT NULL DEFAULT 0;
+    IF COL_LENGTH('RoomRateChangeLog', 'ChangePercent') IS NULL
+        ALTER TABLE RoomRateChangeLog ADD ChangePercent DECIMAL(10,2) NOT NULL DEFAULT 0;
+    IF COL_LENGTH('RoomRateChangeLog', 'IsLargeChange') IS NULL
+        ALTER TABLE RoomRateChangeLog ADD IsLargeChange BIT NOT NULL DEFAULT 0;
 END
 GO
 
@@ -230,7 +231,8 @@ BEGIN
     SET NOCOUNT ON;
     IF UPDATE(Rate)
     BEGIN
-        INSERT INTO RoomRateChangeLogs
+        -- Ghi vào RoomRateChangeLog (số ít) — khớp với EF DbContext ToTable("RoomRateChangeLog")
+        INSERT INTO RoomRateChangeLog
             (RoomId, OldRate, NewRate, ChangePercent, IsLargeChange, ChangedAt, ChangedBy, Reason)
         SELECT
             d.Id,
@@ -245,7 +247,7 @@ BEGIN
             SYSTEM_USER,
             CASE
                 WHEN (ABS(i.Rate - d.Rate) / NULLIF(d.Rate, 0)) * 100 > 50
-                    THEN N'⚠ LARGE RATE CHANGE (>50%) — Requires review'
+                    THEN N'LARGE RATE CHANGE (>50%) - Requires review'
                 ELSE N'Rate updated'
             END
         FROM inserted i

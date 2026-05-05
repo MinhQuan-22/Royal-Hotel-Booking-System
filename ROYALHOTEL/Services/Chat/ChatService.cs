@@ -4,6 +4,8 @@ using MongoDB.Driver;
 using ROYALHOTEL.Data;
 using ROYALHOTEL.DTOs;
 using ROYALHOTEL.Models;
+using System.Globalization;
+using System.Text;
 
 namespace ROYALHOTEL.Services.Chat;
 
@@ -81,17 +83,18 @@ public class ChatService : IChatService
                 };
             }
 
-            // Validate conversation is not closed
+            // If admin ended the session earlier, switch conversation back to AI mode
+            // while preserving the same conversation history/thread.
             if (conversation.Status == "Closed")
             {
-                _logger.LogWarning("Attempt to send message to closed conversation {ConversationId}", conversation.Id);
-                return new ChatResponse
-                {
-                    ConversationId = conversation.Id,
-                    ResponseText = "Cuộc hội thoại này đã được đóng. Vui lòng bắt đầu cuộc hội thoại mới.",
-                    ShowContactAdmin = false,
-                    Timestamp = DateTime.UtcNow
-                };
+                conversation.Status = "Open";
+                conversation.EscalatedAt = null; // Reset escalation timestamp - this is a new AI session
+                conversation.UpdatedAt = DateTime.UtcNow;
+                await _dbContext.SaveChangesAsync();
+
+                _logger.LogInformation(
+                    "Conversation {ConversationId} reopened in AI mode after admin closure. EscalatedAt reset to null.",
+                    conversation.Id);
             }
 
             // Save user message
@@ -126,6 +129,25 @@ public class ChatService : IChatService
                     ConversationId = conversation.Id,
                     ResponseText = "Hệ thống đang bảo trì, vui lòng thử lại sau.",
                     ShowContactAdmin = true,
+                    Timestamp = DateTime.UtcNow
+                };
+            }
+
+            // Do not trigger AI while conversation is being handled by Admin.
+            var isHandledByAdmin = conversation.Status == "EscalatedToAdmin"
+                || conversation.Status == "AnsweredByAdmin";
+            if (isHandledByAdmin)
+            {
+                _logger.LogInformation(
+                    "Skipping AI response because conversation {ConversationId} is being handled by admin with status {Status}",
+                    conversation.Id,
+                    conversation.Status);
+                
+                return new ChatResponse
+                {
+                    ConversationId = conversation.Id,
+                    ResponseText = "", // Empty response means AI won't say anything
+                    ShowContactAdmin = false,
                     Timestamp = DateTime.UtcNow
                 };
             }
@@ -229,28 +251,60 @@ public class ChatService : IChatService
                     "AI service timeout. ConversationId={ConversationId}, Timeout={TimeoutSeconds}s",
                     conversation.Id, 8);
 
-                return new ChatResponse
+                var fallbackResponse = await BuildFallbackResponseFromContextAsync(request.MessageText, contextData, classification.Category);
+                if (!string.IsNullOrWhiteSpace(fallbackResponse))
                 {
-                    ConversationId = conversation.Id,
-                    ResponseText = "Không thể xử lý câu hỏi, vui lòng liên hệ admin.",
-                    ShowContactAdmin = true,
-                    Timestamp = DateTime.UtcNow
-                };
+                    _logger.LogWarning(
+                        "Using fallback DB-based response due to AI timeout. ConversationId={ConversationId}",
+                        conversation.Id);
+                    aiResponseText = fallbackResponse;
+                }
+                else
+                {
+                    return new ChatResponse
+                    {
+                        ConversationId = conversation.Id,
+                        ResponseText = "Không thể xử lý câu hỏi, vui lòng liên hệ admin.",
+                        ShowContactAdmin = true,
+                        Timestamp = DateTime.UtcNow
+                    };
+                }
             }
             catch (Exception ex)
             {
                 // Requirement 18.3: AI service error
-                _logger.LogError(ex, 
-                    "AI service error generating response. ConversationId={ConversationId}",
-                    conversation.Id);
-
-                return new ChatResponse
+                if (IsAiBillingOrQuotaError(ex))
                 {
-                    ConversationId = conversation.Id,
-                    ResponseText = "Không thể xử lý câu hỏi, vui lòng liên hệ admin.",
-                    ShowContactAdmin = true,
-                    Timestamp = DateTime.UtcNow
-                };
+                    _logger.LogWarning(
+                        ex,
+                        "AI provider quota/billing issue. Falling back to DB-based response. ConversationId={ConversationId}",
+                        conversation.Id);
+                }
+                else
+                {
+                    _logger.LogError(ex,
+                        "AI service error generating response. ConversationId={ConversationId}",
+                        conversation.Id);
+                }
+
+                var fallbackResponse = await BuildFallbackResponseFromContextAsync(request.MessageText, contextData, classification.Category);
+                if (!string.IsNullOrWhiteSpace(fallbackResponse))
+                {
+                    _logger.LogWarning(
+                        "Using fallback DB-based response due to AI generation error. ConversationId={ConversationId}",
+                        conversation.Id);
+                    aiResponseText = fallbackResponse;
+                }
+                else
+                {
+                    return new ChatResponse
+                    {
+                        ConversationId = conversation.Id,
+                        ResponseText = "Không thể xử lý câu hỏi, vui lòng liên hệ admin.",
+                        ShowContactAdmin = true,
+                        Timestamp = DateTime.UtcNow
+                    };
+                }
             }
 
             // Validate AI response
@@ -450,14 +504,76 @@ public class ChatService : IChatService
                     throw new Exception("SQL Server unavailable", ex);
                 }
 
+            case "Pricing":
+                try
+                {
+                    return await GetPricingDataAsync(messageText);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "SQL Server error retrieving pricing data");
+                    throw new Exception("SQL Server unavailable", ex);
+                }
+
             case "SearchExplanation":
                 // For search explanation, we would retrieve from session/context
                 // For now, return empty as session management is not in scope
                 return "Không có dữ liệu tìm kiếm trong phiên hiện tại.";
 
             default:
-                return "";
+                try
+                {
+                    return await GetGeneralHotelDataAsync(messageText);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error retrieving general hotel data");
+                    return "";
+                }
         }
+    }
+
+    /// <summary>
+    /// Retrieve room pricing data from SQL Server.
+    /// </summary>
+    private async Task<string> GetPricingDataAsync(string messageText)
+    {
+        var rooms = await _dbContext.Rooms
+            .AsNoTracking()
+            .Include(r => r.Hotel)
+            .Where(r => r.IsActive && r.Status == "ACTIVE")
+            .OrderBy(r => r.Hotel.Name)
+            .ThenBy(r => r.RoomType)
+            .Take(40)
+            .ToListAsync();
+
+        if (!rooms.Any())
+        {
+            return "Không tìm thấy dữ liệu phòng và giá hiện tại.";
+        }
+
+        var contextBuilder = new System.Text.StringBuilder();
+        contextBuilder.AppendLine("Bảng giá phòng tham khảo hiện tại:");
+
+        foreach (var room in rooms)
+        {
+            var finalPrice = room.BasePricePerNight * room.Rate;
+            contextBuilder.AppendLine(
+                $"- Khách sạn {room.Hotel.Name} | {room.RoomType} - {room.Name}: giá cơ bản {room.BasePricePerNight:N0} VND/đêm, hệ số {room.Rate:N2}, giá tham khảo hiện tại {finalPrice:N0} VND/đêm, tối đa {room.MaxGuests} khách.");
+        }
+
+        return contextBuilder.ToString();
+    }
+
+    /// <summary>
+    /// Retrieve mixed hotel data so AI can still answer broad hotel questions.
+    /// </summary>
+    private async Task<string> GetGeneralHotelDataAsync(string messageText)
+    {
+        var catalogData = await GetHotelCatalogDataAsync(messageText);
+        var pricingData = await GetPricingDataAsync(messageText);
+
+        return $"{catalogData}\n\n{pricingData}";
     }
 
     /// <summary>
@@ -626,16 +742,27 @@ Chính sách trẻ em:
                 return false;
             }
 
+            // Find the last user message before escalation to set EscalatedAt timestamp
+            // This ensures admin sees the message that triggered the escalation
+            var lastUserMessage = await _dbContext.ChatMessages
+                .Where(m => m.ConversationId == conversationId && m.SenderType == "User")
+                .OrderByDescending(m => m.CreatedAt)
+                .FirstOrDefaultAsync();
+
             conversation.Status = "EscalatedToAdmin";
             conversation.EscalationReason = reason;
+            
+            // Set EscalatedAt to the timestamp of the last user message (or now if no messages)
+            // This ensures the triggering message is included in admin's view
+            conversation.EscalatedAt = lastUserMessage?.CreatedAt ?? DateTime.UtcNow;
             conversation.UpdatedAt = DateTime.UtcNow;
 
             await _dbContext.SaveChangesAsync();
 
             // Requirement 13.3: Log each escalation with masked sensitive data
             _logger.LogInformation(
-                "Conversation escalated to admin. ConversationId={ConversationId}, ConversationCode={ConversationCode}, EscalationReason={MaskedReason}, Timestamp={Timestamp}",
-                conversationId, conversation.ConversationCode, _logMasker.Mask(reason), DateTime.UtcNow);
+                "Conversation escalated to admin. ConversationId={ConversationId}, ConversationCode={ConversationCode}, EscalationReason={MaskedReason}, EscalatedAt={EscalatedAt}, Timestamp={Timestamp}",
+                conversationId, conversation.ConversationCode, _logMasker.Mask(reason), conversation.EscalatedAt, DateTime.UtcNow);
 
             // Create notification for admin (log-based for now)
             _logger.LogWarning(
@@ -717,9 +844,20 @@ Chính sách trẻ em:
             }
 
             // Query messages ordered by CreatedAt
+            // IMPORTANT: Filter out AI messages - admin should only see User and Admin messages
             var messages = await _dbContext.ChatMessages
-                .Where(m => m.ConversationId == conversationId)
+                .AsNoTracking()
+                .Where(m => m.ConversationId == conversationId && m.SenderType != "AI")
                 .OrderBy(m => m.CreatedAt)
+                .Select(m => new ChatMessage
+                {
+                    Id = m.Id,
+                    ConversationId = m.ConversationId,
+                    SenderType = m.SenderType,
+                    MessageText = m.MessageText,
+                    IsEscalationMessage = m.IsEscalationMessage,
+                    CreatedAt = m.CreatedAt
+                })
                 .ToListAsync();
 
             _logger.LogInformation(
@@ -759,5 +897,481 @@ Chính sách trẻ em:
             _logger.LogError(ex, "Error retrieving conversations for user {UserId}", userId);
             return new List<ChatConversation>();
         }
+    }
+
+    /// <summary>
+    /// Fallback when external AI API is unavailable. The response is derived from
+    /// already-retrieved database context, so user can still receive useful answers
+    /// for hotel amenities, room types and pricing questions.
+    /// </summary>
+    private async Task<string> BuildFallbackResponseFromContextAsync(string question, string contextData, string category)
+    {
+        if (string.IsNullOrWhiteSpace(question))
+        {
+            return string.Empty;
+        }
+
+        try
+        {
+            var questionNormalized = NormalizeText(question);
+            var intent = DetectFallbackIntent(questionNormalized, category);
+            var desiredRoomType = ExtractRequestedRoomType(questionNormalized);
+            var desiredAmenityKeywords = ExtractRequestedAmenities(questionNormalized);
+
+            // Room-level matcher from Mongo catalog
+            var catalogs = await _mongoContext.HotelCatalog
+                .Find(_ => true)
+                .Limit(8)
+                .ToListAsync();
+
+            var rawRoomCandidates = catalogs
+                .SelectMany(c => c.Rooms.Select(r => new
+                {
+                    HotelName = c.HotelName,
+                    City = c.City,
+                    RoomName = r.RoomName,
+                    RoomType = r.RoomType,
+                    Amenities = r.Amenities ?? new List<string>(),
+                    Description = r.Description ?? string.Empty
+                }))
+                .ToList();
+
+            var locationTerms = ExtractRequestedLocations(
+                questionNormalized,
+                rawRoomCandidates.Select(x => x.HotelName),
+                rawRoomCandidates.Select(x => x.City));
+
+            var roomCandidates = rawRoomCandidates
+                .Select(r => new
+                {
+                    r.HotelName,
+                    r.City,
+                    r.RoomName,
+                    r.RoomType,
+                    r.Amenities,
+                    r.Description,
+                    Score = ScoreRoomCandidate(
+                        questionNormalized,
+                        intent,
+                        desiredRoomType,
+                        desiredAmenityKeywords,
+                        locationTerms,
+                        r.HotelName,
+                        r.City,
+                        r.RoomType,
+                        r.RoomName,
+                        r.Amenities,
+                        r.Description)
+                })
+                .Where(x => x.Score > 0)
+                .OrderByDescending(x => x.Score)
+                .Take(5)
+                .ToList();
+
+            // Pricing matcher from SQL
+            var priceCandidates = await _dbContext.Rooms
+                .AsNoTracking()
+                .Include(r => r.Hotel)
+                .Where(r => r.IsActive && r.Status == "ACTIVE")
+                .Select(r => new
+                {
+                    HotelName = r.Hotel.Name,
+                    City = r.Hotel.City,
+                    RoomName = r.Name,
+                    RoomType = r.RoomType,
+                    BasePrice = r.BasePricePerNight,
+                    Rate = r.Rate,
+                    MaxGuests = r.MaxGuests
+                })
+                .ToListAsync();
+
+            var rankedPrices = priceCandidates
+                .Select(p => new
+                {
+                    p.HotelName,
+                    p.City,
+                    p.RoomName,
+                    p.RoomType,
+                    p.BasePrice,
+                    p.Rate,
+                    p.MaxGuests,
+                    Score = ScorePriceCandidate(
+                        questionNormalized,
+                        desiredRoomType,
+                        locationTerms,
+                        p.HotelName,
+                        p.City,
+                        p.RoomType,
+                        p.RoomName)
+                })
+                .Where(x => x.Score > 0 || intent == FallbackIntent.Pricing)
+                .OrderByDescending(x => x.Score)
+                .ThenBy(x => x.BasePrice * x.Rate)
+                .Take(5)
+                .ToList();
+
+            if (intent == FallbackIntent.Amenity && roomCandidates.Any())
+            {
+                var top = roomCandidates.First();
+                var amenityPreview = top.Amenities.Any()
+                    ? string.Join(", ", top.Amenities.Take(6))
+                    : "chưa có dữ liệu tiện ích chi tiết";
+
+                var responseBuilder = new StringBuilder();
+                responseBuilder.AppendLine($"Mình đã tra cứu đúng nhóm phòng bạn hỏi: **{top.RoomType} - {top.RoomName}** tại {top.HotelName}.");
+                responseBuilder.AppendLine($"Tiện ích nổi bật: {amenityPreview}.");
+
+                if (desiredAmenityKeywords.Any())
+                {
+                    var amenityNormalized = top.Amenities.Select(NormalizeText).ToList();
+                    var matched = desiredAmenityKeywords.Where(a => amenityNormalized.Any(am => am.Contains(a))).ToList();
+                    if (matched.Any())
+                    {
+                        responseBuilder.AppendLine($"Theo dữ liệu hiện có, phòng này **có**: {string.Join(", ", matched)}.");
+                    }
+                    else
+                    {
+                        responseBuilder.AppendLine("Mình chưa thấy dữ liệu khẳng định tiện ích bạn hỏi trong phòng này.");
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(top.Description))
+                {
+                    responseBuilder.AppendLine($"Mô tả thêm: {top.Description}");
+                }
+
+                responseBuilder.Append("Nếu bạn muốn mình kiểm tra thêm phòng tương đương ở chi nhánh khác, mình có thể tra cứu tiếp.");
+                return responseBuilder.ToString();
+            }
+
+            if (intent == FallbackIntent.Pricing && rankedPrices.Any())
+            {
+                var lines = rankedPrices.Select(x =>
+                {
+                    var finalPrice = x.BasePrice * x.Rate;
+                    return $"- {x.HotelName} ({x.City}) | {x.RoomType} - {x.RoomName}: khoảng {finalPrice:N0} VND/đêm (tối đa {x.MaxGuests} khách)";
+                });
+
+                return "Mình đã lọc theo nhu cầu của bạn và tìm được mức giá tham khảo:\n"
+                    + string.Join("\n", lines)
+                    + "\n\nGiá chính xác có thể thay đổi theo ngày lưu trú, nhưng bạn có thể dựa trên các mức trên để so sánh nhanh.";
+            }
+
+            if (intent == FallbackIntent.RoomType && roomCandidates.Any())
+            {
+                var lines = roomCandidates.Select(x =>
+                {
+                    var shortAmenities = x.Amenities.Any() ? string.Join(", ", x.Amenities.Take(4)) : "chưa có tiện ích chi tiết";
+                    return $"- {x.HotelName} | {x.RoomType} - {x.RoomName}: {shortAmenities}";
+                });
+
+                return "Mình đã lọc các loại phòng phù hợp với câu hỏi của bạn:\n"
+                    + string.Join("\n", lines)
+                    + "\n\nNếu bạn muốn, mình có thể tiếp tục gợi ý theo ngân sách hoặc số người ở.";
+            }
+
+            // Generic fallback from context lines when matcher has no strong hit.
+            if (!string.IsNullOrWhiteSpace(contextData))
+            {
+                var fallbackLines = contextData
+                    .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Where(l => l.Contains("giá", StringComparison.OrdinalIgnoreCase)
+                             || l.Contains("VND", StringComparison.OrdinalIgnoreCase)
+                             || l.Contains("Tiện ích", StringComparison.OrdinalIgnoreCase)
+                             || l.Contains("Phòng", StringComparison.OrdinalIgnoreCase))
+                    .Take(5)
+                    .ToList();
+
+                if (fallbackLines.Any())
+                {
+                    return "Mình đã tra cứu từ dữ liệu hệ thống và có thông tin sau:\n"
+                        + string.Join("\n", fallbackLines.Select(l => $"- {l}"));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error building smart fallback response");
+        }
+
+        return string.Empty;
+    }
+
+    private enum FallbackIntent
+    {
+        General = 0,
+        Amenity = 1,
+        Pricing = 2,
+        RoomType = 3
+    }
+
+    private FallbackIntent DetectFallbackIntent(string normalizedQuestion, string category)
+    {
+        if (category == "Pricing"
+            || normalizedQuestion.Contains("gia")
+            || normalizedQuestion.Contains("price")
+            || normalizedQuestion.Contains("bao nhieu"))
+        {
+            return FallbackIntent.Pricing;
+        }
+
+        if (normalizedQuestion.Contains("tien ich")
+            || normalizedQuestion.Contains("amenity")
+            || normalizedQuestion.Contains("co ")
+            || normalizedQuestion.Contains("khong"))
+        {
+            return FallbackIntent.Amenity;
+        }
+
+        if (category == "RoomDescription"
+            || normalizedQuestion.Contains("loai phong")
+            || normalizedQuestion.Contains("room type")
+            || normalizedQuestion.Contains("phong"))
+        {
+            return FallbackIntent.RoomType;
+        }
+
+        return FallbackIntent.General;
+    }
+
+    private string? ExtractRequestedRoomType(string normalizedQuestion)
+    {
+        var roomTypeAliases = new Dictionary<string, string[]>
+        {
+            ["standard"] = new[] { "standard", "tieu chuan", "thuong", "phong thuong" },
+            ["deluxe"] = new[] { "deluxe", "de luxe", "cao cap" },
+            ["suite"] = new[] { "suite", "suit", "can ho", "apartment", "vip" },
+            ["family"] = new[] { "family", "gia dinh", "phong gia dinh" },
+            ["executive"] = new[] { "executive", "dieu hanh", "business" },
+            ["superior"] = new[] { "superior", "nang cao" },
+            ["double"] = new[] { "double room", "phong doi", "giuong doi" },
+            ["twin"] = new[] { "twin", "2 giuong don", "hai giuong don" },
+            ["single"] = new[] { "single", "mot nguoi", "1 nguoi" }
+        };
+
+        foreach (var kvp in roomTypeAliases)
+        {
+            if (kvp.Value.Any(alias => normalizedQuestion.Contains(alias)))
+            {
+                return kvp.Key;
+            }
+        }
+
+        var roomTypes = new[] { "standard", "deluxe", "suite", "family", "executive", "superior", "double", "twin", "single" };
+        return roomTypes.FirstOrDefault(t => normalizedQuestion.Contains(t));
+    }
+
+    private List<string> ExtractRequestedAmenities(string normalizedQuestion)
+    {
+        var amenityAliases = new Dictionary<string, string[]>
+        {
+            ["bon tam"] = new[] { "bon tam", "bathtub", "bath tub", "tam bon" },
+            ["wifi"] = new[] { "wifi", "wi fi", "internet" },
+            ["ban cong"] = new[] { "ban cong", "balcony" },
+            ["view bien"] = new[] { "view bien", "sea view", "ocean view" },
+            ["view thanh pho"] = new[] { "view thanh pho", "city view" },
+            ["view vuon"] = new[] { "view vuon", "garden view" },
+            ["giuong doi"] = new[] { "giuong doi", "double bed", "king bed", "queen bed" },
+            ["giuong don"] = new[] { "giuong don", "single bed", "twin bed" },
+            ["may lanh"] = new[] { "may lanh", "air conditioning", "ac" },
+            ["bep"] = new[] { "bep", "kitchen", "kitchenette" },
+            ["ho boi"] = new[] { "ho boi", "swimming pool", "pool" },
+            ["phong gym"] = new[] { "gym", "fitness", "phong tap" },
+            ["an sang"] = new[] { "an sang", "breakfast", "buffet sang" },
+            ["don san bay"] = new[] { "don san bay", "airport shuttle", "shuttle" },
+            ["hut thuoc"] = new[] { "khong hut thuoc", "non smoking", "smoke free" },
+            ["tam nhin bien"] = new[] { "tam nhin bien", "sea facing", "huong bien" }
+        };
+
+        return amenityAliases
+            .Where(kvp => kvp.Value.Any(alias => normalizedQuestion.Contains(alias)))
+            .Select(kvp => kvp.Key)
+            .ToList();
+    }
+
+    private List<string> ExtractRequestedLocations(
+        string normalizedQuestion,
+        IEnumerable<string> candidateHotelNames,
+        IEnumerable<string> candidateCities)
+    {
+        var terms = new HashSet<string>();
+        var commonLocationAliases = new Dictionary<string, string[]>
+        {
+            ["ha noi"] = new[] { "ha noi", "hanoi", "thu do" },
+            ["da nang"] = new[] { "da nang", "danang" },
+            ["ho chi minh"] = new[] { "ho chi minh", "hcm", "sai gon", "saigon", "tphcm" },
+            ["nha trang"] = new[] { "nha trang" },
+            ["phu quoc"] = new[] { "phu quoc" },
+            ["hoi an"] = new[] { "hoi an" },
+            ["ha long"] = new[] { "ha long", "halong" }
+        };
+
+        foreach (var kvp in commonLocationAliases)
+        {
+            if (kvp.Value.Any(alias => normalizedQuestion.Contains(alias)))
+            {
+                terms.Add(kvp.Key);
+            }
+        }
+
+        foreach (var hotel in candidateHotelNames.Distinct())
+        {
+            var normalized = NormalizeText(hotel);
+            if (!string.IsNullOrWhiteSpace(normalized) && normalizedQuestion.Contains(normalized))
+            {
+                terms.Add(normalized);
+            }
+        }
+
+        foreach (var city in candidateCities.Distinct())
+        {
+            var normalized = NormalizeText(city);
+            if (!string.IsNullOrWhiteSpace(normalized) && normalizedQuestion.Contains(normalized))
+            {
+                terms.Add(normalized);
+            }
+        }
+
+        return terms.ToList();
+    }
+
+    private int ScoreRoomCandidate(
+        string normalizedQuestion,
+        FallbackIntent intent,
+        string? desiredRoomType,
+        List<string> desiredAmenities,
+        List<string> requestedLocations,
+        string hotelName,
+        string city,
+        string roomType,
+        string roomName,
+        List<string> amenities,
+        string description)
+    {
+        var score = 0;
+        var hotelNameNormalized = NormalizeText(hotelName);
+        var cityNormalized = NormalizeText(city);
+        var roomTypeNormalized = NormalizeText(roomType);
+        var roomNameNormalized = NormalizeText(roomName);
+        var descriptionNormalized = NormalizeText(description);
+        var amenityNormalized = amenities.Select(NormalizeText).ToList();
+
+        if (!string.IsNullOrWhiteSpace(desiredRoomType) &&
+            (roomTypeNormalized.Contains(desiredRoomType) || roomNameNormalized.Contains(desiredRoomType)))
+        {
+            score += 8;
+        }
+
+        if (intent == FallbackIntent.RoomType || intent == FallbackIntent.Amenity)
+        {
+            score += 2;
+        }
+
+        foreach (var amenity in desiredAmenities)
+        {
+            if (amenityNormalized.Any(a => a.Contains(amenity)))
+            {
+                score += 5;
+            }
+            else if (descriptionNormalized.Contains(amenity))
+            {
+                score += 3;
+            }
+        }
+
+        if (normalizedQuestion.Contains(roomTypeNormalized) || normalizedQuestion.Contains(roomNameNormalized))
+        {
+            score += 2;
+        }
+
+        foreach (var location in requestedLocations)
+        {
+            if (hotelNameNormalized.Contains(location))
+            {
+                score += 10;
+            }
+            else if (cityNormalized.Contains(location))
+            {
+                score += 7;
+            }
+        }
+
+        return score;
+    }
+
+    private int ScorePriceCandidate(
+        string normalizedQuestion,
+        string? desiredRoomType,
+        List<string> requestedLocations,
+        string hotelName,
+        string city,
+        string roomType,
+        string roomName)
+    {
+        var score = 1;
+        var hotelNameNormalized = NormalizeText(hotelName);
+        var cityNormalized = NormalizeText(city);
+        var roomTypeNormalized = NormalizeText(roomType);
+        var roomNameNormalized = NormalizeText(roomName);
+
+        if (!string.IsNullOrWhiteSpace(desiredRoomType) &&
+            (roomTypeNormalized.Contains(desiredRoomType) || roomNameNormalized.Contains(desiredRoomType)))
+        {
+            score += 8;
+        }
+
+        if (normalizedQuestion.Contains(roomTypeNormalized) || normalizedQuestion.Contains(roomNameNormalized))
+        {
+            score += 2;
+        }
+
+        foreach (var location in requestedLocations)
+        {
+            if (hotelNameNormalized.Contains(location))
+            {
+                score += 10;
+            }
+            else if (cityNormalized.Contains(location))
+            {
+                score += 7;
+            }
+        }
+
+        return score;
+    }
+
+    private string NormalizeText(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            return string.Empty;
+        }
+
+        var normalized = input.ToLowerInvariant().Normalize(NormalizationForm.FormD);
+        var sb = new StringBuilder();
+        foreach (var ch in normalized)
+        {
+            var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(ch);
+            if (unicodeCategory != UnicodeCategory.NonSpacingMark)
+            {
+                sb.Append(ch);
+            }
+        }
+
+        return sb
+            .ToString()
+            .Normalize(NormalizationForm.FormC)
+            .Replace("đ", "d");
+    }
+
+    private bool IsAiBillingOrQuotaError(Exception ex)
+    {
+        if (ex is HttpRequestException httpEx)
+        {
+            var msg = httpEx.Message ?? string.Empty;
+            return msg.Contains("402") || msg.Contains("Payment Required", StringComparison.OrdinalIgnoreCase);
+        }
+
+        return false;
     }
 }

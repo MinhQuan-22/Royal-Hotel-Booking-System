@@ -9,21 +9,21 @@ USE RoyalHotelDb;
 GO
 
 -- ============================================================
--- HOTELS (3 demo hotels matching MongoDB HotelCatalog)
+-- HOTELS (5 demo hotels matching MongoDB HotelCatalog)
 -- ============================================================
 
--- Hotel 1 — Da Nang (seeded via INIT_schema.sql backfill, but ensure full data)
+-- Hotel 1 — New York
 IF NOT EXISTS (SELECT 1 FROM Hotels WHERE Id = 1)
 BEGIN
     SET IDENTITY_INSERT Hotels ON;
     INSERT INTO Hotels (Id, Name, Address, City, Country)
-    VALUES (1, N'Royal Luxury Da Nang', N'Đường Mỹ Khê, Đà Nẵng', N'Da Nang', N'Vietnam');
+    VALUES (1, N'Royal Hotel New York', N'123 Fifth Avenue, Midtown Manhattan', N'New York', N'United States');
     SET IDENTITY_INSERT Hotels OFF;
 END
 ELSE
 BEGIN
     UPDATE Hotels
-    SET Name = N'Royal Luxury Da Nang', Address = N'Đường Mỹ Khê, Đà Nẵng', Country = N'Vietnam'
+    SET Name = N'Royal Hotel New York', Address = N'123 Fifth Avenue, Midtown Manhattan', City = N'New York', Country = N'United States'
     WHERE Id = 1 AND Name = 'ROYALHOTEL';
 END
 GO
@@ -50,7 +50,7 @@ IF NOT EXISTS (SELECT 1 FROM Hotels WHERE Id = 4)
 BEGIN
     SET IDENTITY_INSERT Hotels ON;
     INSERT INTO Hotels (Id, Name, Address, City, Country)
-    VALUES (4, N'Royal Hotel New York', N'123 Fifth Avenue, Midtown Manhattan', N'New York', N'United States');
+    VALUES (4, N'Royal Hotel Los Angeles', N'123 Sunset Boulevard, LA', N'Los Angeles', N'United States');
     SET IDENTITY_INSERT Hotels OFF;
 END
 GO
@@ -66,22 +66,17 @@ GO
 
 -- ============================================================
 -- ROOMS
--- Hotel 1 — Da Nang
+-- Hotel 1 — New York
 -- ============================================================
 
-IF NOT EXISTS (SELECT 1 FROM Rooms WHERE Code = 'DN-STD-101')
+IF NOT EXISTS (SELECT 1 FROM Rooms WHERE Code = 'NY-DLX-201')
     INSERT INTO Rooms (Code, Name, RoomType, BasePricePerNight, MaxGuests, IsActive, Description, CoverImageUrl, CreatedAt, UpdatedAt, HotelId, Rate, Status)
-    VALUES ('DN-STD-101', N'Da Nang Standard Ocean View', N'Standard', 1200000, 2, 1, N'Phòng Standard với tầm nhìn hướng biển, 35m², giường king size, ban công riêng.', NULL, SYSDATETIME(), SYSDATETIME(), 1, 1200000, 'ACTIVE');
+    VALUES ('NY-DLX-201', N'New York City View Deluxe', N'Deluxe', 5500000, 2, 1, N'Phòng Deluxe 50m² tầm nhìn ra Manhattan skyline, đầy đủ tiện nghi 5 sao.', NULL, SYSDATETIME(), SYSDATETIME(), 1, 5500000, 'ACTIVE');
 GO
 
-IF NOT EXISTS (SELECT 1 FROM Rooms WHERE Code = 'DN-DLX-201')
+IF NOT EXISTS (SELECT 1 FROM Rooms WHERE Code = 'NY-STE-401')
     INSERT INTO Rooms (Code, Name, RoomType, BasePricePerNight, MaxGuests, IsActive, Description, CoverImageUrl, CreatedAt, UpdatedAt, HotelId, Rate, Status)
-    VALUES ('DN-DLX-201', N'Da Nang Deluxe Sea Breeze', N'Deluxe', 1800000, 2, 1, N'Phòng Deluxe 55m² với bồn tắm đứng, tầm nhìn panorama ra biển.', NULL, SYSDATETIME(), SYSDATETIME(), 1, 1800000, 'ACTIVE');
-GO
-
-IF NOT EXISTS (SELECT 1 FROM Rooms WHERE Code = 'DN-STE-301')
-    INSERT INTO Rooms (Code, Name, RoomType, BasePricePerNight, MaxGuests, IsActive, Description, CoverImageUrl, CreatedAt, UpdatedAt, HotelId, Rate, Status)
-    VALUES ('DN-STE-301', N'Da Nang Presidential Suite', N'Suite', 3500000, 4, 1, N'Suite Tổng thống 120m², phòng khách riêng, bếp nhỏ, butler riêng 24/7.', NULL, SYSDATETIME(), SYSDATETIME(), 1, 3500000, 'ACTIVE');
+    VALUES ('NY-STE-401', N'New York Penthouse Suite', N'Suite', 12000000, 4, 1, N'Penthouse Suite 200m² với terrace riêng nhìn toàn cảnh New York, butler 24/7.', NULL, SYSDATETIME(), SYSDATETIME(), 1, 12000000, 'ACTIVE');
 GO
 
 -- ============================================================
@@ -96,6 +91,46 @@ GO
 IF NOT EXISTS (SELECT 1 FROM Rooms WHERE Code = 'NT-STE-301')
     INSERT INTO Rooms (Code, Name, RoomType, BasePricePerNight, MaxGuests, IsActive, Description, CoverImageUrl, CreatedAt, UpdatedAt, HotelId, Rate, Status)
     VALUES ('NT-STE-301', N'Nha Trang Premium Suite', N'Suite', 2600000, 4, 1, N'Suite cao cấp 90m² với bể tắm nước nóng ngoài trời trên ban công.', NULL, SYSDATETIME(), SYSDATETIME(), 2, 2600000, 'ACTIVE');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Rooms WHERE Code = 'NT-JS-101')
+    INSERT INTO Rooms (Code, Name, RoomType, BasePricePerNight, MaxGuests, IsActive, Description, CoverImageUrl, CreatedAt, UpdatedAt, HotelId, Rate, Status)
+    VALUES ('NT-JS-101', N'Nha Trang Junior Suite', N'Suite', 2500000, 2, 1, N'Phòng Suite tiêu chuẩn với không gian thư giãn sang trọng.', NULL, SYSDATETIME(), SYSDATETIME(), 2, 2500000, 'ACTIVE');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Rooms WHERE Code = 'NT-DLX-202')
+    INSERT INTO Rooms (Code, Name, RoomType, BasePricePerNight, MaxGuests, IsActive, Description, CoverImageUrl, CreatedAt, UpdatedAt, HotelId, Rate, Status)
+    VALUES ('NT-DLX-202', N'Nha Trang Deluxe Room', N'Deluxe', 1800000, 2, 1, N'Phòng Deluxe sang trọng với thiết kế hiện đại.', NULL, SYSDATETIME(), SYSDATETIME(), 2, 1800000, 'ACTIVE');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Rooms WHERE Code = 'NT-ES-101')
+    INSERT INTO Rooms (Code, Name, RoomType, BasePricePerNight, MaxGuests, IsActive, Description, CoverImageUrl, CreatedAt, UpdatedAt, HotelId, Rate, Status)
+    VALUES ('NT-ES-101', N'Nha Trang Executive Suite', N'Suite', 3500000, 4, 1, N'Phòng Executive Suite cao cấp dành cho gia đình.', NULL, SYSDATETIME(), SYSDATETIME(), 2, 3500000, 'ACTIVE');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Rooms WHERE Code = 'NT-PRM-101')
+    INSERT INTO Rooms (Code, Name, RoomType, BasePricePerNight, MaxGuests, IsActive, Description, CoverImageUrl, CreatedAt, UpdatedAt, HotelId, Rate, Status)
+    VALUES ('NT-PRM-101', N'Nha Trang Premium Room', N'Family', 2200000, 3, 1, N'Phòng Premium gia đình rộng rãi và tiện nghi.', NULL, SYSDATETIME(), SYSDATETIME(), 2, 2200000, 'ACTIVE');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Rooms WHERE Code = 'NT-RS-101')
+    INSERT INTO Rooms (Code, Name, RoomType, BasePricePerNight, MaxGuests, IsActive, Description, CoverImageUrl, CreatedAt, UpdatedAt, HotelId, Rate, Status)
+    VALUES ('NT-RS-101', N'Nha Trang Royal Suite', N'Suite', 5000000, 4, 1, N'Phòng Royal Suite đẳng cấp hoàng gia tuyệt đẹp.', NULL, SYSDATETIME(), SYSDATETIME(), 2, 5000000, 'ACTIVE');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Rooms WHERE Code = 'NT-STD-101')
+    INSERT INTO Rooms (Code, Name, RoomType, BasePricePerNight, MaxGuests, IsActive, Description, CoverImageUrl, CreatedAt, UpdatedAt, HotelId, Rate, Status)
+    VALUES ('NT-STD-101', N'Nha Trang Standard Room', N'Standard', 1000000, 2, 1, N'Phòng Standard với tiện nghi cơ bản hiện đại.', NULL, SYSDATETIME(), SYSDATETIME(), 2, 1000000, 'ACTIVE');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Rooms WHERE Code = 'NT-SGL-101')
+    INSERT INTO Rooms (Code, Name, RoomType, BasePricePerNight, MaxGuests, IsActive, Description, CoverImageUrl, CreatedAt, UpdatedAt, HotelId, Rate, Status)
+    VALUES ('NT-SGL-101', N'Nha Trang Single Room', N'Single', 800000, 1, 1, N'Phòng Single dành cho khách lẻ nghỉ dưỡng tĩnh lặng.', NULL, SYSDATETIME(), SYSDATETIME(), 2, 800000, 'ACTIVE');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Rooms WHERE Code = 'NT-DBL-101')
+    INSERT INTO Rooms (Code, Name, RoomType, BasePricePerNight, MaxGuests, IsActive, Description, CoverImageUrl, CreatedAt, UpdatedAt, HotelId, Rate, Status)
+    VALUES ('NT-DBL-101', N'Nha Trang Double Room', N'Double', 1200000, 2, 1, N'Phòng Double thoải mái dành cho hai người.', NULL, SYSDATETIME(), SYSDATETIME(), 2, 1200000, 'ACTIVE');
 GO
 
 -- ============================================================
@@ -113,17 +148,22 @@ IF NOT EXISTS (SELECT 1 FROM Rooms WHERE Code = 'PQ-STE-401')
 GO
 
 -- ============================================================
--- Hotel 4 — New York
+-- Hotel 4 — Los Angeles
 -- ============================================================
 
-IF NOT EXISTS (SELECT 1 FROM Rooms WHERE Code = 'NY-DLX-201')
+IF NOT EXISTS (SELECT 1 FROM Rooms WHERE Code = 'LA-STD-101')
     INSERT INTO Rooms (Code, Name, RoomType, BasePricePerNight, MaxGuests, IsActive, Description, CoverImageUrl, CreatedAt, UpdatedAt, HotelId, Rate, Status)
-    VALUES ('NY-DLX-201', N'New York City View Deluxe', N'Deluxe', 5500000, 2, 1, N'Phòng Deluxe 50m² tầm nhìn ra Manhattan skyline, đầy đủ tiện nghi 5 sao.', NULL, SYSDATETIME(), SYSDATETIME(), 4, 5500000, 'ACTIVE');
+    VALUES ('LA-STD-101', N'LA Standard Ocean View', N'Standard', 2500000, 2, 1, N'Phòng Standard với tầm nhìn hướng biển, 35m², giường king size, ban công riêng.', NULL, SYSDATETIME(), SYSDATETIME(), 4, 2500000, 'ACTIVE');
 GO
 
-IF NOT EXISTS (SELECT 1 FROM Rooms WHERE Code = 'NY-STE-401')
+IF NOT EXISTS (SELECT 1 FROM Rooms WHERE Code = 'LA-DLX-201')
     INSERT INTO Rooms (Code, Name, RoomType, BasePricePerNight, MaxGuests, IsActive, Description, CoverImageUrl, CreatedAt, UpdatedAt, HotelId, Rate, Status)
-    VALUES ('NY-STE-401', N'New York Penthouse Suite', N'Suite', 12000000, 4, 1, N'Penthouse Suite 200m² với terrace riêng nhìn toàn cảnh New York, butler 24/7.', NULL, SYSDATETIME(), SYSDATETIME(), 4, 12000000, 'ACTIVE');
+    VALUES ('LA-DLX-201', N'LA Deluxe Sea Breeze', N'Deluxe', 4500000, 2, 1, N'Phòng Deluxe 55m² với bồn tắm đứng, tầm nhìn panorama ra biển.', NULL, SYSDATETIME(), SYSDATETIME(), 4, 4500000, 'ACTIVE');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Rooms WHERE Code = 'LA-STE-301')
+    INSERT INTO Rooms (Code, Name, RoomType, BasePricePerNight, MaxGuests, IsActive, Description, CoverImageUrl, CreatedAt, UpdatedAt, HotelId, Rate, Status)
+    VALUES ('LA-STE-301', N'LA Presidential Suite', N'Suite', 9500000, 4, 1, N'Suite Tổng thống 120m², phòng khách riêng, bếp nhỏ, butler riêng 24/7.', NULL, SYSDATETIME(), SYSDATETIME(), 4, 9500000, 'ACTIVE');
 GO
 
 -- ============================================================
@@ -264,13 +304,139 @@ IF NOT EXISTS (SELECT 1 FROM FAQ WHERE Question = N'Chính sách hoàn tiền nh
 GO
 
 -- ============================================================
+-- ACCOUNTS DATA
+-- ============================================================
+
+IF NOT EXISTS (SELECT 1 FROM Accounts WHERE Email = 'chudinhminhquan1002@gmail.com')
+    INSERT INTO Accounts (FullName, Email, Phone, PasswordHash, PasswordSalt, Role, Status, CreatedAt, UpdatedAt)
+    VALUES (N'System Admin', 'chudinhminhquan1002@gmail.com', '0901234567', 'Jbhupnn2yjfDZ73HsoztNzC6uyCwowtBeaHuX1rqLSg=', 'oLxo3KAJfvea10bdVKmBeg==', 'admin', 'active', GETUTCDATE(), GETUTCDATE());
+GO
+
+IF NOT EXISTS (SELECT 1 FROM Accounts WHERE Email = 'tthuuttrangg08022005@gmail.com')
+    INSERT INTO Accounts (FullName, Email, Phone, PasswordHash, PasswordSalt, Role, Status, CreatedAt, UpdatedAt)
+    VALUES (N'Test User', 'tthuuttrangg08022005@gmail.com', '0907654321', '3BI9hPu7cm2FDqQ98EQMRxUM+VXHDu+A8G2uBNmx1Us=', 'iC2sp7EyJHmnFmTL/R5r4Q==', 'user', 'active', GETUTCDATE(), GETUTCDATE());
+GO
+
+-- ============================================================
+-- AMENITIES
+-- ============================================================
+IF NOT EXISTS (SELECT 1 FROM Amenities WHERE AmenityKey = 'WIFI')
+BEGIN
+    INSERT INTO Amenities (AmenityKey, Name, IconClass, Category) VALUES
+    ('WIFI', N'Wi-Fi miễn phí', 'fa-wifi', 'General'),
+    ('POOL', N'Hồ bơi vô cực', 'fa-swimming-pool', 'Leisure'),
+    ('JACUZZI', N'Bồn tắm sục Jacuzzi', 'fa-hot-tub', 'Room'),
+    ('GYM', N'Phòng Gym 24/7', 'fa-dumbbell', 'Leisure'),
+    ('SPA', N'Dịch vụ Spa', 'fa-spa', 'Leisure'),
+    ('SHUTTLE', N'Đưa đón sân bay', 'fa-shuttle-van', 'General'),
+    ('BUFFET', N'Bữa sáng Buffet', 'fa-utensils', 'Food'),
+    ('BALCONY', N'Ban công hướng biển', 'fa-water', 'Room'),
+    ('MINIBAR', N'Quầy bar mini', 'fa-glass-martini-alt', 'Room'),
+    ('TV', N'Tivi màn hình phẳng', 'fa-tv', 'Room');
+END
+GO
+
+-- ============================================================
+-- ROOM AMENITIES
+-- ============================================================
+DELETE FROM RoomAmenities;
+
+INSERT INTO RoomAmenities (RoomId, AmenityId)
+SELECT r.Id, a.Id FROM Rooms r CROSS JOIN Amenities a
+WHERE a.AmenityKey IN ('WIFI', 'TV', 'MINIBAR', 'BUFFET');
+
+INSERT INTO RoomAmenities (RoomId, AmenityId)
+SELECT r.Id, a.Id FROM Rooms r CROSS JOIN Amenities a
+WHERE r.RoomType IN ('Deluxe', 'Suite', 'Family')
+  AND a.AmenityKey IN ('POOL', 'SPA', 'SHUTTLE');
+
+INSERT INTO RoomAmenities (RoomId, AmenityId)
+SELECT r.Id, a.Id FROM Rooms r CROSS JOIN Amenities a
+WHERE (r.Name LIKE '%Suite%' OR r.Name LIKE '%Ocean%' OR r.Name LIKE '%Sea%')
+  AND a.AmenityKey IN ('JACUZZI', 'BALCONY');
+GO
+
+-- ============================================================
+-- ROOM IMAGES
+-- ============================================================
+DELETE FROM RoomImages;
+
+INSERT INTO RoomImages (RoomId, ImageUrl, SortOrder, AltText)
+SELECT Id, '/assets/rooms/room1.png', 1, N'Hình ảnh phòng chính' FROM Rooms;
+
+INSERT INTO RoomImages (RoomId, ImageUrl, SortOrder, AltText)
+SELECT Id, '/assets/rooms/room2.jpg', 2, N'Hình ảnh phòng góc nhìn 2' FROM Rooms;
+
+INSERT INTO RoomImages (RoomId, ImageUrl, SortOrder, AltText)
+SELECT Id, '/assets/rooms/room3jpg.jpg', 3, N'Hình ảnh phòng tắm' FROM Rooms;
+
+INSERT INTO RoomImages (RoomId, ImageUrl, SortOrder, AltText)
+SELECT Id, '/assets/rooms/room4.png', 4, N'Hình ảnh ban công' FROM Rooms;
+GO
+
+-- ============================================================
+-- PRICING RULES & HISTORIES
+-- ============================================================
+DELETE FROM PricingRuleHistories;
+DELETE FROM PricingRules;
+
+INSERT INTO PricingRules (Name, RuleType, RoomType, StartDate, EndDate, DayOfWeekMask, Multiplier, Priority, IsActive, Notes, CreatedAt, UpdatedAt, CreatedBy, UpdatedBy)
+VALUES
+(N'Khuyến mãi Mùa Hè', 'Seasonal', NULL, DATEADD(month, -1, GETDATE()), DATEADD(month, 2, GETDATE()), '1111111', 0.85, 1, 1, N'Giảm 15% mùa hè', GETUTCDATE(), GETUTCDATE(), 'System Admin', 'System Admin'),
+(N'Flash Sale Cuối Tuần', 'Promo', NULL, GETDATE(), DATEADD(day, 2, GETDATE()), '0000011', 0.80, 2, 1, N'Giảm 20% cuối tuần', GETUTCDATE(), GETUTCDATE(), 'System Admin', 'System Admin');
+
+INSERT INTO PricingRuleHistories (PricingRuleId, ActionType, RuleName, RuleType, RoomType, StartDate, EndDate, DayOfWeekMask, Multiplier, Priority, IsActive, Notes, ChangedAt, ChangedBy)
+SELECT Id, 'Created', Name, RuleType, RoomType, StartDate, EndDate, DayOfWeekMask, Multiplier, Priority, IsActive, Notes, GETUTCDATE(), 'System Admin'
+FROM PricingRules;
+GO
+
+-- ============================================================
+-- BOOKINGS & PAYMENT TRANSACTIONS
+-- ============================================================
+DELETE FROM PaymentTransactions;
+DELETE FROM Bookings;
+
+DECLARE @UserId INT = (SELECT TOP 1 Id FROM Accounts WHERE Role = 'user');
+DECLARE @AdminId INT = (SELECT TOP 1 Id FROM Accounts WHERE Role = 'admin');
+
+-- Booking 1 (Completed)
+INSERT INTO Bookings (RoomId, AccountId, BookingCode, CheckIn, CheckOut, Guests, Status, PricePerNight, TotalAmount, PaymentMethod, CreatedAt)
+SELECT TOP 1 Id, @UserId, 'BK-TEST-001', DATEADD(day, -10, CAST(GETDATE() AS DATE)), DATEADD(day, -7, CAST(GETDATE() AS DATE)), 2, 'Completed', Rate, Rate * 3, 'Credit Card', DATEADD(day, -15, GETUTCDATE())
+FROM Rooms ORDER BY Id ASC;
+
+-- Booking 2 (Confirmed)
+INSERT INTO Bookings (RoomId, AccountId, BookingCode, CheckIn, CheckOut, Guests, Status, PricePerNight, TotalAmount, PaymentMethod, CreatedAt)
+SELECT TOP 1 Id, @UserId, 'BK-TEST-002', DATEADD(day, 5, CAST(GETDATE() AS DATE)), DATEADD(day, 8, CAST(GETDATE() AS DATE)), 2, 'Confirmed', Rate, Rate * 3, 'Credit Card', DATEADD(day, -2, GETUTCDATE())
+FROM Rooms ORDER BY Id DESC;
+
+-- Booking 3 (Pending)
+INSERT INTO Bookings (RoomId, AccountId, BookingCode, CheckIn, CheckOut, Guests, Status, PricePerNight, TotalAmount, PaymentMethod, CreatedAt)
+SELECT TOP 1 Id, @AdminId, 'BK-TEST-003', DATEADD(day, 12, CAST(GETDATE() AS DATE)), DATEADD(day, 15, CAST(GETDATE() AS DATE)), 4, 'Pending', Rate, Rate * 3, 'Bank Transfer', GETUTCDATE()
+FROM Rooms WHERE RoomType = 'Suite';
+
+INSERT INTO PaymentTransactions (BookingId, PaymentMethod, Amount, Status, TransactionType, TransactionCode, ProcessedAt, CreatedAt)
+SELECT Id, PaymentMethod, TotalAmount, 'Paid', 'Payment', CONCAT('PAY-', BookingCode), CreatedAt, CreatedAt
+FROM Bookings
+WHERE Status IN ('Completed', 'Confirmed');
+GO
+
+-- ============================================================
+-- ROOM RATE CHANGE LOG (Trigger via UPDATE)
+-- ============================================================
+UPDATE Rooms
+SET Rate = Rate * 1.6
+WHERE Code = 'NT-RS-101';
+GO
+
+-- ============================================================
 -- VERIFY
 -- ============================================================
 PRINT '';
 PRINT '=================================================';
 SELECT 'Hotels'            AS [Table], COUNT(*) AS [Rows] FROM Hotels         UNION ALL
 SELECT 'Rooms'             AS [Table], COUNT(*) AS [Rows] FROM Rooms           UNION ALL
-SELECT 'FAQ'               AS [Table], COUNT(*) AS [Rows] FROM FAQ;
+SELECT 'FAQ'               AS [Table], COUNT(*) AS [Rows] FROM FAQ             UNION ALL
+SELECT 'Accounts'          AS [Table], COUNT(*) AS [Rows] FROM Accounts;
 PRINT 'ROYALHOTEL Seed Data Complete.';
 PRINT '=================================================';
 GO

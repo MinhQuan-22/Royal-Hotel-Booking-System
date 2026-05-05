@@ -23,7 +23,9 @@ public class AIService : IAIService
     {
         "tiện ích", "phòng", "giá", "chính sách", "check-in", "check-out", "hủy phòng",
         "wifi", "hồ bơi", "gym", "nhà hàng", "spa", "dịch vụ", "tiện nghi",
-        "loại phòng", "so sánh", "khác biệt", "mô tả"
+        "loại phòng", "so sánh", "khác biệt", "mô tả",
+        "tien ich", "gia phong", "gia ca", "bao nhieu", "room", "amenities",
+        "standard", "deluxe", "suite"
     };
 
     // Out-of-scope keywords (Vietnamese)
@@ -31,6 +33,14 @@ public class AIService : IAIService
     {
         "hoàn tiền", "khiếu nại", "thay đổi booking", "hủy đặt phòng",
         "refund", "complaint", "change booking", "modify reservation"
+    };
+
+    // Hotel domain cues: if user asks broad hotel questions without exact keywords,
+    // still keep it in scope so AI can attempt with database context.
+    private static readonly string[] HotelDomainKeywords = new[]
+    {
+        "khách sạn", "hotel", "royal", "chi nhánh", "cơ sở",
+        "phong", "gia", "tien nghi", "room", "price", "amenity"
     };
 
     // Prohibited patterns for guardrail validation
@@ -119,13 +129,27 @@ public class AIService : IAIService
             return Task.FromResult(classification);
         }
 
-        // No keywords matched - treat as out-of-scope with low confidence
+        // Broad hotel-domain fallback:
+        // keep in-scope and let LLM decide from retrieved context.
+        var domainMatches = HotelDomainKeywords.Count(keyword => lowerText.Contains(keyword));
+        if (domainMatches > 0)
+        {
+            return Task.FromResult(new QuestionClassification
+            {
+                IsInScope = true,
+                ConfidenceScore = 0.75,
+                Category = DetermineCategory(lowerText),
+                Reason = "Matched broad hotel-domain keywords"
+            });
+        }
+
+        // No useful match: treat as out-of-scope
         return Task.FromResult(new QuestionClassification
         {
             IsInScope = false,
             ConfidenceScore = 0.3,
             Category = "Unknown",
-            Reason = "No matching keywords found"
+            Reason = "No matching hotel-domain keywords found"
         });
     }
 
@@ -174,8 +198,10 @@ public class AIService : IAIService
                     "Calling OpenAI API (attempt {Attempt}/{MaxAttempts}). Model={Model}, Timeout={TimeoutSeconds}s",
                     attempt + 1, MaxRetries + 1, requestBody.model, TimeoutSeconds);
 
-                var request = new HttpRequestMessage(HttpMethod.Post, "https://api.openai.com/v1/chat/completions");
+                var request = new HttpRequestMessage(HttpMethod.Post, "https://openrouter.ai/api/v1/chat/completions");
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+                request.Headers.Add("HTTP-Referer", "http://localhost:5033"); // Optional but recommended for OpenRouter
+                request.Headers.Add("X-Title", "Royal Hotel AI Assistant");
                 request.Content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
                 var response = await _httpClient.SendAsync(request);
@@ -188,6 +214,16 @@ public class AIService : IAIService
                         attempt + 1, (DateTime.UtcNow - requestStartTime).TotalMilliseconds);
 
                     throw new HttpRequestException("OpenAI API rate limit exceeded (HTTP 429). Please try again later.");
+                }
+
+                // Handle billing/quota issues explicitly (OpenRouter HTTP 402)
+                if ((int)response.StatusCode == 402)
+                {
+                    _logger.LogWarning(
+                        "OpenAI provider billing/quota issue (HTTP 402). Attempt={Attempt}, RequestTime={RequestTimeMs}ms",
+                        attempt + 1, (DateTime.UtcNow - requestStartTime).TotalMilliseconds);
+
+                    throw new HttpRequestException("OpenAI provider returned HTTP 402 Payment Required (insufficient credits/quota).");
                 }
 
                 // Requirement 16.3: Check for 5xx errors (server errors) - retry these
@@ -245,6 +281,11 @@ public class AIService : IAIService
             catch (HttpRequestException ex) when (ex.Message.Contains("429"))
             {
                 // HTTP 429 - don't retry, throw immediately
+                throw;
+            }
+            catch (HttpRequestException ex) when (ex.Message.Contains("402") || ex.Message.Contains("Payment Required", StringComparison.OrdinalIgnoreCase))
+            {
+                // HTTP 402 - no retry, handled upstream by DB fallback path
                 throw;
             }
             catch (HttpRequestException ex) when ((int?)((ex.InnerException as HttpRequestException)?.StatusCode) >= 500)
@@ -366,8 +407,11 @@ Câu hỏi: {messageText}";
             return "HotelAmenities";
         }
 
-        if (lowerText.Contains("phòng") || lowerText.Contains("loại phòng") || 
-            lowerText.Contains("so sánh") || lowerText.Contains("mô tả"))
+        if (lowerText.Contains("phòng") || lowerText.Contains("phong") ||
+            lowerText.Contains("loại phòng") || lowerText.Contains("loai phong") ||
+            lowerText.Contains("so sánh") || lowerText.Contains("so sanh") ||
+            lowerText.Contains("mô tả") || lowerText.Contains("mo ta") ||
+            lowerText.Contains("room"))
         {
             return "RoomDescription";
         }
@@ -378,7 +422,8 @@ Câu hỏi: {messageText}";
             return "Policies";
         }
 
-        if (lowerText.Contains("giá") || lowerText.Contains("price") || lowerText.Contains("cost"))
+        if (lowerText.Contains("giá") || lowerText.Contains("gia") ||
+            lowerText.Contains("bao nhieu") || lowerText.Contains("price") || lowerText.Contains("cost"))
         {
             return "Pricing";
         }

@@ -68,6 +68,24 @@ namespace ROYALHOTEL.Controllers
                     .OrderByDescending(c => c.UpdatedAt)
                     .ToListAsync();
 
+                // Sidebar preview must only use User/Admin messages (exclude AI completely)
+                var conversationIds = escalatedConversations.Select(c => c.Id).ToList();
+                var previewByConversation = await _context.ChatMessages
+                    .Where(m => conversationIds.Contains(m.ConversationId) && m.SenderType != "AI")
+                    .OrderByDescending(m => m.CreatedAt)
+                    .Select(m => new
+                    {
+                        m.ConversationId,
+                        m.MessageText
+                    })
+                    .ToListAsync();
+
+                ViewBag.PreviewByConversation = previewByConversation
+                    .GroupBy(x => x.ConversationId)
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.First().MessageText);
+
                 _logger.LogInformation(
                     "Admin viewing escalated conversations. Count: {Count}",
                     escalatedConversations.Count);
@@ -106,27 +124,45 @@ namespace ROYALHOTEL.Controllers
                     .Where(c => (c.Status == "EscalatedToAdmin" || c.Status == "AnsweredByAdmin") 
                              && c.UpdatedAt > checkTime)
                     .OrderByDescending(c => c.UpdatedAt)
-                    .Select(c => new
-                    {
-                        c.Id,
-                        c.ConversationCode,
-                        c.GuestName,
-                        c.Status,
-                        c.UpdatedAt
-                    })
                     .ToListAsync();
 
-                var hasNew = newConversations.Count > 0;
+                // Get preview messages for these conversations
+                var conversationIds = newConversations.Select(c => c.Id).ToList();
+                var previewMessagesQuery = await _context.ChatMessages
+                    .Where(m => conversationIds.Contains(m.ConversationId) && m.SenderType != "AI")
+                    .GroupBy(m => m.ConversationId)
+                    .Select(g => new
+                    {
+                        ConversationId = g.Key,
+                        LastMessage = g.OrderByDescending(m => m.CreatedAt).First().MessageText
+                    })
+                    .ToListAsync();
+                
+                var previewMessages = previewMessagesQuery.ToDictionary(x => x.ConversationId, x => x.LastMessage);
+
+                var conversationsWithPreview = newConversations.Select(c => new
+                {
+                    c.Id,
+                    c.ConversationCode,
+                    c.GuestName,
+                    c.Status,
+                    c.UpdatedAt,
+                    Preview = previewMessages.ContainsKey(c.Id) 
+                        ? previewMessages[c.Id] 
+                        : (!string.IsNullOrEmpty(c.EscalationReason) ? c.EscalationReason : "Yêu cầu hỗ trợ")
+                }).ToList();
+
+                var hasNew = conversationsWithPreview.Count > 0;
 
                 _logger.LogInformation(
                     "Poll check: {Count} new/updated conversations since {LastCheck}",
-                    newConversations.Count, checkTime);
+                    conversationsWithPreview.Count, checkTime);
 
                 return Ok(new
                 {
                     hasNew = hasNew,
-                    count = newConversations.Count,
-                    conversations = newConversations,
+                    count = conversationsWithPreview.Count,
+                    conversations = conversationsWithPreview,
                     serverTime = DateTime.UtcNow
                 });
             }
@@ -156,9 +192,35 @@ namespace ROYALHOTEL.Controllers
                 // If no lastCheck provided, use 1 minute ago
                 var checkTime = lastCheck ?? DateTime.UtcNow.AddMinutes(-1);
 
+                // Get conversation to check EscalatedAt timestamp
+                var conversation = await _context.ChatConversations
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(c => c.Id == conversationId);
+
+                if (conversation == null)
+                {
+                    return NotFound(new { hasNew = false, messages = new List<object>(), error = "Conversation not found" });
+                }
+
                 // Query new messages after lastCheck
-                var newMessages = await _context.ChatMessages
-                    .Where(m => m.ConversationId == conversationId && m.CreatedAt > checkTime)
+                var query = _context.ChatMessages
+                    .Where(m => m.ConversationId == conversationId
+                             && m.CreatedAt > checkTime
+                             && m.SenderType != "AI");
+
+                // CRITICAL: Only show messages if conversation was escalated
+                // If EscalatedAt is null, conversation is in AI mode - admin should not see messages
+                if (conversation.EscalatedAt.HasValue)
+                {
+                    query = query.Where(m => m.CreatedAt >= conversation.EscalatedAt.Value);
+                }
+                else
+                {
+                    // No escalation = AI-only conversation, return empty
+                    query = query.Where(m => false);
+                }
+
+                var newMessages = await query
                     .OrderBy(m => m.CreatedAt)
                     .Select(m => new
                     {
@@ -217,8 +279,26 @@ namespace ROYALHOTEL.Controllers
                     return RedirectToAction("Index");
                 }
 
-                // Get conversation history (pass null for userId to bypass auth check for admin)
-                var messages = await _chatService.GetConversationHistoryAsync(conversationId, null);
+                // Get conversation history - only messages AFTER escalation
+                var query = _context.ChatMessages
+                    .Where(m => m.ConversationId == conversationId)
+                    .Where(m => m.SenderType != "AI"); // Exclude AI messages
+
+                // CRITICAL: Only show messages if conversation was escalated
+                // If EscalatedAt is null, conversation is in AI mode - admin should not see messages
+                if (conversation.EscalatedAt.HasValue)
+                {
+                    query = query.Where(m => m.CreatedAt >= conversation.EscalatedAt.Value);
+                }
+                else
+                {
+                    // No escalation = AI-only conversation, return empty
+                    query = query.Where(m => false);
+                }
+
+                var messages = await query
+                    .OrderBy(m => m.CreatedAt)
+                    .ToListAsync();
 
                 ViewBag.Conversation = conversation;
                 ViewBag.Messages = messages;
@@ -323,8 +403,26 @@ namespace ROYALHOTEL.Controllers
                     return NotFound(new { messages = new List<object>(), error = "Conversation not found" });
                 }
 
-                var messages = await _context.ChatMessages
+                // IMPORTANT: Only show messages created AFTER escalation
+                // Filter by EscalatedAt timestamp to exclude pre-escalation messages
+                var query = _context.ChatMessages
                     .Where(m => m.ConversationId == conversationId)
+                    .Where(m => m.SenderType != "AI"); // Exclude AI messages
+
+                // CRITICAL: Only show messages if conversation was escalated
+                // If EscalatedAt is null, it means conversation is in AI mode (not escalated or reopened after close)
+                // Admin should NOT see any messages from AI-only sessions
+                if (conversation.EscalatedAt.HasValue)
+                {
+                    query = query.Where(m => m.CreatedAt >= conversation.EscalatedAt.Value);
+                }
+                else
+                {
+                    // No escalation timestamp = AI-only conversation, return empty list
+                    query = query.Where(m => false); // This will return no results
+                }
+
+                var messages = await query
                     .OrderBy(m => m.CreatedAt)
                     .Select(m => new
                     {

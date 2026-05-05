@@ -140,7 +140,7 @@
                 <div class="rh-amenChips">
                     @foreach (var a in displayAmenities)
                     {
-                        <span class="rh-chip">@($"{a.IconClass} {a.Name}".Trim())</span>
+                        <span class="rh-chip"><i class="fas @a.IconClass" style="color: #c9a24a; margin-right: 4px;"></i> @a.Name</span>
                     }
                 </div>
             </div>
