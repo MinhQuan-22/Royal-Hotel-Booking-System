@@ -273,6 +273,7 @@ BEGIN
         GuestPhone       NVARCHAR(20)   NULL,
         Status           NVARCHAR(30)   NOT NULL DEFAULT 'Open',
         EscalationReason NVARCHAR(500)  NULL,
+        EscalatedAt      DATETIME2      NULL,
         CreatedAt        DATETIME2      NOT NULL DEFAULT GETUTCDATE(),
         UpdatedAt        DATETIME2      NOT NULL DEFAULT GETUTCDATE(),
 
@@ -286,6 +287,10 @@ BEGIN
     -- Add GuestPhone if missing (added in migration 14)
     IF COL_LENGTH('ChatConversations', 'GuestPhone') IS NULL
         ALTER TABLE ChatConversations ADD GuestPhone NVARCHAR(20) NULL;
+    
+    -- Add EscalatedAt if missing (for tracking escalation timestamp)
+    IF COL_LENGTH('ChatConversations', 'EscalatedAt') IS NULL
+        ALTER TABLE ChatConversations ADD EscalatedAt DATETIME2 NULL;
 END
 GO
 
