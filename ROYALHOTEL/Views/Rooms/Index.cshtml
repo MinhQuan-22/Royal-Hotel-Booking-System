@@ -116,14 +116,10 @@
                     ? featuredSummary
                     : RoomPricingSummary.FromBase(r.BasePricePerNight);
 
-                var isTopBooked = topBookedRoomIds.Contains(r.Id);
+                // Do NOT show "Top Booked" badge in featured cards - only in room list below
 
                 <div class="@cardClass">
                     <img class="rh-roomCard__img" src="@img" alt="@displayName" />
-                    @if (isTopBooked)
-                    {
-                        <div class="rh-roomCard__badge">🔥 Được đặt nhiều</div>
-                    }
                     <a href="#" onclick="event.preventDefault();"
                        class="rh-roomCard__bookBtn">ĐẶT PHÒNG</a>
                     <div class="rh-roomCard__info">
