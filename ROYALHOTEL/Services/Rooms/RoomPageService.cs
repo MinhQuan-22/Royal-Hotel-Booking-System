@@ -96,8 +96,9 @@ public class RoomPageService : IRoomPageService
         var pricingCheckOut = ParseDateOrNull(request.CheckOut);
 
         var allRoomTypes = await _roomQueryService.GetAllRoomTypesAsync();
-        // FeaturedRooms lọc theo chi nhánh nếu có chọn
-        var featuredRooms = await _roomQueryService.GetFeaturedRoomTypesAsync(request.HotelId);
+        // FeaturedRooms: Always show ALL room types from entire system (not filtered by branch)
+        // This ensures the menu cards remain consistent regardless of filter selection
+        var featuredRooms = await _roomQueryService.GetFeaturedRoomTypesAsync();
         var filterAmenities = await _roomQueryService.GetFilterAmenitiesAsync();
         var hotels = await _roomQueryService.GetAllHotelsAsync();
 

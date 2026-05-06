@@ -85,11 +85,13 @@ public class RoomQueryService
 
     public async Task<List<Room>> GetFeaturedRoomTypesAsync(int? hotelId = null)
     {
+        // ALWAYS get ALL room types from entire system (ignore hotelId filter for featured cards)
+        // This ensures the menu cards always show all available room types
         var query = _repo.Query()
             .Where(r => !string.IsNullOrWhiteSpace(r.RoomType));
 
-        if (hotelId.HasValue)
-            query = query.Where(r => r.HotelId == hotelId.Value);
+        // DO NOT filter by hotelId here - we want to show all room types in the system
+        // The filter will only apply to the room list below, not the featured cards
 
         var rooms = await query.ToListAsync();
 
@@ -100,7 +102,7 @@ public class RoomQueryService
                           .First())
             .OrderBy(r => _catalog.GetRoomTypeOrder(r.RoomType))
             .ThenBy(r => _catalog.NormalizeRoomType(r.RoomType))
-            .Take(6)
+            // Remove Take(6) limit to show ALL room types in the system
             .ToList();
     }
 
