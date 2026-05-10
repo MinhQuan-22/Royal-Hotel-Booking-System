@@ -521,7 +521,7 @@
     const sendBtn      = document.getElementById('sendBtn');
 
     /* ─── Select conversation ─── */
-    window.selectConversation = function(convId, name, phone, status) {
+    window.selectConversation = async function(convId, name, phone, status) {
         // Remove active from all items
         document.querySelectorAll('.conv-item').forEach(el => el.classList.remove('active'));
         const item = document.getElementById('conv-item-' + convId);
@@ -534,6 +534,32 @@
         // Remove unread bold styling from preview
         const preview = document.getElementById('preview-' + convId);
         if (preview) preview.classList.remove('unread');
+
+        // CRITICAL: Auto mark as read if status is EscalatedToAdmin
+        if (status === 'EscalatedToAdmin') {
+            try {
+                const res = await fetch(`/AdminChat/MarkAsRead/${convId}`, { method: 'POST' });
+                if (res.ok) {
+                    // Update status to AnsweredByAdmin
+                    status = 'AnsweredByAdmin';
+                    
+                    // Update item dataset
+                    if (item) item.dataset.status = 'AnsweredByAdmin';
+                    
+                    // Update status dot to green
+                    const statusDot = item?.querySelector('.conv-status-dot');
+                    if (statusDot) {
+                        statusDot.classList.remove('escalated');
+                        statusDot.classList.add('answered');
+                    }
+                    
+                    // Trigger badge update on sidebar
+                    updateUnreadBadge();
+                }
+            } catch (err) {
+                console.error('Error marking as read:', err);
+            }
+        }
 
         // Update header
         chatAvatar.textContent = name.charAt(0).toUpperCase();
@@ -587,7 +613,14 @@
             }
 
             data.messages.forEach((m, idx) => appendMessage(m.senderType, m.messageText, m.createdAt, idx));
-            highlightContinuationPoint(data.messages);
+            
+            // Highlight continuation point based on escalatedAt timestamp
+            if (data.escalatedAt) {
+                highlightContinuationPointByTimestamp(data.messages, data.escalatedAt);
+            } else {
+                scrollBottom();
+            }
+            
             lastMsgCheckTime = data.serverTime;
         } catch (e) {
             chatMessages.innerHTML = '<div style="color:red;text-align:center;padding:20px">Lỗi tải tin nhắn</div>';
@@ -671,6 +704,43 @@
         target.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
+    // New function: Highlight based on escalatedAt timestamp
+    function highlightContinuationPointByTimestamp(messages, escalatedAtStr) {
+        clearContinuationHighlight();
+
+        if (!escalatedAtStr || messages.length === 0) {
+            scrollBottom();
+            return;
+        }
+
+        // Parse escalatedAt timestamp
+        let escalatedAt = new Date(escalatedAtStr.endsWith('Z') ? escalatedAtStr : escalatedAtStr + 'Z');
+
+        // Find first message at or after escalatedAt
+        let continuationIndex = -1;
+        for (let i = 0; i < messages.length; i++) {
+            let msgTime = new Date(messages[i].createdAt.endsWith('Z') ? messages[i].createdAt : messages[i].createdAt + 'Z');
+            if (msgTime >= escalatedAt) {
+                continuationIndex = i;
+                break;
+            }
+        }
+
+        if (continuationIndex < 0) {
+            scrollBottom();
+            return;
+        }
+
+        const target = chatMessages.querySelector(`.msg-row[data-msg-index="${continuationIndex}"]`);
+        if (!target) {
+            scrollBottom();
+            return;
+        }
+
+        target.classList.add('continuation-point');
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
     /* ─── Poll new messages in active conversation ─── */
     async function pollNewMessages(convId) {
         if (convId !== activeConvId || !lastMsgCheckTime) return;
@@ -720,17 +790,19 @@
                         const preview = document.getElementById('preview-' + c.id);
                         if (preview && c.preview) {
                             preview.textContent = c.preview;
+                            
+                            // CRITICAL: Add unread bold styling for escalated conversations
+                            if (c.status === 'EscalatedToAdmin' && c.id !== activeConvId) {
+                                preview.classList.add('unread');
+                            } else {
+                                preview.classList.remove('unread');
+                            }
                         }
                         
                         // Show new message indicator if not currently viewing this conversation
                         const newDot = document.getElementById('new-dot-' + c.id);
                         if (newDot && c.id !== activeConvId) {
                             newDot.classList.add('visible');
-                        }
-                        
-                        // Add unread bold styling for escalated conversations
-                        if (preview && c.status === 'EscalatedToAdmin' && c.id !== activeConvId) {
-                            preview.classList.add('unread');
                         }
                         
                         // Move conversation to top of list (most recent)
@@ -743,6 +815,9 @@
                         setTimeout(() => window.location.reload(), 2000);
                     }
                 });
+                
+                // Update unread badge count
+                updateUnreadBadge();
             }
         } catch (e) { /* silent */ }
     }
@@ -977,10 +1052,38 @@
                     // Remove unread bold styling from preview
                     const preview = document.getElementById('preview-' + convId);
                     if (preview) preview.classList.remove('unread');
+                    
+                    // Update item dataset
+                    item.dataset.status = 'AnsweredByAdmin';
                 }
+                
+                // Update badge count
+                updateUnreadBadge();
             }
         } catch(err) { console.error(err); }
     };
+
+    /* ─── Update unread badge on sidebar ─── */
+    async function updateUnreadBadge() {
+        try {
+            const res = await fetch('/AdminChat/UnreadCount');
+            if (!res.ok) return;
+            const data = await res.json();
+            const count = data.count || 0;
+            
+            // Update badge in _AdminLayout.cshtml sidebar
+            const badge = document.getElementById('chatSupportBadge');
+            if (badge) {
+                if (count > 0) {
+                    badge.textContent = count;
+                    badge.style.display = 'inline';
+                } else {
+                    badge.style.display = 'none';
+                    badge.textContent = '';
+                }
+            }
+        } catch(e) { /* silent */ }
+    }
 
     /* ─── Delete conversation ─── */
     window.deleteConversation = async function(e, convId) {

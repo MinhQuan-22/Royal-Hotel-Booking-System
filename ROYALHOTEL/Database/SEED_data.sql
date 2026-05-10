@@ -357,21 +357,52 @@ WHERE (r.Name LIKE '%Suite%' OR r.Name LIKE '%Ocean%' OR r.Name LIKE '%Sea%')
 GO
 
 -- ============================================================
--- ROOM IMAGES
+-- ROOM IMAGES (Random Assignment)
 -- ============================================================
 DELETE FROM RoomImages;
 
-INSERT INTO RoomImages (RoomId, ImageUrl, SortOrder, AltText)
-SELECT Id, '/assets/rooms/room1.png', 1, N'Hình ảnh phòng chính' FROM Rooms;
+-- Update CoverImageUrl for each room with a random image
+DECLARE @RoomId INT;
+DECLARE @RandomImageIndex INT;
+DECLARE @CoverImageUrl NVARCHAR(255);
 
-INSERT INTO RoomImages (RoomId, ImageUrl, SortOrder, AltText)
-SELECT Id, '/assets/rooms/room2.jpg', 2, N'Hình ảnh phòng góc nhìn 2' FROM Rooms;
+DECLARE room_cursor CURSOR FOR SELECT Id FROM Rooms;
+OPEN room_cursor;
+FETCH NEXT FROM room_cursor INTO @RoomId;
 
-INSERT INTO RoomImages (RoomId, ImageUrl, SortOrder, AltText)
-SELECT Id, '/assets/rooms/room3jpg.jpg', 3, N'Hình ảnh phòng tắm' FROM Rooms;
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    -- Randomly select 1 image from 5 available images for CoverImageUrl
+    SET @RandomImageIndex = (ABS(CHECKSUM(NEWID())) % 5) + 1;
+    SET @CoverImageUrl = '/assets/home/Room' + CAST(@RandomImageIndex AS NVARCHAR(1)) + '.jpg';
+    
+    UPDATE Rooms 
+    SET CoverImageUrl = @CoverImageUrl 
+    WHERE Id = @RoomId;
+    
+    -- Randomly select 3 or 4 images for RoomImages
+    DECLARE @ImageCount INT = (ABS(CHECKSUM(NEWID())) % 2) + 3; -- 3 or 4
+    
+    -- Insert random images without duplicates
+    INSERT INTO RoomImages (RoomId, ImageUrl, SortOrder, AltText)
+    SELECT TOP (@ImageCount)
+        @RoomId,
+        '/assets/home/Room' + CAST(ImageNumber AS NVARCHAR(1)) + '.jpg',
+        ROW_NUMBER() OVER (ORDER BY NEWID()),
+        CASE ROW_NUMBER() OVER (ORDER BY NEWID())
+            WHEN 1 THEN N'Hình ảnh phòng chính'
+            WHEN 2 THEN N'Hình ảnh phòng góc nhìn 2'
+            WHEN 3 THEN N'Hình ảnh phòng tắm'
+            ELSE N'Hình ảnh ban công'
+        END
+    FROM (VALUES (1), (2), (3), (4), (5)) AS Images(ImageNumber)
+    ORDER BY NEWID();
+    
+    FETCH NEXT FROM room_cursor INTO @RoomId;
+END
 
-INSERT INTO RoomImages (RoomId, ImageUrl, SortOrder, AltText)
-SELECT Id, '/assets/rooms/room4.png', 4, N'Hình ảnh ban công' FROM Rooms;
+CLOSE room_cursor;
+DEALLOCATE room_cursor;
 GO
 
 -- ============================================================

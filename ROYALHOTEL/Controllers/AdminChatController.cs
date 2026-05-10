@@ -192,7 +192,7 @@ namespace ROYALHOTEL.Controllers
                 // If no lastCheck provided, use 1 minute ago
                 var checkTime = lastCheck ?? DateTime.UtcNow.AddMinutes(-1);
 
-                // Get conversation to check EscalatedAt timestamp
+                // Get conversation
                 var conversation = await _context.ChatConversations
                     .AsNoTracking()
                     .FirstOrDefaultAsync(c => c.Id == conversationId);
@@ -202,25 +202,11 @@ namespace ROYALHOTEL.Controllers
                     return NotFound(new { hasNew = false, messages = new List<object>(), error = "Conversation not found" });
                 }
 
-                // Query new messages after lastCheck
-                var query = _context.ChatMessages
+                // Query new messages after lastCheck (User and Admin only, exclude AI)
+                var newMessages = await _context.ChatMessages
                     .Where(m => m.ConversationId == conversationId
                              && m.CreatedAt > checkTime
-                             && m.SenderType != "AI");
-
-                // CRITICAL: Only show messages if conversation was escalated
-                // If EscalatedAt is null, conversation is in AI mode - admin should not see messages
-                if (conversation.EscalatedAt.HasValue)
-                {
-                    query = query.Where(m => m.CreatedAt >= conversation.EscalatedAt.Value);
-                }
-                else
-                {
-                    // No escalation = AI-only conversation, return empty
-                    query = query.Where(m => false);
-                }
-
-                var newMessages = await query
+                             && m.SenderType != "AI")
                     .OrderBy(m => m.CreatedAt)
                     .Select(m => new
                     {
@@ -279,24 +265,11 @@ namespace ROYALHOTEL.Controllers
                     return RedirectToAction("Index");
                 }
 
-                // Get conversation history - only messages AFTER escalation
-                var query = _context.ChatMessages
+                // Get ALL conversation history - User and Admin messages only (exclude AI)
+                // IMPORTANT: Show all messages from all escalation sessions, not just current one
+                var messages = await _context.ChatMessages
                     .Where(m => m.ConversationId == conversationId)
-                    .Where(m => m.SenderType != "AI"); // Exclude AI messages
-
-                // CRITICAL: Only show messages if conversation was escalated
-                // If EscalatedAt is null, conversation is in AI mode - admin should not see messages
-                if (conversation.EscalatedAt.HasValue)
-                {
-                    query = query.Where(m => m.CreatedAt >= conversation.EscalatedAt.Value);
-                }
-                else
-                {
-                    // No escalation = AI-only conversation, return empty
-                    query = query.Where(m => false);
-                }
-
-                var messages = await query
+                    .Where(m => m.SenderType != "AI") // Exclude AI messages
                     .OrderBy(m => m.CreatedAt)
                     .ToListAsync();
 
@@ -403,26 +376,11 @@ namespace ROYALHOTEL.Controllers
                     return NotFound(new { messages = new List<object>(), error = "Conversation not found" });
                 }
 
-                // IMPORTANT: Only show messages created AFTER escalation
-                // Filter by EscalatedAt timestamp to exclude pre-escalation messages
-                var query = _context.ChatMessages
+                // Get ALL messages (User and Admin only, exclude AI)
+                // IMPORTANT: Show all messages from all escalation sessions, not just current one
+                var messages = await _context.ChatMessages
                     .Where(m => m.ConversationId == conversationId)
-                    .Where(m => m.SenderType != "AI"); // Exclude AI messages
-
-                // CRITICAL: Only show messages if conversation was escalated
-                // If EscalatedAt is null, it means conversation is in AI mode (not escalated or reopened after close)
-                // Admin should NOT see any messages from AI-only sessions
-                if (conversation.EscalatedAt.HasValue)
-                {
-                    query = query.Where(m => m.CreatedAt >= conversation.EscalatedAt.Value);
-                }
-                else
-                {
-                    // No escalation timestamp = AI-only conversation, return empty list
-                    query = query.Where(m => false); // This will return no results
-                }
-
-                var messages = await query
+                    .Where(m => m.SenderType != "AI") // Exclude AI messages
                     .OrderBy(m => m.CreatedAt)
                     .Select(m => new
                     {
@@ -444,6 +402,7 @@ namespace ROYALHOTEL.Controllers
                     displayName,
                     guestPhone = conversation.GuestPhone,
                     status = conversation.Status,
+                    escalatedAt = conversation.EscalatedAt,
                     serverTime = DateTime.UtcNow
                 });
             }
