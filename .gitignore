@@ -25,6 +25,12 @@ obj/
 # Ignore appsettings files (contain connection strings, API keys, SMTP credentials)
 appsettings.json
 appsettings.*.json
+# Keep example file as safe template for contributors
+!appsettings.example.json
 # Ignore launchSettings (contains environment variables with API keys)
 **/Properties/launchSettings.json
 
+# ======================
+# macOS Junk
+# ======================
+__MACOSX/

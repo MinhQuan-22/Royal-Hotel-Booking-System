@@ -1,0 +1,31 @@
+# Royal Hotel Booking System — Docker Compose
+# Khởi động SQL Server 2022 + MongoDB 7 cho môi trường local development
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver2022
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "SqlServer@123"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:7
+    container_name: mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: "MongoAdmin@123"
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+
+volumes:
+  sqlserver_data:
+  mongodb_data:
