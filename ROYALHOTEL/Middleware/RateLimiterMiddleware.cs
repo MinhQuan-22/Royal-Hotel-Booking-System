@@ -19,6 +19,9 @@ namespace ROYALHOTEL.Middleware
         private const int UserLimitPerMinute = 30;
         private const int WindowSeconds = 60;
 
+        // P1-2: Admin polling endpoints (higher limits since they poll frequently)
+        private const int AdminPollIpLimitPerMinute = 60;
+
         public RateLimiterMiddleware(
             RequestDelegate next,
             IMemoryCache cache,
@@ -31,8 +34,15 @@ namespace ROYALHOTEL.Middleware
 
         public async Task InvokeAsync(HttpContext context)
         {
-            // Only apply rate limiting to chat API endpoints
-            if (!context.Request.Path.StartsWithSegments("/api/chat"))
+            // Apply rate limiting to chat API endpoints
+            bool isChatApi = context.Request.Path.StartsWithSegments("/api/chat");
+
+            // P1-2 Fix: Also apply (lighter) rate limiting to AdminChat polling endpoints
+            bool isAdminPoll = context.Request.Path.StartsWithSegments("/AdminChat/PollNewMessages")
+                            || context.Request.Path.StartsWithSegments("/AdminChat/PollNewConversations")
+                            || context.Request.Path.StartsWithSegments("/AdminChat/PollAdminReplies");
+
+            if (!isChatApi && !isAdminPoll)
             {
                 await _next(context);
                 return;
@@ -42,7 +52,7 @@ namespace ROYALHOTEL.Middleware
             var userId = GetUserId(context);
 
             // Check rate limits
-            if (!await CheckRateLimitAsync(ipAddress, userId, context))
+            if (!await CheckRateLimitAsync(ipAddress, userId, context, isAdminPoll))
             {
                 context.Response.StatusCode = 429;
                 context.Response.ContentType = "application/json";
@@ -61,14 +71,18 @@ namespace ROYALHOTEL.Middleware
         /// <summary>
         /// Checks if the request is within rate limits for both IP and user.
         /// Uses sliding window algorithm with IMemoryCache.
+        /// isAdminPoll: uses higher limit (60/min) for polling endpoints.
         /// </summary>
-        private async Task<bool> CheckRateLimitAsync(string ipAddress, string? userId, HttpContext context)
+        private async Task<bool> CheckRateLimitAsync(string ipAddress, string? userId, HttpContext context, bool isAdminPoll = false)
         {
+            // P1-2: Use different limits for admin polling vs regular chat API
+            int effectiveIpLimit = isAdminPoll ? AdminPollIpLimitPerMinute : IpLimitPerMinute;
+
             // Check IP-based rate limit (applies to all requests)
-            var ipKey = $"ratelimit:ip:{ipAddress}";
+            var ipKey = $"ratelimit:{(isAdminPoll ? "admin" : "chat")}:ip:{ipAddress}";
             var ipCount = await GetRequestCountAsync(ipKey);
 
-            if (ipCount >= IpLimitPerMinute)
+            if (ipCount >= effectiveIpLimit)
             {
                 _logger.LogWarning(
                     "Rate limit exceeded for IP: {IpAddress}. Count: {Count}. Path: {Path}",
@@ -76,10 +90,10 @@ namespace ROYALHOTEL.Middleware
                 return false;
             }
 
-            // Check user-based rate limit (applies to authenticated users)
-            if (!string.IsNullOrEmpty(userId))
+            // Check user-based rate limit (applies to authenticated users, only for chat API not polling)
+            if (!isAdminPoll && !string.IsNullOrEmpty(userId))
             {
-                var userKey = $"ratelimit:user:{userId}";
+                var userKey = $"ratelimit:chat:user:{userId}";
                 var userCount = await GetRequestCountAsync(userKey);
 
                 if (userCount >= UserLimitPerMinute)

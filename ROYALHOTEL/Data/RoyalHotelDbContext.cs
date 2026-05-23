@@ -27,6 +27,7 @@ public class RoyalHotelDbContext : DbContext
     public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
 
     public DbSet<FAQ> FAQs => Set<FAQ>();
+    public DbSet<HotelPolicy> HotelPolicies => Set<HotelPolicy>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -439,6 +440,42 @@ public class RoyalHotelDbContext : DbContext
 
             e.HasIndex(x => new { x.Category, x.IsActive })
                 .HasDatabaseName("IX_FAQ_Category_IsActive");
+        });
+
+        // =========================
+        // HotelPolicy
+        // =========================
+        modelBuilder.Entity<HotelPolicy>(e =>
+        {
+            e.ToTable("HotelPolicies");
+
+            e.Property(x => x.PolicyKey)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            e.HasIndex(x => x.PolicyKey)
+                .IsUnique()
+                .HasDatabaseName("IX_HotelPolicies_PolicyKey");
+
+            e.Property(x => x.PolicyName)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            e.Property(x => x.Content)
+                .IsRequired();
+
+            e.Property(x => x.Category)
+                .HasMaxLength(50)
+                .HasDefaultValue("Policies");
+
+            e.Property(x => x.IsActive)
+                .HasDefaultValue(true);
+
+            e.Property(x => x.SortOrder)
+                .HasDefaultValue(0);
+
+            e.HasIndex(x => new { x.Category, x.IsActive, x.SortOrder })
+                .HasDatabaseName("IX_HotelPolicies_Category_IsActive");
         });
     }
 }

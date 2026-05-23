@@ -116,6 +116,12 @@
                     <label class="form-label">Quốc gia</label>
                     <input type="text" id="hotelCountry" class="form-control" value="Vietnam" />
                 </div>
+
+                <div class="admin-form-group admin-form-group--full">
+                    <label class="form-label">Link Google Maps Embed (Iframe)</label>
+                    <input type="text" id="hotelMapUrl" class="form-control" placeholder="https://www.google.com/maps/embed?pb=..." />
+                    <small style="color:#666; font-size:12px; margin-top:4px; display:block;">Dán URL trong src của thẻ iframe lấy từ tính năng Chia sẻ -> Nhúng bản đồ của Google Maps.</small>
+                </div>
             </div>
 
             <div class="admin-form-actions" style="padding:0 24px 24px; gap:12px;">
@@ -140,6 +146,7 @@ function openCreateModal() {
     document.getElementById('hotelCity').value = '';
     document.getElementById('hotelAddress').value = '';
     document.getElementById('hotelCountry').value = 'Vietnam';
+    document.getElementById('hotelMapUrl').value = '';
     clearErrors();
     document.getElementById('hotelModal').style.display = 'flex';
     document.getElementById('hotelName').focus();
@@ -158,6 +165,7 @@ async function openEditModal(id) {
         document.getElementById('hotelCity').value = data.hotel.city;
         document.getElementById('hotelAddress').value = data.hotel.address;
         document.getElementById('hotelCountry').value = data.hotel.country;
+        document.getElementById('hotelMapUrl').value = data.hotel.mapIframeUrl || '';
         clearErrors();
         document.getElementById('hotelModal').style.display = 'flex';
         document.getElementById('hotelName').focus();
@@ -183,7 +191,8 @@ async function saveHotel() {
         Name: document.getElementById('hotelName').value.trim(),
         City: document.getElementById('hotelCity').value.trim(),
         Address: document.getElementById('hotelAddress').value.trim(),
-        Country: document.getElementById('hotelCountry').value.trim() || 'Vietnam'
+        Country: document.getElementById('hotelCountry').value.trim() || 'Vietnam',
+        MapIframeUrl: document.getElementById('hotelMapUrl').value.trim()
     };
 
     const isCreate = id === 0;

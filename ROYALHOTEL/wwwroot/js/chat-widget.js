@@ -162,20 +162,26 @@ class ChatWidget {
       return;
     }
 
-    // IMPORTANT: Clear all chat data on page load to start fresh
-    // This ensures chat history is not persisted across page reloads
-    sessionStorage.removeItem("chatConversationId");
-    sessionStorage.removeItem("chatGuestName");
-    sessionStorage.removeItem("chatGuestPhone");
-    this.conversationId = null;
-    this.guestName = null;
-    this.guestPhone = null;
-
-    // Check authentication
+    // Check authentication first — this determines history restore strategy
     this.isAuthenticated = this.checkAuthentication();
 
-    // For guest users, always show the guest form when widget opens
-    if (!this.isAuthenticated) {
+    if (this.isAuthenticated) {
+      // P2-1: Authenticated users: restore conversation from sessionStorage
+      // Session-scoped (cleared when browser tab closes)
+      const savedConvId = sessionStorage.getItem("chatConversationId");
+      if (savedConvId) {
+        this.conversationId = parseInt(savedConvId, 10) || null;
+      }
+    } else {
+      // Guest users: always start fresh to avoid sharing conversation data
+      // (guests have no account to tie history to, and different guests may
+      // use the same browser session on a public computer)
+      sessionStorage.removeItem("chatConversationId");
+      sessionStorage.removeItem("chatGuestName");
+      sessionStorage.removeItem("chatGuestPhone");
+      this.conversationId = null;
+      this.guestName = null;
+      this.guestPhone = null;
       this.shouldShowGuestForm = true;
     }
 
@@ -191,8 +197,11 @@ class ChatWidget {
     });
     this.escalationBtn.addEventListener("click", () => this.escalateToAdmin());
 
-    // DO NOT load conversation history - start fresh on every page load
-    // This ensures users always start with a clean chat interface
+    // P2-1: Load conversation history for authenticated users who have an active conversation
+    if (this.isAuthenticated && this.conversationId) {
+      // Delay slightly so DOM is settled
+      setTimeout(() => this.loadConversationHistory(), 300);
+    }
   }
 
   /**
@@ -562,16 +571,11 @@ class ChatWidget {
       this.hideEscalationButton();
 
       // ── Start polling for admin replies in real-time ──
-      if (this.conversationId && this.isAuthenticated) {
-        try {
-          const histRes = await fetch(
-            `/api/chat/history/${this.conversationId}`,
-          );
-          const msgs = histRes.ok ? await histRes.json() : [];
-          this.startAdminReplyPolling(msgs.length);
-        } catch (e) {
-          this.startAdminReplyPolling(0);
-        }
+      // P0 Fix: Remove isAuthenticated check — guests also need to receive admin replies.
+      // /AdminChat/PollAdminReplies requires no auth; conversationId acts as access token.
+      if (this.conversationId) {
+        // Always start with 0 since history is not shown at reload anyway
+        this.startAdminReplyPolling(0);
       }
     } catch (error) {
       console.error("Error escalating to admin:", error);
@@ -584,54 +588,62 @@ class ChatWidget {
 
   async loadConversationHistory() {
     try {
-      // Get list of conversations
-      const conversationsResponse = await fetch("/api/chat/conversations");
+      let targetConvId = this.conversationId;
 
-      if (!conversationsResponse.ok) {
-        return; // Silently fail for unauthenticated users
+      // If no conversationId in memory, fetch the most recent conversation from API
+      if (!targetConvId) {
+        const conversationsResponse = await fetch("/api/chat/conversations");
+        if (!conversationsResponse.ok) {
+          return; // Silently fail for unauthenticated users
+        }
+
+        const conversations = await conversationsResponse.json();
+        if (conversations.length === 0) {
+          return;
+        }
+
+        const latestConversation = conversations[0];
+        targetConvId = latestConversation.id;
+        this.conversationId = targetConvId;
+        sessionStorage.setItem("chatConversationId", targetConvId);
       }
-
-      const conversations = await conversationsResponse.json();
-
-      if (conversations.length === 0) {
-        return;
-      }
-
-      // Load the most recent conversation
-      const latestConversation = conversations[0];
-      this.conversationId = latestConversation.id;
-      sessionStorage.setItem("chatConversationId", latestConversation.id);
 
       // Load messages for this conversation
-      const historyResponse = await fetch(
-        `/api/chat/history/${latestConversation.id}`,
-      );
-
+      const historyResponse = await fetch(`/api/chat/history/${targetConvId}`);
       if (!historyResponse.ok) {
+        // If 404/403, the conversation may be gone — clear saved ID
+        if (historyResponse.status === 404 || historyResponse.status === 403) {
+          this.conversationId = null;
+          sessionStorage.removeItem("chatConversationId");
+        }
         return;
       }
 
       const messages = await historyResponse.json();
+      if (messages.length === 0) {
+        return;
+      }
 
       // Clear welcome message
-      const welcomeMsg = this.messagesContainer.querySelector(
-        ".chat-widget__welcome",
-      );
+      const welcomeMsg = this.messagesContainer.querySelector(".chat-widget__welcome");
       if (welcomeMsg) {
         welcomeMsg.remove();
       }
 
       // Display all messages
       messages.forEach((msg) => {
-        this.displayMessage(
-          msg.senderType,
-          msg.messageText,
-          new Date(msg.createdAt),
-        );
+        this.displayMessage(msg.senderType, msg.messageText, new Date(msg.createdAt));
       });
 
-      // ── Start polling for admin replies (conversation may already be escalated) ──
-      this.startAdminReplyPolling(messages.length);
+      // Check if conversation was escalated (admin mode) — resume polling
+      const lastMsg = messages[messages.length - 1];
+      const hasAdminMsg = messages.some((m) => m.senderType === "Admin");
+      const lastMsgIsUserOrAI = lastMsg && (lastMsg.senderType === "User" || lastMsg.senderType === "AI");
+
+      // Start polling if conversation has been escalated (has admin messages or waiting for reply)
+      if (hasAdminMsg || (messages.some((m) => m.senderType === "User") && !messages.some((m) => m.senderType === "AI" && m.createdAt > lastMsg?.createdAt))) {
+        this.startAdminReplyPolling(messages.length);
+      }
     } catch (error) {
       console.error("Error loading conversation history:", error);
       // Silently fail - don't disrupt user experience
@@ -652,17 +664,72 @@ class ChatWidget {
   }
 
   /**
-   * Start real-time polling for Admin replies after escalation.
-   * Uses /AdminChat/PollAdminReplies endpoint (no auth required).
+   * P2-2: Start real-time admin reply listening via SignalR.
+   * Falls back to HTTP polling if SignalR library is not available.
    * Works for both authenticated users and guests.
    */
   startAdminReplyPolling(initialCount) {
-    if (this.adminPollingTimer) return; // already running
     if (!this.conversationId) return;
 
-    // Track the last server time returned by the poll endpoint
-    this.adminPollSince = new Date().toISOString();
+    // Prefer SignalR if available
+    if (typeof signalR !== 'undefined' && !this.signalRConnection) {
+      this._startSignalRConnection();
+      return;
+    }
 
+    // Fallback: HTTP polling (also used if SignalR already connected)
+    if (this.adminPollingTimer) return;
+    this._startHttpPolling();
+  }
+
+  async _startSignalRConnection() {
+    if (this.signalRConnection) return;
+
+    try {
+      this.signalRConnection = new signalR.HubConnectionBuilder()
+        .withUrl('/chatHub')
+        .withAutomaticReconnect([0, 2000, 5000, 10000])
+        .configureLogging(signalR.LogLevel.Warning)
+        .build();
+
+      // Listen for admin replies in real-time
+      this.signalRConnection.on('AdminReply', (data) => {
+        if (data.conversationId !== this.conversationId) return;
+        this.displayMessage('Admin', data.messageText, new Date(data.createdAt));
+        this.scrollToBottom();
+      });
+
+      // Listen for conversation closed
+      this.signalRConnection.on('ConversationClosed', (data) => {
+        if (data.conversationId !== this.conversationId) return;
+        this._showConversationClosedNotice();
+        if (this.signalRConnection) {
+          this.signalRConnection.invoke('LeaveConversation', this.conversationId).catch(() => {});
+        }
+      });
+
+      // On reconnect, rejoin the conversation group
+      this.signalRConnection.onreconnected(() => {
+        if (this.conversationId) {
+          this.signalRConnection.invoke('JoinConversation', this.conversationId).catch(() => {});
+        }
+      });
+
+      await this.signalRConnection.start();
+      await this.signalRConnection.invoke('JoinConversation', this.conversationId);
+
+      console.debug('[ChatWidget] SignalR connected, joined conversation', this.conversationId);
+    } catch (err) {
+      console.warn('[ChatWidget] SignalR unavailable, falling back to HTTP polling:', err.message);
+      this.signalRConnection = null;
+      this._startHttpPolling();
+    }
+  }
+
+  _startHttpPolling() {
+    if (this.adminPollingTimer) return;
+
+    this.adminPollSince = new Date().toISOString();
     this.adminPollingTimer = setInterval(async () => {
       if (!this.conversationId) return;
       try {
@@ -675,34 +742,19 @@ class ChatWidget {
 
         if (data.messages && data.messages.length > 0) {
           data.messages.forEach((msg) => {
-            this.displayMessage(
-              "Admin",
-              msg.messageText,
-              new Date(msg.createdAt),
-            );
+            this.displayMessage('Admin', msg.messageText, new Date(msg.createdAt));
           });
           this.scrollToBottom();
         }
 
-        // Advance the since timestamp so we don't re-fetch old messages
         if (data.serverTime) {
           this.adminPollSince = data.serverTime;
         }
 
-        // Handle conversation closed by admin
-        if (data.status === "Closed") {
+        if (data.status === 'Closed') {
           clearInterval(this.adminPollingTimer);
           this.adminPollingTimer = null;
-
-          const closedDiv = document.createElement("div");
-          closedDiv.className = "chat-widget__message chat-widget__message--ai";
-          const bubbleDiv = document.createElement("div");
-          bubbleDiv.className = "chat-widget__message-bubble";
-          bubbleDiv.textContent =
-            "Admin đã kết thúc cuộc trò chuyện. Bạn hiện đang trò chuyện với Trợ lý AI.";
-          closedDiv.appendChild(bubbleDiv);
-          this.messagesContainer.appendChild(closedDiv);
-          this.scrollToBottom();
+          this._showConversationClosedNotice();
         }
       } catch (e) {
         /* silent */
@@ -710,12 +762,23 @@ class ChatWidget {
     }, 3000);
   }
 
+  _showConversationClosedNotice() {
+    const closedDiv = document.createElement('div');
+    closedDiv.className = 'chat-widget__message chat-widget__message--ai';
+    const bubbleDiv = document.createElement('div');
+    bubbleDiv.className = 'chat-widget__message-bubble';
+    bubbleDiv.textContent = 'Admin đã kết thúc cuộc trò chuyện. Bạn hiện đang trò chuyện với Trợ lý AI.';
+    closedDiv.appendChild(bubbleDiv);
+    this.messagesContainer.appendChild(closedDiv);
+    this.scrollToBottom();
+  }
+
   formatTime(timestamp) {
     let dateStr = timestamp;
-    if (typeof dateStr === "string" && !dateStr.endsWith("Z")) dateStr += "Z";
+    if (typeof dateStr === 'string' && !dateStr.endsWith('Z')) dateStr += 'Z';
     const date = new Date(dateStr);
-    const hours = date.getHours().toString().padStart(2, "0");
-    const minutes = date.getMinutes().toString().padStart(2, "0");
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
     return `${hours}:${minutes}`;
   }
 
@@ -725,8 +788,8 @@ class ChatWidget {
 }
 
 // Initialize chat widget when DOM is ready
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", () => {
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
     new ChatWidget();
   });
 } else {

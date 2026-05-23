@@ -73,7 +73,8 @@ namespace ROYALHOTEL.Controllers
                     hotel.Name,
                     hotel.Address,
                     hotel.City,
-                    hotel.Country
+                    hotel.Country,
+                    hotel.MapIframeUrl
                 }
             });
         }
@@ -106,7 +107,8 @@ namespace ROYALHOTEL.Controllers
                 Name = vm.Name.Trim(),
                 Address = vm.Address.Trim(),
                 City = vm.City.Trim(),
-                Country = vm.Country.Trim()
+                Country = vm.Country.Trim(),
+                MapIframeUrl = vm.MapIframeUrl?.Trim()
             };
 
             _context.Hotels.Add(hotel);
@@ -159,6 +161,7 @@ namespace ROYALHOTEL.Controllers
             hotel.Address = vm.Address.Trim();
             hotel.City = vm.City.Trim();
             hotel.Country = vm.Country.Trim();
+            hotel.MapIframeUrl = vm.MapIframeUrl?.Trim();
 
             await _context.SaveChangesAsync();
 
@@ -172,7 +175,8 @@ namespace ROYALHOTEL.Controllers
                     hotel.Name,
                     hotel.Address,
                     hotel.City,
-                    hotel.Country
+                    hotel.Country,
+                    hotel.MapIframeUrl
                 }
             });
         }

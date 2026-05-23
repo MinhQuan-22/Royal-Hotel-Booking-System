@@ -12,6 +12,7 @@ using ROYALHOTEL.Commands.Bookings;
 using ROYALHOTEL.Services.Accounts;
 using ROYALHOTEL.Services.Catalog;
 using ROYALHOTEL.Middleware;
+using ROYALHOTEL.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -100,6 +101,10 @@ builder.Services.AddHostedService<ROYALHOTEL.Services.Chat.ConversationAutoClose
 // Runs daily at 3 AM to delete all messages created before today
 builder.Services.AddHostedService<ROYALHOTEL.Services.Chat.MessageCleanupService>();
 
+// P2-2: SignalR for real-time chat (replaces polling)
+builder.Services.AddSignalR();
+builder.Services.AddScoped<ROYALHOTEL.Hubs.ChatHubNotifier>();
+
 // Add services to the container.
 builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
 
@@ -155,5 +160,8 @@ app.MapHealthChecks("/health");
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+// P2-2: Map SignalR ChatHub endpoint
+app.MapHub<ChatHub>("/chatHub");
 
 app.Run();

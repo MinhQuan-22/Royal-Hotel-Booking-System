@@ -1048,3 +1048,47 @@ GO
 
 PRINT 'ROYALHOTEL Schema Initialization Complete with Advanced Analytics.';
 GO
+
+-- ============================================================
+-- TABLE: HotelPolicies (P1-1 Fix: Admin-configurable policies for AI Chat)
+-- Admin can CRUD these via /AdminPolicies
+-- AI Chat reads these for Policies category questions
+-- ============================================================
+IF OBJECT_ID('HotelPolicies', 'U') IS NULL
+BEGIN
+    CREATE TABLE HotelPolicies (
+        Id          INT IDENTITY(1,1) PRIMARY KEY,
+        PolicyKey   NVARCHAR(100)   NOT NULL UNIQUE,
+        PolicyName  NVARCHAR(200)   NOT NULL,
+        Content     NVARCHAR(MAX)   NOT NULL,
+        Category    NVARCHAR(50)    NOT NULL DEFAULT 'Policies',
+        SortOrder   INT             NOT NULL DEFAULT 0,
+        IsActive    BIT             NOT NULL DEFAULT 1,
+        CreatedAt   DATETIME2       NOT NULL DEFAULT GETUTCDATE(),
+        UpdatedAt   DATETIME2       NOT NULL DEFAULT GETUTCDATE(),
+
+        CONSTRAINT CK_HotelPolicies_Category CHECK (Category IN ('Policies','FAQ'))
+    );
+    PRINT 'HotelPolicies table created.';
+END
+GO
+
+-- Index for AI Chat lookup
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_HotelPolicies_Category_IsActive')
+    CREATE INDEX IX_HotelPolicies_Category_IsActive ON HotelPolicies(Category, IsActive, SortOrder);
+GO
+
+-- Seed default policies (idempotent — runs only if table is empty)
+IF NOT EXISTS (SELECT 1 FROM HotelPolicies)
+BEGIN
+    INSERT INTO HotelPolicies (PolicyKey, PolicyName, Content, Category, SortOrder, IsActive, CreatedAt, UpdatedAt) VALUES
+    ('checkin',      N'Check-in',      N'Thời gian check-in: 14:00 (02:00 PM)' + CHAR(10) + N'Nếu đến sớm, hành lý có thể gửi tại quầy lễ tân miễn phí.',     'Policies', 1, 1, GETUTCDATE(), GETUTCDATE()),
+    ('checkout',     N'Check-out',     N'Thời gian check-out: 12:00 (12:00 PM)' + CHAR(10) + N'Check-out muộn có thể yêu cầu tùy tình trạng phòng (phụ phí có thể áp dụng).', 'Policies', 2, 1, GETUTCDATE(), GETUTCDATE()),
+    ('cancellation', N'Hủy phòng',     N'- Hủy trước 24 giờ so với ngày check-in: Hoàn tiền 100%' + CHAR(10) + N'- Hủy trong vòng 24 giờ: Hoàn tiền 50%' + CHAR(10) + N'- Không đến (No-show): Không hoàn tiền', 'Policies', 3, 1, GETUTCDATE(), GETUTCDATE()),
+    ('payment',      N'Thanh toán',    N'- Chấp nhận: Thẻ tín dụng Visa/Mastercard, thẻ ghi nợ, tiền mặt' + CHAR(10) + N'- Thanh toán khi check-in hoặc trước khi check-out', 'Policies', 4, 1, GETUTCDATE(), GETUTCDATE()),
+    ('children',     N'Trẻ em',        N'- Trẻ em dưới 6 tuổi: Miễn phí (chia sẻ giường bố mẹ)' + CHAR(10) + N'- Trẻ em 6-12 tuổi: 50% giá phòng' + CHAR(10) + N'- Trẻ em trên 12 tuổi: Tính như người lớn', 'Policies', 5, 1, GETUTCDATE(), GETUTCDATE()),
+    ('smoking',      N'Hút thuốc',     N'Khách sạn là môi trường hoàn toàn không hút thuốc. Hút thuốc chỉ được phép tại khu vực được chỉ định bên ngoài tòa nhà.', 'Policies', 6, 1, GETUTCDATE(), GETUTCDATE()),
+    ('pets',         N'Thú cưng',      N'Không chấp nhận thú cưng tại khách sạn. Vui lòng liên hệ trước nếu có nhu cầu đặc biệt.', 'Policies', 7, 1, GETUTCDATE(), GETUTCDATE());
+    PRINT 'HotelPolicies default data seeded (7 policies).';
+END
+GO

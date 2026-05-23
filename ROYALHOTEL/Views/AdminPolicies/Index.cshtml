@@ -1,0 +1,236 @@
+@model List<ROYALHOTEL.Models.HotelPolicy>
+
+@{
+    ViewData["Title"] = "Quản lý Chính sách";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+@section Styles {
+<style>
+    .policy-card {
+        background: #fff;
+        border-radius: 14px;
+        box-shadow: 0 4px 18px rgba(139,106,20,.08);
+        margin-bottom: 18px;
+        border: 1px solid #e0d4b0;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .policy-card:hover { 
+        box-shadow: 0 8px 24px rgba(139,106,20,.15); 
+        transform: translateY(-2px); 
+    }
+    .policy-card-header {
+        display: flex; align-items: center; gap: 14px;
+        padding: 16px 22px;
+        border-bottom: 1px solid #f0e8d6;
+        background: linear-gradient(135deg, #fffdf7, #fff);
+        border-radius: 14px 14px 0 0;
+    }
+    .policy-key-badge {
+        font-family: monospace; font-size: 12px; font-weight: 800;
+        background: rgba(139,106,20,.08); color: #8b6a14;
+        border: 1px solid rgba(139,106,20,.2);
+        padding: 4px 10px; border-radius: 6px;
+    }
+    .policy-card-body { padding: 18px 22px; }
+    .policy-content-preview {
+        white-space: pre-wrap; font-size: 14px; color: #495057;
+        background: #faf8f2; border-radius: 8px; padding: 14px 18px;
+        max-height: 90px; overflow: hidden;
+        border: 1px solid #f0e8d6;
+        line-height: 1.6;
+    }
+    .policy-actions { display: flex; gap: 10px; align-items: center; margin-left: auto; }
+    .category-header {
+        font-size: 14px; font-weight: 800; text-transform: uppercase;
+        letter-spacing: 1px; color: #8b6a14;
+        margin: 28px 0 16px; padding-bottom: 8px;
+        border-bottom: 2px solid #e0d4b0;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .category-header::before {
+        content: ''; display: inline-block;
+        width: 6px; height: 16px; border-radius: 4px;
+        background: #8b6a14;
+    }
+    .toggle-badge { cursor: pointer; padding: 5px 10px; font-weight: 600; border-radius: 20px; }
+    .seed-section {
+        background: linear-gradient(135deg, rgba(139,106,20,.05), rgba(139,106,20,.02));
+        border: 1px dashed #d9caa7;
+        border-radius: 14px; padding: 24px 28px;
+        margin-bottom: 28px;
+    }
+    
+    .btn-gold {
+        background: linear-gradient(135deg, #8b6a14, #b8932e);
+        color: #fff; border: none; font-weight: 700;
+        transition: all 0.2s; border-radius: 8px; padding: 8px 20px;
+    }
+    .btn-gold:hover { 
+        background: linear-gradient(135deg, #6d5410, #8b6a14); 
+        color: #fff; transform: translateY(-1px); 
+        box-shadow: 0 4px 14px rgba(139,106,20,.35); 
+    }
+    .btn-outline-gold {
+        background: #fff; color: #8b6a14; border: 1px solid #8b6a14; font-weight: 600;
+        transition: all 0.2s; border-radius: 8px;
+    }
+    .btn-outline-gold:hover { background: rgba(139,106,20,.05); color: #6d5410; border-color: #6d5410; }
+    
+    .btn-action-edit {
+        background: rgba(139, 106, 20, 0.1); color: #8b6a14;
+        border: none; border-radius: 8px; padding: 6px 14px;
+        font-size: 13px; font-weight: 700; transition: all 0.2s;
+        display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-action-edit:hover {
+        background: #8b6a14; color: #fff; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(139,106,20,0.2);
+    }
+    
+    .btn-action-delete {
+        background: rgba(198, 40, 40, 0.08); color: #c62828;
+        border: none; border-radius: 8px; padding: 6px 14px;
+        font-size: 13px; font-weight: 700; transition: all 0.2s;
+        display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-action-delete:hover {
+        background: #c62828; color: #fff; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(198,40,40,0.2);
+    }
+</style>
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1" style="font-weight: 800; color: #1a1a1a;"><i class="bi bi-file-text me-2" style="color:#c9a24a"></i>Quản lý Chính sách</h4>
+        <p class="text-muted mb-0" style="font-size:14px">Các chính sách này được AI Chat sử dụng để trả lời câu hỏi của khách</p>
+    </div>
+    <a href="/AdminPolicies/Create" class="btn btn-gold">
+        <i class="bi bi-plus-circle me-1"></i> Thêm chính sách mới
+    </a>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert" style="border-radius:10px; border-left:4px solid #2e7d32">
+        <i class="bi bi-check-circle-fill me-2" style="color:#2e7d32"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Warning"] != null)
+{
+    <div class="alert alert-warning alert-dismissible fade show shadow-sm" role="alert" style="border-radius:10px; border-left:4px solid #e65100">
+        <i class="bi bi-exclamation-triangle-fill me-2" style="color:#e65100"></i>@TempData["Warning"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (!Model.Any())
+{
+    <div class="seed-section">
+        <div class="d-flex align-items-start gap-3">
+            <i class="bi bi-database-add" style="font-size:2rem;color:#8b6a14;flex-shrink:0"></i>
+            <div>
+                <h6 class="mb-1" style="font-weight:700">Chưa có chính sách nào</h6>
+                <p class="text-muted mb-3" style="font-size:14px">
+                    Hiện tại AI Chat đang dùng chính sách mặc định được hardcode trong hệ thống.
+                    Bạn có thể seed dữ liệu mẫu để bắt đầu quản lý và tự động kích hoạt tính năng.
+                </p>
+                <form method="post" action="/AdminPolicies/SeedDefaults">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-outline-gold btn-sm px-3 py-2">
+                        <i class="bi bi-magic me-1"></i> Khôi phục chính sách mặc định
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@{
+    var categories = Model.Select(p => p.Category).Distinct().OrderBy(c => c).ToList();
+}
+
+@foreach (var cat in categories)
+{
+    <div class="category-header">@cat</div>
+    @foreach (var policy in Model.Where(p => p.Category == cat).OrderBy(p => p.SortOrder))
+    {
+        <div class="policy-card" id="policy-card-@policy.Id">
+            <div class="policy-card-header">
+                <span class="policy-key-badge">@policy.PolicyKey</span>
+                <strong style="font-size:16px; color:#1a1a1a">@policy.PolicyName</strong>
+                <span class="badge @(policy.IsActive ? "bg-success" : "bg-secondary") toggle-badge ms-2"
+                      id="status-badge-@policy.Id"
+                      onclick="togglePolicy(@policy.Id)"
+                      title="Click để bật/tắt">
+                    @(policy.IsActive ? "Đang bật" : "Đã tắt")
+                </span>
+                <small class="text-muted ms-auto me-3">Thứ tự: <strong>@policy.SortOrder</strong></small>
+                <div class="policy-actions">
+                    <a href="/AdminPolicies/Edit/@policy.Id" class="btn-action-edit text-decoration-none">
+                        <i class="bi bi-pencil-fill"></i> Sửa
+                    </a>
+                    <button type="button" class="btn-action-delete"
+                            onclick="confirmDelete(@policy.Id, '@policy.PolicyName.Replace("'", "\\'")' )">
+                        <i class="bi bi-trash3-fill"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="policy-card-body">
+                <div class="policy-content-preview">@policy.Content</div>
+                <small class="text-muted mt-2 d-block">
+                    Cập nhật lúc: @policy.UpdatedAt.AddHours(7).ToString("HH:mm dd/MM/yyyy")
+                </small>
+            </div>
+        </div>
+    }
+}
+
+@section Scripts {
+<script>
+function confirmDelete(id, name) {
+    Swal.fire({
+        title: 'Xác nhận xóa',
+        html: `Xóa chính sách "<strong style="color:#8b6a14">${name}</strong>"?<br>Hành động này không thể hoàn tác.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#c62828',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="bi bi-trash"></i> Xóa chính sách',
+        cancelButtonText: 'Hủy'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const form = document.createElement('form');
+            form.method = 'post';
+            form.action = '/AdminPolicies/Delete/' + id;
+            
+            const token = document.querySelector('input[name="__RequestVerificationToken"]');
+            if (token) {
+                const tokenInput = document.createElement('input');
+                tokenInput.type = 'hidden';
+                tokenInput.name = '__RequestVerificationToken';
+                tokenInput.value = token.value;
+                form.appendChild(tokenInput);
+            }
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+}
+
+async function togglePolicy(id) {
+    try {
+        const res = await fetch('/AdminPolicies/Toggle/' + id, { method: 'POST', headers: { 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '' } });
+        const data = await res.json();
+        const badge = document.getElementById('status-badge-' + id);
+        if (badge) {
+            badge.className = 'badge ' + (data.isActive ? 'bg-success' : 'bg-secondary') + ' toggle-badge';
+            badge.textContent = data.isActive ? 'Đang bật' : 'Đã tắt';
+        }
+    } catch(e) {
+        alert('Lỗi khi thay đổi trạng thái');
+    }
+}
+</script>
+}

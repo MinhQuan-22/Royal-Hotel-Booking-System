@@ -1,0 +1,620 @@
+@using ROYALHOTEL.ViewModels
+@{
+    ViewData["Title"] = "Chat Analytics";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    var days = (int)ViewBag.Days;
+}
+
+@section Styles {
+<style>
+    /* --- Filter bar & page header --- */
+    .dash-filter-bar {
+        background: linear-gradient(135deg, #fffdf7, #fff);
+        border: 1px solid #d9caa7;
+        border-radius: 14px;
+        padding: 16px 22px;
+        box-shadow: 0 4px 20px rgba(139,106,20,.10);
+        margin-bottom: 28px;
+    }
+    .filter-period-badge {
+        background: rgba(139,106,20,.08);
+        color: #8b6a14;
+        border: 1px solid rgba(139,106,20,.25);
+        border-radius: 20px;
+        padding: 5px 14px;
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .btn-period {
+        font-size: 13px;
+        font-weight: 700;
+        padding: 8px 18px;
+        border-radius: 8px;
+        border: 1px solid #d9caa7;
+        color: #8b6a14;
+        background: #fff;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+    }
+    .btn-period.active {
+        background: linear-gradient(135deg, #8b6a14, #b8932e);
+        color: #fff;
+        border-color: #8b6a14;
+        box-shadow: 0 4px 12px rgba(139,106,20,0.25);
+    }
+    .btn-period:hover:not(.active) {
+        background: rgba(139, 106, 20, 0.06);
+        color: #6d5410;
+        border-color: #8b6a14;
+    }
+
+    /* --- KPI Grid & Cards (Luxury style aligned with dashboard) --- */
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 16px;
+        margin-bottom: 28px;
+    }
+    .kpi-card {
+        background: #fff;
+        border: 1px solid #e8dfc0;
+        border-radius: 16px;
+        padding: 22px 18px 18px;
+        box-shadow: 0 4px 24px rgba(139,106,20,.08);
+        transition: all 0.3s cubic-bezier(.4,0,.2,1);
+        position: relative;
+        overflow: hidden;
+        cursor: default;
+        display: flex;
+        flex-direction: column;
+    }
+    .kpi-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        border-radius: 16px 16px 0 0;
+    }
+    .kpi-card::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        opacity: .04;
+        transform: translate(25%,25%);
+    }
+    .kpi-card:hover {
+        box-shadow: 0 16px 40px rgba(139,106,20,.18);
+        transform: translateY(-5px);
+    }
+    .kpi-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        margin-bottom: 14px;
+    }
+
+    .kpi-total::before    { background: linear-gradient(90deg, #0d47a1, #1565c0, #42a5f5); }
+    .kpi-total::after     { background: #1565c0; }
+    .kpi-total .kpi-icon  { background: rgba(21,101,192,.12); color: #1565c0; }
+
+    .kpi-escalated::before    { background: linear-gradient(90deg, #b71c1c, #c62828, #ef5350); }
+    .kpi-escalated::after     { background: #c62828; }
+    .kpi-escalated .kpi-icon  { background: rgba(198,40,40,.12); color: #c62828; }
+
+    .kpi-closed::before    { background: linear-gradient(90deg, #1b5e20, #2e7d32, #66bb6a); }
+    .kpi-closed::after     { background: #2e7d32; }
+    .kpi-closed .kpi-icon  { background: rgba(46,125,50,.12); color: #2e7d32; }
+
+    .kpi-ai::before    { background: linear-gradient(90deg, #7a5c10, #c9a24a, #f0c14b); }
+    .kpi-ai::after     { background: #c9a24a; }
+    .kpi-ai .kpi-icon  { background: rgba(139,106,20,.12); color: #8b6a14; }
+
+    .kpi-avg::before    { background: linear-gradient(90deg, #4a148c, #6a1b9a, #ab47bc); }
+    .kpi-avg::after     { background: #6a1b9a; }
+    .kpi-avg .kpi-icon  { background: rgba(106,27,154,.12); color: #6a1b9a; }
+
+    .kpi-admin::before    { background: linear-gradient(90deg, #2b2b2b, #4e4e4e, #777777); }
+    .kpi-admin::after     { background: #4e4e4e; }
+    .kpi-admin .kpi-icon  { background: rgba(78,78,78,.12); color: #4e4e4e; }
+
+    .kpi-card .kpi-label {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: #bbb;
+        margin-bottom: 8px;
+    }
+    .kpi-card .kpi-value {
+        font-size: 38px;
+        font-weight: 900;
+        font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+        color: #1a1a1a;
+        line-height: 1.1;
+        font-variant-numeric: tabular-nums lining-nums;
+        letter-spacing: -1.5px;
+    }
+    .kpi-card .kpi-sub {
+        font-size: 12px;
+        color: #aaa;
+        margin-top: 8px;
+        line-height: 1.5;
+        font-weight: 500;
+    }
+
+    /* --- Chart Cards --- */
+    .chart-card {
+        background: #fff;
+        border: 1px solid #d9caa7;
+        border-radius: 14px;
+        padding: 24px;
+        box-shadow: 0 4px 18px rgba(139,106,20,.08);
+        margin-bottom: 24px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    .chart-title {
+        font-size: 15px;
+        font-weight: 800;
+        color: #1a1a1a;
+        margin-bottom: 24px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: 'Playfair Display', Georgia, serif;
+    }
+    .chart-title i {
+        color: #8b6a14;
+        font-size: 18px;
+    }
+
+    /* --- Donut Chart layout --- */
+    .msg-donut-wrap {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: 24px;
+        flex-grow: 1;
+        width: 100%;
+        padding: 10px 0;
+    }
+    .donut-chart-container {
+        position: relative;
+        height: 180px;
+        width: 180px;
+        flex-shrink: 0;
+    }
+    .msg-legend {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        flex-grow: 1;
+        min-width: 140px;
+    }
+    .msg-legend-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13.5px;
+        font-weight: 600;
+        color: #555;
+        justify-content: space-between;
+    }
+    .msg-legend-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    /* --- Reasons list (Top Reasons) --- */
+    .reasons-list { list-style: none; padding: 0; margin: 0; }
+    .reasons-list li {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 0;
+        border-bottom: 1px solid #f2ead9;
+        font-size: 13.5px;
+        font-weight: 600;
+        color: #2b2b2b;
+    }
+    .reasons-list li:last-child { border-bottom: none; }
+    .reason-bar-wrap { flex: 1; background: #f4efe2; border-radius: 99px; height: 8px; overflow: hidden; }
+    .reason-bar { background: linear-gradient(135deg, #8b6a14, #c9a24a); border-radius: 99px; height: 8px; min-width: 4px; }
+    .reason-count { font-weight: 800; color: #8b6a14; min-width: 32px; text-align: right; font-size: 15px; }
+
+    /* --- Recent Escalations Table --- */
+    .recent-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+    }
+    .recent-table thead th {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: #8b6a14;
+        font-weight: 700;
+        border-bottom: 2px solid #eadfcb;
+        padding: 14px 12px;
+        background: #fcfaf5;
+    }
+    .recent-table tbody td {
+        padding: 14px 12px;
+        vertical-align: middle;
+        color: #2b2b2b;
+        font-weight: 500;
+        border-bottom: 1px solid #f2ead9;
+        font-size: 13.5px;
+    }
+    .recent-table tbody tr:hover {
+        background-color: #fffdf8;
+    }
+
+    .status-badge {
+        font-size: 10px;
+        padding: 5px 10px;
+        border-radius: 6px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: inline-block;
+        text-align: center;
+    }
+    .status-escalated { background: rgba(198, 40, 40, 0.08); color: #c62828; border: 1px solid rgba(198, 40, 40, 0.15); }
+    .status-answered { background: rgba(20, 139, 106, 0.08); color: #148b6a; border: 1px solid rgba(20, 139, 106, 0.15); }
+    .status-closed { background: rgba(139, 106, 20, 0.08); color: #8b6a14; border: 1px solid rgba(139, 106, 20, 0.15); }
+
+    /* --- Responsiveness --- */
+    @@media (max-width: 1400px) {
+        .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @@media (max-width: 1200px) and (min-width: 992px) {
+        .msg-donut-wrap {
+            flex-direction: column;
+            gap: 16px;
+        }
+    }
+    @@media (max-width: 992px) {
+        .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @@media (max-width: 576px) {
+        .kpi-grid { grid-template-columns: 1fr; }
+        .msg-donut-wrap {
+            flex-direction: column;
+            gap: 16px;
+        }
+    }
+</style>
+}
+
+<div class="dash-filter-bar mb-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <div class="filter-label" style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .8px; color: #8b6a14; margin-bottom: 5px;"><i class="bi bi-graph-up me-1"></i>Thống kê hệ thống</div>
+            <h4 class="mb-0" style="font-family: 'Playfair Display', Georgia, serif; color: #8b6a14; font-weight: 600; font-size: 20px;">AI Chat Insights</h4>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <span class="filter-period-badge"><i class="bi bi-clock me-1"></i>@days ngày gần nhất</span>
+            <div class="period-btns d-flex gap-2">
+                @foreach (var d in new[] { 7, 14, 30, 90 })
+                {
+                    <a href="?days=@d" class="btn-period @(days == d ? "active" : "")">@d ngày</a>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@* === KPI Cards === *@
+<div class="kpi-grid">
+    <div class="kpi-card kpi-total">
+        <div class="kpi-icon"><i class="bi bi-chat-left-dots"></i></div>
+        <span class="kpi-label">Tổng hội thoại</span>
+        <span class="kpi-value">@ViewBag.TotalConversations</span>
+        <span class="kpi-sub">@days ngày qua</span>
+    </div>
+    <div class="kpi-card kpi-escalated">
+        <div class="kpi-icon"><i class="bi bi-exclamation-triangle"></i></div>
+        <span class="kpi-label">Escalated</span>
+        <span class="kpi-value">@ViewBag.EscalatedCount</span>
+        <span class="kpi-sub">Tỷ lệ: @ViewBag.EscalationRate%</span>
+    </div>
+    <div class="kpi-card kpi-closed">
+        <div class="kpi-icon"><i class="bi bi-check-circle"></i></div>
+        <span class="kpi-label">Đã đóng</span>
+        <span class="kpi-value">@ViewBag.ClosedCount</span>
+        <span class="kpi-sub">Hoàn thành</span>
+    </div>
+    <div class="kpi-card kpi-ai">
+        <div class="kpi-icon"><i class="bi bi-cpu"></i></div>
+        <span class="kpi-label">Tin nhắn AI</span>
+        <span class="kpi-value">@ViewBag.AIMessages</span>
+        <span class="kpi-sub">Tổng: @ViewBag.TotalMessages</span>
+    </div>
+    <div class="kpi-card kpi-avg">
+        <div class="kpi-icon"><i class="bi bi-chat-quote"></i></div>
+        <span class="kpi-label">TB tin/hội thoại</span>
+        <span class="kpi-value">@ViewBag.AvgMsgsPerConv</span>
+        <span class="kpi-sub">Trung bình</span>
+    </div>
+    <div class="kpi-card kpi-admin">
+        <div class="kpi-icon"><i class="bi bi-person-badge"></i></div>
+        <span class="kpi-label">Admin replies</span>
+        <span class="kpi-value">@ViewBag.AdminMessages</span>
+        <span class="kpi-sub">Phản hồi thủ công</span>
+    </div>
+</div>
+
+<div class="row g-4">
+    @* ── Conversation Trend Chart ── *@
+    <div class="col-lg-8">
+        <div class="chart-card h-100">
+            <div class="chart-title"><i class="bi bi-graph-up"></i>Xu hướng hội thoại & escalation</div>
+            <div style="position: relative; height: 300px; width: 100%;">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    @* ── Message Type Donut ── *@
+    <div class="col-lg-4">
+        <div class="chart-card h-100">
+            <div class="chart-title"><i class="bi bi-pie-chart"></i>Phân bổ tin nhắn</div>
+            <div class="msg-donut-wrap">
+                <div class="donut-chart-container">
+                    <canvas id="donutChart"></canvas>
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; width: 100%;">
+                        <div style="font-size: 10px; color: #bbb; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px;">Tổng tin</div>
+                        <div style="font-size: 24px; font-weight: 900; color: #1a1a1a; line-height: 1.1; font-family: 'Inter', sans-serif;">@ViewBag.TotalMessages</div>
+                    </div>
+                </div>
+                <div class="msg-legend">
+                    <div class="msg-legend-item">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="msg-legend-dot" style="background:#1a365d"></div> Khách gửi
+                        </div>
+                        <span style="font-weight: 800; font-size: 15px; color: #1a1a1a;">@ViewBag.UserMessages</span>
+                    </div>
+                    <div class="msg-legend-item">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="msg-legend-dot" style="background:#c9a24a"></div> AI trả lời
+                        </div>
+                        <span style="font-weight: 800; font-size: 15px; color: #1a1a1a;">@ViewBag.AIMessages</span>
+                    </div>
+                    <div class="msg-legend-item">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="msg-legend-dot" style="background:#8b6a14"></div> Admin
+                        </div>
+                        <span style="font-weight: 800; font-size: 15px; color: #1a1a1a;">@ViewBag.AdminMessages</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ── Top Escalation Reasons ── *@
+    <div class="col-lg-4">
+        <div class="chart-card h-100">
+            <div class="chart-title"><i class="bi bi-exclamation-triangle text-warning"></i>Top lý do escalation</div>
+            @{
+                var topReasons = ViewBag.TopReasons as IList<TopReasonDto> ?? new List<TopReasonDto>();
+                var maxCount = topReasons.Any() ? (int)topReasons[0].Count : 1;
+            }
+            @if (!topReasons.Any())
+            {
+                <div class="d-flex flex-column align-items-center justify-content-center flex-grow-1 text-center py-4">
+                    <i class="bi bi-info-circle text-muted fs-3 mb-2"></i>
+                    <p class="text-muted mb-0" style="font-size:13px">Chưa có dữ liệu escalation trong kỳ này.</p>
+                </div>
+            }
+            else
+            {
+                <ul class="reasons-list flex-grow-1 d-flex flex-column justify-content-center">
+                    @foreach (var r in topReasons)
+                    {
+                        var pct = (int)Math.Round((double)(int)r.Count / maxCount * 100);
+                        <li>
+                            <span style="flex:0 0 160px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="@r.Reason">@r.Reason</span>
+                            <div class="reason-bar-wrap"><div class="reason-bar" style="width:@pct%"></div></div>
+                            <span class="reason-count">@r.Count</span>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+
+    @* ── Recent Escalations Table ── *@
+    <div class="col-lg-8">
+        <div class="chart-card h-100">
+            <div class="chart-title"><i class="bi bi-clock-history"></i>Escalation gần nhất</div>
+            @{
+                var recentEsc = ViewBag.RecentEscalations as IEnumerable<RecentEscalationDto>;
+            }
+            @if (recentEsc == null || !recentEsc.Any())
+            {
+                <div class="d-flex flex-column align-items-center justify-content-center flex-grow-1 text-center py-4">
+                    <i class="bi bi-info-circle text-muted fs-3 mb-2"></i>
+                    <p class="text-muted mb-0" style="font-size:13px">Chưa có escalation trong kỳ này.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive flex-grow-1">
+                    <table class="table table-hover recent-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Mã</th>
+                                <th>Khách</th>
+                                <th>Lý do</th>
+                                <th>Thời gian</th>
+                                <th>Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var e in recentEsc)
+                            {
+                                var statusClass = e.Status switch
+                                {
+                                    "EscalatedToAdmin" => "status-escalated",
+                                    "AnsweredByAdmin" => "status-answered",
+                                    "Closed" => "status-closed",
+                                    _ => "bg-light"
+                                };
+                                var statusText = e.Status switch
+                                {
+                                    "EscalatedToAdmin" => "ESCALATED",
+                                    "AnsweredByAdmin" => "ANSWERED",
+                                    "Closed" => "CLOSED",
+                                    _ => e.Status
+                                };
+                                <tr>
+                                    <td><a href="/AdminChat" class="text-decoration-none fw-semibold" style="color: #8b6a14;">@e.ConversationCode</a></td>
+                                    <td>@e.GuestName</td>
+                                    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                                        <span title="@e.EscalationReason">@(e.EscalationReason ?? "—")</span>
+                                    </td>
+                                    <td style="white-space:nowrap">
+                                        @{
+                                            DateTime? esc = e.EscalatedAt;
+                                            @(esc.HasValue ? esc.Value.AddHours(7).ToString("HH:mm dd/MM") : "—")
+                                        }
+                                    </td>
+                                    <td><span class="status-badge @statusClass">@statusText</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+    const labels = @Html.Raw(ViewBag.ChartLabels);
+    const convData = @Html.Raw(ViewBag.ChartConvData);
+    const escalData = @Html.Raw(ViewBag.ChartEscalData);
+
+    // Trend chart
+    new Chart(document.getElementById('trendChart'), {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: 'Hội thoại mới',
+                    data: convData,
+                    borderColor: '#1a365d',
+                    backgroundColor: 'rgba(26, 54, 93, 0.04)',
+                    fill: true,
+                    tension: 0.35,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#1a365d',
+                    pointHoverRadius: 6
+                },
+                {
+                    label: 'Escalated',
+                    data: escalData,
+                    borderColor: '#c62828',
+                    backgroundColor: 'rgba(198, 40, 40, 0.03)',
+                    fill: true,
+                    tension: 0.35,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#c62828',
+                    pointHoverRadius: 6,
+                    borderDash: [5, 3]
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        boxWidth: 12,
+                        boxHeight: 12,
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        font: { size: 12, family: "'Inter', sans-serif", weight: '600' },
+                        color: '#2b2b2b'
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#1a1a1a',
+                    titleFont: { family: "'Inter', sans-serif", weight: '700' },
+                    bodyFont: { family: "'Inter', sans-serif" },
+                    padding: 12,
+                    cornerRadius: 8
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { maxTicksLimit: 14, font: { size: 11, family: "'Inter', sans-serif" }, color: '#666' }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: '#f2ead9' },
+                    ticks: { precision: 0, font: { size: 11, family: "'Inter', sans-serif" }, color: '#666' }
+                }
+            }
+        }
+    });
+
+    // Donut chart
+    new Chart(document.getElementById('donutChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Khách', 'AI', 'Admin'],
+            datasets: [{
+                data: [@ViewBag.UserMessages, @ViewBag.AIMessages, @ViewBag.AdminMessages],
+                backgroundColor: ['#1a365d', '#c9a24a', '#8b6a14'],
+                borderWidth: 2,
+                borderColor: '#ffffff',
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            cutout: '76%',
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1a1a1a',
+                    titleFont: { family: "'Inter', sans-serif", weight: '700' },
+                    bodyFont: { family: "'Inter', sans-serif" },
+                    padding: 10,
+                    cornerRadius: 8
+                }
+            }
+        }
+    });
+})();
+</script>
+}

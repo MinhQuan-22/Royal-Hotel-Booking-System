@@ -43,6 +43,9 @@
 
     @if (!isAdmin)
     {
+        @* P2-2: SignalR JS client for real-time chat (falls back to HTTP polling if unavailable) *@
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"
+                crossorigin="anonymous" referrerpolicy="no-referrer"></script>
         <script src="~/js/chat-widget.js" asp-append-version="true"></script>
     }
 

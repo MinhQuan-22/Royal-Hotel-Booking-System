@@ -1,9 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using ROYALHOTEL.Data;
 using ROYALHOTEL.DTOs;
+using ROYALHOTEL.Hubs;
 using ROYALHOTEL.Models;
+using ROYALHOTEL.Services.Email;
 using System.Globalization;
 using System.Text;
 
@@ -22,6 +25,10 @@ public class ChatService : IChatService
     private readonly ILogger<ChatService> _logger;
     private readonly ConversationCodeGenerator _codeGenerator;
     private readonly LogMasker _logMasker;
+    private readonly DataSanitizer _dataSanitizer;
+    private readonly IEmailSender _emailSender;
+    private readonly SmtpSettings _smtpSettings;
+    private readonly ChatHubNotifier _hubNotifier;
 
     // Cache keys and TTLs
     private const string FAQ_CACHE_KEY_PREFIX = "faq_";
@@ -36,7 +43,11 @@ public class ChatService : IChatService
         IMemoryCache cache,
         ILogger<ChatService> logger,
         ConversationCodeGenerator codeGenerator,
-        LogMasker logMasker)
+        LogMasker logMasker,
+        DataSanitizer dataSanitizer,
+        IEmailSender emailSender,
+        IOptions<SmtpSettings> smtpSettings,
+        ChatHubNotifier hubNotifier)
     {
         _dbContext = dbContext;
         _mongoContext = mongoContext;
@@ -45,6 +56,10 @@ public class ChatService : IChatService
         _logger = logger;
         _codeGenerator = codeGenerator;
         _logMasker = logMasker;
+        _dataSanitizer = dataSanitizer;
+        _emailSender = emailSender;
+        _smtpSettings = smtpSettings.Value;
+        _hubNotifier = hubNotifier;
     }
 
     /// <summary>
@@ -152,6 +167,56 @@ public class ChatService : IChatService
                 };
             }
 
+            // P4-RateLimit: Per-conversation cooldown — max 1 message per 3 seconds
+            var cooldownKey = $"chat:cooldown:{conversation.Id}";
+            if (_cache.TryGetValue(cooldownKey, out _))
+            {
+                _logger.LogWarning(
+                    "Conversation {ConversationId} cooldown active — message sent too quickly",
+                    conversation.Id);
+
+                return new ChatResponse
+                {
+                    ConversationId = conversation.Id,
+                    ResponseText = "Bạn đang gửi tin nhắn quá nhanh. Vui lòng chờ vài giây trước khi tiếp tục.",
+                    ShowContactAdmin = false,
+                    Timestamp = DateTime.UtcNow
+                };
+            }
+
+            // Set cooldown: 3 seconds before next message is processed
+            _cache.Set(cooldownKey, true, TimeSpan.FromSeconds(3));
+
+            // P4-RateLimit: Per-conversation message count limit — max 50 user messages
+            var messageCountKey = $"chat:msgcount:{conversation.Id}";
+            if (!_cache.TryGetValue(messageCountKey, out int userMessageCount))
+            {
+                // Count from DB on first check (cold cache)
+                userMessageCount = await _dbContext.ChatMessages
+                    .CountAsync(m => m.ConversationId == conversation.Id && m.SenderType == "User");
+                _cache.Set(messageCountKey, userMessageCount, TimeSpan.FromMinutes(30));
+            }
+
+            if (userMessageCount >= 50)
+            {
+                _logger.LogWarning(
+                    "Conversation {ConversationId} exceeded max message limit ({Count}/50)",
+                    conversation.Id, userMessageCount);
+
+                return new ChatResponse
+                {
+                    ConversationId = conversation.Id,
+                    ResponseText = "Cuộc hội thoại này đã đạt giới hạn 50 tin nhắn. " +
+                                   "Bạn có thể bắt đầu cuộc hội thoại mới hoặc liên hệ admin để được hỗ trợ tiếp tục.",
+                    ShowContactAdmin = true,
+                    Timestamp = DateTime.UtcNow
+                };
+            }
+
+            // Increment cached message counter (will be refreshed from DB on next cold start)
+            _cache.Set(messageCountKey, userMessageCount + 1, TimeSpan.FromMinutes(30));
+
+
             // Classify question
             QuestionClassification classification;
             try
@@ -182,8 +247,36 @@ public class ChatService : IChatService
             // Handle out-of-scope questions
             if (!classification.IsInScope)
             {
-                var escalationMessage = "Xin lỗi, câu hỏi của bạn nằm ngoài phạm vi hỗ trợ tự động của tôi. " +
-                                      "Vui lòng liên hệ với admin để được hỗ trợ tốt hơn.";
+                // P3: Generate a more specific escalation message based on category
+                var escalationMessage = classification.Category switch
+                {
+                    "OutOfScope" when classification.Reason.Contains("booking") ||
+                                     classification.Reason.Contains("reservation") =>
+                        "🛨 Câu hỏi của bạn liên quan đến thông tin đặt phòng cụ thể. " +
+                        "Vui lòng liên hệ với admin để được hỗ trợ tra cứu booking của bạn.",
+
+                    "OutOfScope" when classification.Reason.Contains("hóa đơn") ||
+                                     classification.Reason.Contains("invoice") ||
+                                     classification.Reason.Contains("vat") =>
+                        "🗂️ Yêu cầu xuất hóa đơn/biên lai cần được admin xử lý trực tiếp. " +
+                        "Vui lòng liên hệ để được hỗ trợ.",
+
+                    "OutOfScope" when classification.Reason.Contains("sự cố") ||
+                                     classification.Reason.Contains("hỏng") ||
+                                     classification.Reason.Contains("maintenance") =>
+                        "🔧 Báo cáo sự cố cần được kỹ thuật viên xử lý. " +
+                        "Admin sẽ liên hệ để hỗ trợ bạn ngay.",
+
+                    "OutOfScope" when classification.Reason.Contains("loyalty") ||
+                                     classification.Reason.Contains("điểm") ||
+                                     classification.Reason.Contains("upgrade") =>
+                        "🏆 Yêu cầu về chương trình thành viên/nâng hạng cần admin xử lý trực tiếp. " +
+                        "Vui lòng liên hệ để được hướng dẫn.",
+
+                    _ =>
+                        "Xin lỗi, câu hỏi của bạn nằm ngoài phạm vi hỗ trợ tự động của tôi. " +
+                        "Vui lòng liên hệ với admin để được hỗ trợ tốt hơn."
+                };
 
                 // Requirement 13.3: Log escalation
                 _logger.LogInformation(
@@ -227,10 +320,56 @@ public class ChatService : IChatService
             var aiStartTime = DateTime.UtcNow;
             try
             {
+                // P0 Fix: Sanitize message before sending to external AI provider
+                // Removes passwords, credit card numbers, CVV codes to prevent data leakage
+                var sanitizedMessage = _dataSanitizer.Sanitize(request.MessageText);
+                if (_dataSanitizer.ContainsSensitiveData(request.MessageText))
+                {
+                    _logger.LogWarning(
+                        "Sensitive data detected and sanitized before AI call. ConversationId={ConversationId}, SensitiveTypes={Types}",
+                        conversation.Id,
+                        string.Join(", ", _dataSanitizer.DetectSensitiveDataTypes(request.MessageText)));
+                }
+
+                // P2-Context: Fetch recent conversation history for context window (up to 10 messages)
+                // This lets AI understand prior turns and respond coherently
+                IEnumerable<ConversationHistoryMessage>? conversationHistory = null;
+                try
+                {
+                    var recentMessages = await _dbContext.ChatMessages
+                        .AsNoTracking()
+                        .Where(m => m.ConversationId == conversation.Id)
+                        .OrderByDescending(m => m.CreatedAt)
+                        .Take(10)
+                        .Select(m => new ConversationHistoryMessage
+                        {
+                            SenderType = m.SenderType,
+                            MessageText = m.MessageText,
+                            CreatedAt = m.CreatedAt
+                        })
+                        .ToListAsync();
+
+                    // Reverse so they are in chronological order for the AI prompt
+                    recentMessages.Reverse();
+                    conversationHistory = recentMessages;
+
+                    _logger.LogDebug(
+                        "Fetched {Count} history messages for context window. ConversationId={ConversationId}",
+                        recentMessages.Count, conversation.Id);
+                }
+                catch (Exception histEx)
+                {
+                    // Non-fatal: if history fetch fails, AI still answers without context
+                    _logger.LogWarning(histEx,
+                        "Failed to fetch conversation history for context window. ConversationId={ConversationId}",
+                        conversation.Id);
+                }
+
                 aiResponseText = await _aiService.GenerateResponseAsync(
-                    request.MessageText,
+                    sanitizedMessage,
                     contextData,
-                    classification.Category);
+                    classification.Category,
+                    conversationHistory);
 
                 var aiResponseTime = (DateTime.UtcNow - aiStartTime).TotalMilliseconds;
 
@@ -688,8 +827,29 @@ public class ChatService : IChatService
             }
             else if (category == "Policies")
             {
-                // Hardcoded policies for now
-                var policies = @"Chính sách khách sạn:
+                // P1-1 Fix: Read policies from HotelPolicies table (admin-configurable)
+                var policyItems = await _dbContext.HotelPolicies
+                    .Where(p => p.IsActive && p.Category == "Policies")
+                    .OrderBy(p => p.SortOrder)
+                    .ToListAsync();
+
+                string policies;
+                if (policyItems.Any())
+                {
+                    var sb = new System.Text.StringBuilder();
+                    sb.AppendLine("Chính sách khách sạn:");
+                    foreach (var item in policyItems)
+                    {
+                        sb.AppendLine($"\n{item.PolicyName}:");
+                        sb.AppendLine(item.Content);
+                    }
+                    policies = sb.ToString();
+                    _logger.LogInformation("Policies loaded from database ({Count} items)", policyItems.Count);
+                }
+                else
+                {
+                    // Fallback: default policies when table is empty
+                    policies = @"Chính sách khách sạn:
 
 Check-in: 14:00
 Check-out: 12:00
@@ -708,8 +868,11 @@ Chính sách trẻ em:
 - Trẻ em từ 6-12 tuổi: 50% giá phòng
 - Trẻ em trên 12 tuổi: Tính như người lớn";
 
-                // Cache for 1 hour
-                _cache.Set(cacheKey, policies, TimeSpan.FromMinutes(FAQ_CACHE_TTL_MINUTES));
+                    _logger.LogWarning("HotelPolicies table empty \u2014 using built-in default policies");
+                }
+
+                // Cache for 5 minutes (shorter than FAQ since policies are admin-editable)
+                _cache.Set(cacheKey, policies, TimeSpan.FromMinutes(5));
 
                 return policies;
             }
@@ -764,10 +927,17 @@ Chính sách trẻ em:
                 "Conversation escalated to admin. ConversationId={ConversationId}, ConversationCode={ConversationCode}, EscalationReason={MaskedReason}, EscalatedAt={EscalatedAt}, Timestamp={Timestamp}",
                 conversationId, conversation.ConversationCode, _logMasker.Mask(reason), conversation.EscalatedAt, DateTime.UtcNow);
 
-            // Create notification for admin (log-based for now)
-            _logger.LogWarning(
-                "ADMIN NOTIFICATION: New escalated conversation {ConversationCode} - {MaskedReason}",
-                conversation.ConversationCode, _logMasker.Mask(reason));
+            // P1-3: Send email notification to admin
+            _ = SendEscalationEmailAsync(conversation, reason);
+
+            // P2-2: Push real-time SignalR event to all admin clients
+            _ = _hubNotifier.NotifyNewEscalationAsync(
+                conversation.Id,
+                conversation.ConversationCode,
+                conversation.GuestName ?? conversation.Account?.FullName ?? "Khách ẩn danh",
+                conversation.GuestPhone,
+                "EscalatedToAdmin",
+                _logMasker.Mask(reason));
 
             return true;
         }
@@ -775,6 +945,79 @@ Chính sách trẻ em:
         {
             _logger.LogError(ex, "Error escalating conversation {ConversationId}", conversationId);
             return false;
+        }
+    }
+
+    /// <summary>
+    /// P1-3: Sends an email notification to the configured admin email
+    /// when a new conversation is escalated. Fire-and-forget (non-blocking).
+    /// </summary>
+    private async Task SendEscalationEmailAsync(ChatConversation conversation, string reason)
+    {
+        try
+        {
+            var adminEmail = !string.IsNullOrWhiteSpace(_smtpSettings.AdminNotificationEmail)
+                ? _smtpSettings.AdminNotificationEmail
+                : _smtpSettings.FromEmail;
+
+            if (string.IsNullOrWhiteSpace(adminEmail))
+            {
+                _logger.LogWarning("Admin email not configured — escalation notification skipped");
+                return;
+            }
+
+            var guestInfo = conversation.Account != null
+                ? $"{conversation.Account.FullName} (Thành viên)"
+                : $"{conversation.GuestName ?? "Khách ẩn danh"} | SĐT: {conversation.GuestPhone ?? "Chưa có"}"
+            ;
+
+            var localTime = conversation.UpdatedAt.AddHours(7).ToString("HH:mm dd/MM/yyyy");
+            var adminChatUrl = $"/AdminChat";
+
+            var htmlBody = $@"
+<!DOCTYPE html>
+<html>
+<head><meta charset='utf-8'></head>
+<body style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f5f5; padding: 20px;'>
+  <div style='background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>
+    <div style='background: linear-gradient(135deg, #c9a24a, #8B6914); padding: 20px 24px; color: #fff;'>
+      <h2 style='margin:0; font-size:18px;'>🔔 Cuộc trò chuyện cần hỗ trợ</h2>
+      <p style='margin:4px 0 0; opacity:0.85; font-size:13px;'>Royal Hotel — AI Chat</p>
+    </div>
+    <div style='padding: 24px;'>
+      <table style='width:100%; border-collapse: collapse;'>
+        <tr><td style='padding: 8px 0; color:#666; font-size:13px; width:140px;'>Mã hội thoại</td><td style='padding: 8px 0; font-weight:700; color:#1a1a1a;'>{conversation.ConversationCode}</td></tr>
+        <tr><td style='padding: 8px 0; color:#666; font-size:13px;'>Khách</td><td style='padding: 8px 0; color:#1a1a1a;'>{System.Net.WebUtility.HtmlEncode(guestInfo)}</td></tr>
+        <tr><td style='padding: 8px 0; color:#666; font-size:13px;'>Lý do</td><td style='padding: 8px 0; color:#1a1a1a;'>{System.Net.WebUtility.HtmlEncode(reason)}</td></tr>
+        <tr><td style='padding: 8px 0; color:#666; font-size:13px;'>Thời gian</td><td style='padding: 8px 0; color:#1a1a1a;'>{localTime} (GMT+7)</td></tr>
+      </table>
+      <div style='margin-top:20px; text-align:center;'>
+        <a href='{adminChatUrl}' style='display:inline-block; background:#c9a24a; color:#fff; text-decoration:none; padding:12px 28px; border-radius:6px; font-weight:700; font-size:14px;'>
+          Xem và phản hồi ngay
+        </a>
+      </div>
+    </div>
+    <div style='background:#f8f8f8; padding:12px 24px; font-size:11px; color:#999; text-align:center;'>
+      Email tự động từ hệ thống Royal Hotel. Vui lòng không reply email này.
+    </div>
+  </div>
+</body>
+</html>";
+
+            await _emailSender.SendAsync(
+                adminEmail,
+                $"[Royal Hotel] Khách cần hỗ trợ — {conversation.ConversationCode}",
+                htmlBody);
+
+            _logger.LogInformation(
+                "Escalation email sent to {AdminEmail} for conversation {ConversationCode}",
+                adminEmail, conversation.ConversationCode);
+        }
+        catch (Exception ex)
+        {
+            // Non-fatal: email failure should not block the escalation flow
+            _logger.LogError(ex, "Failed to send escalation email notification for conversation {ConversationCode}",
+                conversation.ConversationCode);
         }
     }
 
@@ -913,6 +1156,24 @@ Chính sách trẻ em:
 
         try
         {
+            // Vấn đề 1 Fix: Always prioritize returning raw context data for specific categories
+            // If user asks about Policies, FAQ, or general HotelAmenities, we already have the perfect
+            // answer in contextData (fetched from GetContextDataAsync). Do not attempt to parse room intents.
+            if (category == "Policies" || category == "FAQ" || category == "HotelAmenities")
+            {
+                if (!string.IsNullOrWhiteSpace(contextData))
+                {
+                    // Truncate to reasonable length for chat response if too long (e.g. HotelAmenities can be huge)
+                    var displayContext = contextData.Length > 1000 ? contextData.Substring(0, 1000) + "..." : contextData;
+                    
+                    var intro = category == "HotelAmenities" 
+                        ? "Dưới đây là thông tin tiện ích chung của khách sạn:\n\n" 
+                        : "Theo dữ liệu mình tra cứu được:\n\n";
+
+                    return intro + displayContext;
+                }
+            }
+
             var questionNormalized = NormalizeText(question);
             var intent = DetectFallbackIntent(questionNormalized, category);
             var desiredRoomType = ExtractRequestedRoomType(questionNormalized);

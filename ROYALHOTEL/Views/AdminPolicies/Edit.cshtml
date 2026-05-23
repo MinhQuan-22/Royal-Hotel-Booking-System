@@ -1,0 +1,114 @@
+@model ROYALHOTEL.Models.HotelPolicy
+
+@{
+    bool isEdit = Model.Id > 0;
+    ViewData["Title"] = isEdit ? "Sửa chính sách" : "Thêm chính sách";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+@section Styles {
+<style>
+    .admin-card {
+        background: #fff;
+        border-radius: 14px;
+        box-shadow: 0 4px 18px rgba(139,106,20,.08);
+        border: 1px solid #e0d4b0;
+    }
+    .btn-gold {
+        background: linear-gradient(135deg, #8b6a14, #b8932e);
+        color: #fff; border: none; font-weight: 700;
+        transition: all 0.2s; border-radius: 8px; padding: 10px 24px;
+    }
+    .btn-gold:hover { 
+        background: linear-gradient(135deg, #6d5410, #8b6a14); 
+        color: #fff; transform: translateY(-1px); 
+        box-shadow: 0 4px 14px rgba(139,106,20,.35); 
+    }
+    .btn-outline-gold {
+        background: #fff; color: #8b6a14; border: 1px solid #8b6a14; font-weight: 600;
+        transition: all 0.2s; border-radius: 8px; padding: 10px 24px;
+    }
+    .btn-outline-gold:hover { background: rgba(139,106,20,.05); color: #6d5410; border-color: #6d5410; }
+</style>
+}
+
+<div class="d-flex align-items-center gap-3 mb-4">
+    <a href="/AdminPolicies" class="btn btn-outline-secondary btn-sm" style="border-radius: 6px;">
+        <i class="bi bi-arrow-left me-1"></i>Quay lại
+    </a>
+    <h4 class="mb-0" style="font-weight: 800; color: #1a1a1a;">@ViewData["Title"]</h4>
+</div>
+
+<div class="card admin-card" style="max-width:700px">
+    <div class="card-body p-4 p-md-5">
+        <form method="post" action="@(isEdit ? "/AdminPolicies/Edit/" + Model.Id : "/AdminPolicies/Create")">
+            @Html.AntiForgeryToken()
+            @if (isEdit)
+            {
+                <input type="hidden" asp-for="Id" />
+            }
+
+            <div class="mb-4">
+                <label asp-for="PolicyKey" class="form-label fw-semibold" style="color: #8b6a14;">
+                    Policy Key <span class="text-danger">*</span>
+                    <small class="text-muted fw-normal">(slug duy nhất, viết thường không dấu, ví dụ: checkin, cancellation)</small>
+                </label>
+                <input asp-for="PolicyKey" class="form-control font-monospace" placeholder="vd: checkin" style="border-radius: 8px;" />
+                <span asp-validation-for="PolicyKey" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-4">
+                <label asp-for="PolicyName" class="form-label fw-semibold" style="color: #8b6a14;">
+                    Tên hiển thị <span class="text-danger">*</span>
+                </label>
+                <input asp-for="PolicyName" class="form-control" placeholder="vd: Check-in" style="border-radius: 8px;" />
+                <span asp-validation-for="PolicyName" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-4">
+                <label asp-for="Category" class="form-label fw-semibold" style="color: #8b6a14;">Danh mục</label>
+                <select asp-for="Category" class="form-select" style="border-radius: 8px;">
+                    <option value="Policies">Policies (Chính sách — AI dùng khi hỏi về chính sách)</option>
+                    <option value="FAQ">FAQ (Câu hỏi thường gặp)</option>
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label asp-for="SortOrder" class="form-label fw-semibold" style="color: #8b6a14;">
+                    Thứ tự hiển thị
+                    <small class="text-muted fw-normal">(số nhỏ hơn = hiển thị trước)</small>
+                </label>
+                <input asp-for="SortOrder" type="number" class="form-control" style="max-width:120px; border-radius: 8px;" />
+            </div>
+
+            <div class="mb-4">
+                <label asp-for="Content" class="form-label fw-semibold" style="color: #8b6a14;">
+                    Nội dung <span class="text-danger">*</span>
+                    <small class="text-muted fw-normal">(AI sẽ đọc nội dung này để trả lời khách)</small>
+                </label>
+                <textarea asp-for="Content" class="form-control font-monospace" rows="8"
+                          placeholder="Nhập nội dung chính sách..." style="border-radius: 8px; background: #faf8f2;"></textarea>
+                <span asp-validation-for="Content" class="text-danger small"></span>
+                <small class="text-muted mt-2 d-block">Hỗ trợ xuống dòng. Mỗi dòng mới = 1 bullet point trong câu trả lời AI.</small>
+            </div>
+
+            <div class="mb-5">
+                <div class="form-check form-switch" style="font-size: 1.1rem;">
+                    <input asp-for="IsActive" class="form-check-input" type="checkbox" role="switch" style="cursor: pointer;" />
+                    <label asp-for="IsActive" class="form-check-label ms-2" style="cursor: pointer;">Kích hoạt (AI sẽ dùng chính sách này)</label>
+                </div>
+            </div>
+
+            <div class="d-flex gap-3">
+                <button type="submit" class="btn btn-gold">
+                    <i class="bi bi-check2 me-1"></i>@(isEdit ? "Lưu thay đổi" : "Tạo chính sách")
+                </button>
+                <a href="/AdminPolicies" class="btn btn-outline-gold">Hủy</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

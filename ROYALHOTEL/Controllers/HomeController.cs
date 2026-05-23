@@ -58,8 +58,10 @@ public class HomeController : Controller
         return View();
     }
 
-    public IActionResult Contact()
+    public async Task<IActionResult> Contact()
     {
+        var hotels = await _roomService.GetAllHotelsAsync();
+        ViewBag.Hotels = hotels;
         return View();
     }
 }

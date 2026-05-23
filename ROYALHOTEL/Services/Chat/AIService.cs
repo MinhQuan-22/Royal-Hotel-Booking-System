@@ -18,21 +18,51 @@ public class AIService : IAIService
     private const int TimeoutSeconds = 8;
     private const int MaxRetries = 2;
 
-    // In-scope keywords (Vietnamese)
+    // In-scope keywords (Vietnamese + English)
     private static readonly string[] InScopeKeywords = new[]
     {
         "tiện ích", "phòng", "giá", "chính sách", "check-in", "check-out", "hủy phòng",
         "wifi", "hồ bơi", "gym", "nhà hàng", "spa", "dịch vụ", "tiện nghi",
-        "loại phòng", "so sánh", "khác biệt", "mô tả",
+        "loại phòng", "so sánh", "khác biệt", "mô tả", "đặt phòng", "thuê phòng",
+        "chi phí", "tổng tiền", "bao gồm", "phí", "bữa sáng", "ăn sáng",
         "tien ich", "gia phong", "gia ca", "bao nhieu", "room", "amenities",
-        "standard", "deluxe", "suite"
+        "standard", "deluxe", "suite", "family", "executive", "superior",
+        "ho boi", "nha hang", "dat phong", "gia phong", "gia ca"
     };
 
-    // Out-of-scope keywords (Vietnamese)
+    // Out-of-scope keywords — questions requiring admin human support
     private static readonly string[] OutOfScopeKeywords = new[]
     {
-        "hoàn tiền", "khiếu nại", "thay đổi booking", "hủy đặt phòng",
-        "refund", "complaint", "change booking", "modify reservation"
+        // Hoàn tiền & khiếu nại
+        "hoàn tiền", "khiếu nại", "phàn nàn", "không hài lòng", "thất vọng",
+        "refund", "complaint", "complain", "dissatisfied",
+
+        // Thay đổi & hủy booking cụ thể
+        "thay đổi booking", "hủy đặt phòng", "thay đổi đặt phòng", "đổi phòng",
+        "gia hạn", "change booking", "modify reservation", "cancel reservation",
+        "cancel booking", "reschedule",
+
+        // Tra cứu booking theo mã
+        "mã booking", "booking number", "reservation code", "mã đặt phòng",
+        "mã xác nhận", "confirmation code", "tình trạng booking",
+        "booking của tôi", "đặt phòng của tôi", "xem booking", "kiểm tra booking",
+
+        // Hóa đơn & VAT
+        "hóa đơn", "hoa don", "invoice", "vat", "thuế", "xuất hóa đơn",
+        "biên lai", "receipt", "chứng từ",
+
+        // Sự cố trong phòng
+        "sự cố", "hỏng", "bị hỏng", "không hoạt động", "báo hỏng",
+        "điều hòa hỏng", "nước nóng", "điện", "nước", "thiếu",
+        "phòng bẩn", "phòng chưa dọn", "report issue", "room problem",
+        "maintenance",
+
+        // Loyalty & điểm thưởng
+        "điểm thưởng", "loyalty", "reward", "member", "thành viên",
+        "tích điểm", "đổi điểm", "ưu đãi thành viên",
+
+        // Nâng hạng phòng
+        "nâng hạng", "upgrade", "room upgrade", "đổi lên phòng"
     };
 
     // Hotel domain cues: if user asks broad hotel questions without exact keywords,
@@ -72,42 +102,165 @@ public class AIService : IAIService
     /// Classifies a question as in-scope or out-of-scope using keyword matching
     /// Validates: Requirements 3.1, 3.2, 3.3, 3.4
     /// </summary>
-    public Task<QuestionClassification> ClassifyQuestionAsync(string messageText)
+    /// <summary>
+    /// P3-2: AI-powered classification with keyword fallback.
+    /// Uses a fast LLM call with a strict JSON schema to classify the intent.
+    /// Falls back to keyword matching if the LLM is unavailable (circuit-breaker pattern).
+    /// </summary>
+    public async Task<QuestionClassification> ClassifyQuestionAsync(string messageText)
     {
         if (string.IsNullOrWhiteSpace(messageText))
         {
-            return Task.FromResult(new QuestionClassification
+            return new QuestionClassification
             {
                 IsInScope = false,
                 ConfidenceScore = 0.0,
                 Category = "Invalid",
                 Reason = "Empty message"
-            });
+            };
         }
 
+        var apiKey = _configuration["OpenAI:ApiKey"];
+        bool aiClassEnabled = !string.IsNullOrWhiteSpace(apiKey)
+            && _configuration.GetValue("AI:ClassificationEnabled", true);
+
+        if (aiClassEnabled)
+        {
+            try
+            {
+                var result = await ClassifyWithAIAsync(messageText);
+                if (result != null)
+                {
+                    _logger.LogDebug("AI classified message as {Category} (confidence={Confidence})",
+                        result.Category, result.ConfidenceScore);
+                    return result;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "AI classification failed — falling back to keyword classifier");
+            }
+        }
+
+        // Fallback: keyword-based classification
+        return ClassifyWithKeywords(messageText);
+    }
+
+    /// <summary>
+    /// P3-2: Calls the LLM with a strict classification prompt.
+    /// Returns null if the LLM response cannot be parsed (triggers keyword fallback).
+    /// Uses a very short timeout (1.5 s) to avoid slowing down the main response path.
+    /// </summary>
+    private async Task<QuestionClassification?> ClassifyWithAIAsync(string messageText)
+    {
+        var apiKey = _configuration["OpenAI:ApiKey"];
+        var model = _configuration["OpenAI:Model"] ?? "gpt-4o-mini";
+        var endpoint = _configuration["OpenAI:Endpoint"] ?? "https://openrouter.ai/api/v1/chat/completions";
+
+        const string classificationPrompt = @"
+Bạn là bộ phân loại câu hỏi cho chatbot khách sạn Royal Hotel.
+Phân tích câu hỏi của khách và trả lời CHỈ JSON sau, không giải thích thêm:
+{""isInScope"": true/false, ""category"": ""Amenities|Policies|FAQ|Pricing|OutOfScope|Unknown"", ""confidence"": 0.0-1.0, ""reason"": ""ngắn gọn""}
+
+Phân loại IN-SCOPE (AI có thể trả lời):
+- Amenities: hỏi về tiện ích phòng, hồ bơi, spa, wifi, gym, nhà hàng, mô tả phòng
+- Pricing: hỏi về giá phòng, chi phí, tổng tiền
+- Policies: hỏi về chính sách check-in/out, hủy phòng, thanh toán, trẻ em, thú cưng
+- FAQ: câu hỏi chung về khách sạn, địa điểm, liên hệ, đặt phòng chung
+
+Phân loại OUT-OF-SCOPE (cần chuyển admin — isInScope=false):
+- Tra cứu booking theo mã/số đặt phòng cụ thể
+- Yêu cầu hoàn tiền, khiếu nại, phàn nàn
+- Thay đổi, hủy, gia hạn booking hiện tại
+- Yêu cầu hóa đơn VAT, biên lai
+- Báo cáo sự cố trong phòng (hỏng, bẩn, thiếu)
+- Điểm thưởng, loyalty, thành viên
+- Nâng hạng phòng (room upgrade)
+
+Unknown: không liên quan đến khách sạn";
+
+        var requestBody = new
+        {
+            model,
+            messages = new[]
+            {
+                new { role = "system", content = classificationPrompt },
+                new { role = "user", content = $"Câu hỏi: {messageText}" }
+            },
+            max_tokens = 120,
+            temperature = 0.1,
+            response_format = new { type = "json_object" }
+        };
+
+        using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(1.5));
+        using var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+        request.Content = new StringContent(
+            JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
+
+        var response = await _httpClient.SendAsync(request, cts.Token);
+        if (!response.IsSuccessStatusCode) return null;
+
+        var responseBody = await response.Content.ReadAsStringAsync(cts.Token);
+        using var doc = JsonDocument.Parse(responseBody);
+
+        var content = doc.RootElement
+            .GetProperty("choices")[0]
+            .GetProperty("message")
+            .GetProperty("content")
+            .GetString();
+
+        if (string.IsNullOrWhiteSpace(content)) return null;
+
+        using var classDoc = JsonDocument.Parse(content);
+        var root = classDoc.RootElement;
+
+        bool isInScope = root.TryGetProperty("isInScope", out var inScopeEl) && inScopeEl.GetBoolean();
+        string category = root.TryGetProperty("category", out var catEl) ? catEl.GetString() ?? "Unknown" : "Unknown";
+        double confidence = root.TryGetProperty("confidence", out var confEl) ? confEl.GetDouble() : 0.5;
+        string reason = root.TryGetProperty("reason", out var reasonEl) ? reasonEl.GetString() ?? "AI classification" : "AI classification";
+
+        // Apply confidence threshold
+        if (confidence < 0.6)
+        {
+            isInScope = false;
+            category = "LowConfidence";
+        }
+
+        return new QuestionClassification
+        {
+            IsInScope = isInScope,
+            ConfidenceScore = confidence,
+            Category = category,
+            Reason = $"[AI] {reason}"
+        };
+    }
+
+    /// <summary>
+    /// P3-2: Original keyword-based classification preserved as fallback.
+    /// </summary>
+    private QuestionClassification ClassifyWithKeywords(string messageText)
+    {
         var lowerText = messageText.ToLower();
 
         // Check for out-of-scope keywords first (higher priority)
         var outOfScopeMatches = OutOfScopeKeywords.Count(keyword => lowerText.Contains(keyword.ToLower()));
         if (outOfScopeMatches > 0)
         {
-            return Task.FromResult(new QuestionClassification
+            return new QuestionClassification
             {
                 IsInScope = false,
                 ConfidenceScore = 0.9,
                 Category = "OutOfScope",
-                Reason = $"Contains out-of-scope keywords: {string.Join(", ", OutOfScopeKeywords.Where(k => lowerText.Contains(k.ToLower())))}"
-            });
+                Reason = $"[Keyword] Contains out-of-scope keywords: {string.Join(", ", OutOfScopeKeywords.Where(k => lowerText.Contains(k.ToLower())))}"
+            };
         }
 
         // Check for in-scope keywords
         var inScopeMatches = InScopeKeywords.Count(keyword => lowerText.Contains(keyword.ToLower()));
         if (inScopeMatches > 0)
         {
-            // Calculate confidence score based on keyword matches
             var confidenceScore = Math.Min(0.7 + (inScopeMatches * 0.1), 1.0);
-
-            // Determine category based on keywords
             var category = DetermineCategory(lowerText);
 
             var classification = new QuestionClassification
@@ -115,10 +268,9 @@ public class AIService : IAIService
                 IsInScope = true,
                 ConfidenceScore = confidenceScore,
                 Category = category,
-                Reason = $"Contains in-scope keywords: {string.Join(", ", InScopeKeywords.Where(k => lowerText.Contains(k.ToLower())))}"
+                Reason = $"[Keyword] Contains in-scope keywords: {string.Join(", ", InScopeKeywords.Where(k => lowerText.Contains(k.ToLower())))}"
             };
 
-            // Apply confidence threshold rule (Requirement 3.4)
             if (classification.ConfidenceScore < 0.7)
             {
                 classification.IsInScope = false;
@@ -126,31 +278,30 @@ public class AIService : IAIService
                 classification.Reason += " (Confidence below threshold)";
             }
 
-            return Task.FromResult(classification);
+            return classification;
         }
 
-        // Broad hotel-domain fallback:
-        // keep in-scope and let LLM decide from retrieved context.
+        // Broad hotel-domain fallback
         var domainMatches = HotelDomainKeywords.Count(keyword => lowerText.Contains(keyword));
         if (domainMatches > 0)
         {
-            return Task.FromResult(new QuestionClassification
+            return new QuestionClassification
             {
                 IsInScope = true,
                 ConfidenceScore = 0.75,
                 Category = DetermineCategory(lowerText),
-                Reason = "Matched broad hotel-domain keywords"
-            });
+                Reason = "[Keyword] Matched broad hotel-domain keywords"
+            };
         }
 
-        // No useful match: treat as out-of-scope
-        return Task.FromResult(new QuestionClassification
+        // No useful match
+        return new QuestionClassification
         {
             IsInScope = false,
             ConfidenceScore = 0.3,
             Category = "Unknown",
-            Reason = "No matching hotel-domain keywords found"
-        });
+            Reason = "[Keyword] No matching hotel-domain keywords found"
+        };
     }
 
     /// <summary>
@@ -159,7 +310,11 @@ public class AIService : IAIService
     /// Sub-task 9.2: Comprehensive error handling with timeout and retry logic
     /// Validates: Requirements 16.2, 16.3, 16.4
     /// </summary>
-    public async Task<string> GenerateResponseAsync(string messageText, string contextData, string category)
+    public async Task<string> GenerateResponseAsync(
+        string messageText,
+        string contextData,
+        string category,
+        IEnumerable<ConversationHistoryMessage>? conversationHistory = null)
     {
         var apiKey = _configuration["OpenAI:ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey))
@@ -169,18 +324,16 @@ public class AIService : IAIService
         }
 
         var systemPrompt = GetGuardrailPrompt(category);
-        var userPrompt = BuildUserPrompt(messageText, contextData);
+
+        // P2-Context: Build multi-turn message array with conversation history
+        var messages = BuildMessagesWithHistory(systemPrompt, messageText, contextData, conversationHistory);
 
         var requestBody = new
         {
-            model = _configuration["OpenAI:Model"] ?? "gpt-4",
-            messages = new[]
-            {
-                new { role = "system", content = systemPrompt },
-                new { role = "user", content = userPrompt }
-            },
+            model = _configuration["OpenAI:Model"] ?? "gpt-4o-mini",
+            messages,
             temperature = 0.7,
-            max_tokens = 500
+            max_tokens = 600
         };
 
         var jsonContent = JsonSerializer.Serialize(requestBody);
@@ -393,6 +546,58 @@ Nếu câu hỏi nằm ngoài phạm vi dữ liệu bạn có, hãy lịch sự 
         return $@"Context: {contextData}
 
 Câu hỏi: {messageText}";
+    }
+
+    /// <summary>
+    /// P2-Context: Builds an OpenAI messages array with:
+    ///   [0] system prompt
+    ///   [1..N-1] conversation history (user/assistant turns, max 10 messages)
+    ///   [N] current user message with database context
+    /// This gives the AI awareness of prior turns so it can answer coherently.
+    /// </summary>
+    private object[] BuildMessagesWithHistory(
+        string systemPrompt,
+        string messageText,
+        string contextData,
+        IEnumerable<ConversationHistoryMessage>? conversationHistory)
+    {
+        var messageList = new List<object>
+        {
+            new { role = "system", content = systemPrompt }
+        };
+
+        // Add up to 10 most recent messages from history (skip current message)
+        if (conversationHistory != null)
+        {
+            var historyItems = conversationHistory
+                .OrderBy(m => m.CreatedAt)
+                .Take(10)
+                .ToList();
+
+            foreach (var msg in historyItems)
+            {
+                var role = msg.SenderType switch
+                {
+                    "User" => "user",
+                    "AI" => "assistant",
+                    "Admin" => "assistant", // Admin replies appear as assistant in AI context
+                    _ => "user"
+                };
+
+                // Truncate long history messages to keep token count manageable
+                var truncated = msg.MessageText.Length > 500
+                    ? msg.MessageText[..500] + "..."
+                    : msg.MessageText;
+
+                messageList.Add(new { role, content = truncated });
+            }
+        }
+
+        // Add current user message with database context
+        var userPrompt = BuildUserPrompt(messageText, contextData);
+        messageList.Add(new { role = "user", content = userPrompt });
+
+        return messageList.ToArray();
     }
 
     /// <summary>

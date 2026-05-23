@@ -15,13 +15,19 @@ public interface IAIService
     Task<QuestionClassification> ClassifyQuestionAsync(string messageText);
 
     /// <summary>
-    /// Generates an AI response using OpenAI API with guardrails
+    /// Generates an AI response using OpenAI API with guardrails.
+    /// P2-Context: Accepts optional conversation history for context-aware replies.
     /// </summary>
     /// <param name="messageText">The user's question text</param>
     /// <param name="contextData">Relevant context data from database</param>
     /// <param name="category">Question category (HotelAmenities, Policies, etc.)</param>
+    /// <param name="conversationHistory">Optional: recent messages for context window (max 10)</param>
     /// <returns>Generated response text</returns>
-    Task<string> GenerateResponseAsync(string messageText, string contextData, string category);
+    Task<string> GenerateResponseAsync(
+        string messageText,
+        string contextData,
+        string category,
+        IEnumerable<ConversationHistoryMessage>? conversationHistory = null);
 
     /// <summary>
     /// Validates an AI response against guardrail rules
@@ -49,4 +55,14 @@ public class ValidationResult
 {
     public bool IsValid { get; set; }
     public List<string> Violations { get; set; } = new List<string>();
+}
+
+/// <summary>
+/// Represents a single message in conversation history for AI context window
+/// </summary>
+public class ConversationHistoryMessage
+{
+    public string SenderType { get; set; } = ""; // "User", "AI", "Admin"
+    public string MessageText { get; set; } = "";
+    public DateTime CreatedAt { get; set; }
 }

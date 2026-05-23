@@ -20,7 +20,9 @@ namespace ROYALHOTEL.ViewModels
 
         [Required(ErrorMessage = "Quốc gia không được để trống.")]
         [StringLength(100, ErrorMessage = "Tên quốc gia tối đa 100 ký tự.")]
-        public string Country { get; set; } = "Vietnam";
+        public string Country { get; set; } = "";
+
+        public string? MapIframeUrl { get; set; }
 
         // Số phòng active (read-only, tính từ DB)
         public int ActiveRoomCount { get; set; }

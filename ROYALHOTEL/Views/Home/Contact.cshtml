@@ -1,5 +1,7 @@
+@using ROYALHOTEL.Models
 @{
     ViewData["Title"] = "Liên hệ";
+    var hotels = ViewBag.Hotels as List<Hotel> ?? new List<Hotel>();
 }
 
 <link rel="stylesheet" href="~/css/contact.css" asp-append-version="true" />
@@ -156,11 +158,36 @@
                     Vị trí trung tâm thuận tiện cho việc di chuyển, công tác và khám phá thành phố.
                 </p>
 
-                <div class="contact-map-frame">
-                    <iframe
-                        src="https://www.google.com/maps?q=Ho%20Chi%20Minh%20City&z=13&output=embed"
+                @if (hotels.Any())
+                {
+                    <div class="contact-map-controls">
+                        <div class="contact-map-select-wrapper">
+                            <select id="branchMapSelect" class="contact-map-select">
+                                @foreach (var h in hotels)
+                                {
+                                    var defaultUrl = $"https://www.google.com/maps?q={Uri.EscapeDataString(h.Address + ", " + h.City)}&z=15&output=embed";
+                                    var iframeUrl = !string.IsNullOrWhiteSpace(h.MapIframeUrl) ? h.MapIframeUrl : defaultUrl;
+                                    var directionsUrl = $"https://www.google.com/maps/dir/?api=1&destination={Uri.EscapeDataString(h.Address + ", " + h.City)}";
+
+                                    <option value="@h.Id" data-iframe="@iframeUrl" data-directions="@directionsUrl">
+                                        @h.Name - @h.City
+                                    </option>
+                                }
+                            </select>
+                            <div class="contact-map-select-icon">▼</div>
+                        </div>
+                        <a id="btnGetDirections" href="#" target="_blank" class="contact-btn-directions">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                            Nhận chỉ đường
+                        </a>
+                    </div>
+                }
+
+                <div class="contact-map-frame" style="border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+                    <iframe id="contactMapIframe"
+                        src=""
                         width="100%"
-                        height="420"
+                        height="450"
                         style="border:0;"
                         allowfullscreen=""
                         loading="lazy"
@@ -171,3 +198,39 @@
         </div>
     </section>
 </div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var branchSelect = document.getElementById('branchMapSelect');
+            var mapIframe = document.getElementById('contactMapIframe');
+            var btnDirections = document.getElementById('btnGetDirections');
+
+            function updateMap() {
+                if (!branchSelect) return;
+                var selectedOption = branchSelect.options[branchSelect.selectedIndex];
+                if (selectedOption) {
+                    var iframeUrl = selectedOption.getAttribute('data-iframe');
+                    var directionsUrl = selectedOption.getAttribute('data-directions');
+                    
+                    // Extract src if admin pasted whole iframe code instead of just URL
+                    if (iframeUrl.includes('<iframe') && iframeUrl.includes('src="')) {
+                        var match = iframeUrl.match(/src="([^"]+)"/);
+                        if (match && match[1]) iframeUrl = match[1];
+                    }
+
+                    mapIframe.src = iframeUrl;
+                    btnDirections.href = directionsUrl;
+                }
+            }
+
+            if (branchSelect) {
+                branchSelect.addEventListener('change', updateMap);
+                updateMap(); // Initialize first load
+            } else {
+                // Fallback if no hotels
+                mapIframe.src = "https://www.google.com/maps?q=Ho%20Chi%20Minh%20City&z=13&output=embed";
+            }
+        });
+    </script>
+}

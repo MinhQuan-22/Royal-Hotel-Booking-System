@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ROYALHOTEL.Data;
 using ROYALHOTEL.DTOs;
+using ROYALHOTEL.Hubs;
 using ROYALHOTEL.Services.Chat;
 
 namespace ROYALHOTEL.Controllers
@@ -16,17 +17,20 @@ namespace ROYALHOTEL.Controllers
         private readonly RoyalHotelDbContext _context;
         private readonly ILogger<AdminChatController> _logger;
         private readonly MessageCleanupService? _messageCleanupService;
+        private readonly ChatHubNotifier _hubNotifier;
 
         public AdminChatController(
             IChatService chatService,
             RoyalHotelDbContext context,
             ILogger<AdminChatController> logger,
+            ChatHubNotifier hubNotifier,
             IServiceProvider serviceProvider)
         {
             _chatService = chatService;
             _context = context;
             _logger = logger;
-            
+            _hubNotifier = hubNotifier;
+
             // Try to get MessageCleanupService for manual trigger (optional)
             try
             {
@@ -265,11 +269,12 @@ namespace ROYALHOTEL.Controllers
                     return RedirectToAction("Index");
                 }
 
-                // Get ALL conversation history - User and Admin messages only (exclude AI)
-                // IMPORTANT: Show all messages from all escalation sessions, not just current one
+                // Vấn đề 2 Fix: Only show messages from the current escalation session
+                // The user requested that the first message shown is the one right before escalation.
                 var messages = await _context.ChatMessages
                     .Where(m => m.ConversationId == conversationId)
                     .Where(m => m.SenderType != "AI") // Exclude AI messages
+                    .Where(m => conversation.EscalatedAt == null || m.CreatedAt >= conversation.EscalatedAt)
                     .OrderBy(m => m.CreatedAt)
                     .ToListAsync();
 
@@ -341,6 +346,12 @@ namespace ROYALHOTEL.Controllers
                 _logger.LogInformation(
                     "Admin responded to conversation {ConversationId}. Status updated to AnsweredByAdmin",
                     request.ConversationId);
+
+                // P2-2: Push admin reply via SignalR to the user in real-time
+                _ = _hubNotifier.NotifyAdminReplyAsync(
+                    request.ConversationId,
+                    adminMessage.MessageText,
+                    adminMessage.CreatedAt);
 
                 return Ok(new { success = true, message = "Response sent successfully" });
             }
@@ -428,43 +439,61 @@ namespace ROYALHOTEL.Controllers
 
             try
             {
-                // Calculate cutoff date (start of today in UTC)
-                var todayStart = DateTime.UtcNow.Date;
+                // P5-Fix: Only delete messages from Closed conversations (7+ days old)
+                var cutoffDate = DateTime.UtcNow.AddDays(-7);
 
-                // Query messages created before today
+                var closedConversationIds = await _context.ChatConversations
+                    .Where(c => c.Status == "Closed" && c.UpdatedAt < cutoffDate)
+                    .Select(c => c.Id)
+                    .ToListAsync();
+
+                if (!closedConversationIds.Any())
+                {
+                    _logger.LogInformation("Manual cleanup: No eligible closed conversations found");
+                    return Ok(new
+                    {
+                        success = true,
+                        message = "No eligible closed conversations found (must be Closed for 7+ days)",
+                        messagesDeleted = 0,
+                        conversationsCleaned = 0,
+                        cutoffDate
+                    });
+                }
+
                 var oldMessages = await _context.ChatMessages
-                    .Where(m => m.CreatedAt < todayStart)
+                    .Where(m => closedConversationIds.Contains(m.ConversationId))
                     .ToListAsync();
 
                 var messageCount = oldMessages.Count;
 
                 if (messageCount == 0)
                 {
-                    _logger.LogInformation("Manual cleanup: No old messages found to delete");
-                    return Ok(new 
-                    { 
-                        success = true, 
-                        message = "No old messages found to delete",
+                    _logger.LogInformation("Manual cleanup: No messages found in {Count} closed conversations",
+                        closedConversationIds.Count);
+                    return Ok(new
+                    {
+                        success = true,
+                        message = "No messages found in eligible closed conversations",
                         messagesDeleted = 0,
-                        cutoffDate = todayStart
+                        conversationsCleaned = closedConversationIds.Count,
+                        cutoffDate
                     });
                 }
 
-                // Delete messages
                 _context.ChatMessages.RemoveRange(oldMessages);
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation(
-                    "Manual cleanup: Deleted {Count} messages created before {CutoffDate}",
-                    messageCount,
-                    todayStart);
+                    "Manual cleanup: Deleted {Count} messages from {ConvCount} closed conversations (closed before {CutoffDate})",
+                    messageCount, closedConversationIds.Count, cutoffDate);
 
-                return Ok(new 
-                { 
-                    success = true, 
-                    message = $"Successfully deleted {messageCount} messages",
+                return Ok(new
+                {
+                    success = true,
+                    message = $"Successfully deleted {messageCount} messages from {closedConversationIds.Count} closed conversations",
                     messagesDeleted = messageCount,
-                    cutoffDate = todayStart
+                    conversationsCleaned = closedConversationIds.Count,
+                    cutoffDate
                 });
             }
             catch (Exception ex)
@@ -473,6 +502,7 @@ namespace ROYALHOTEL.Controllers
                 return StatusCode(500, new { success = false, message = "Internal server error" });
             }
         }
+
 
         /// <summary>
         /// API endpoint to mark a conversation as read (AnsweredByAdmin)
@@ -534,6 +564,9 @@ namespace ROYALHOTEL.Controllers
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation("Admin closed conversation {ConversationId}", id);
+
+                // P2-2: Notify user via SignalR that conversation is closed
+                _ = _hubNotifier.NotifyConversationClosedAsync(id);
 
                 return Ok(new { success = true });
             }

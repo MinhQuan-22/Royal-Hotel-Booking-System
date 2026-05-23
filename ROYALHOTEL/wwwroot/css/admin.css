@@ -1760,3 +1760,198 @@ body {
   margin-bottom: 0.5rem;
   color: #333;
 }
+
+/* ==========================================================================
+   UNIFIED LUXURY DESIGN SYSTEM FOR ADMIN MANAGEMENT PAGES
+   ========================================================================== */
+
+/* 1. Inputs & Select elements */
+.admin-filter-form .form-control,
+.admin-filter-card .form-control,
+.admin-form-card .form-control,
+.admin-form-card textarea,
+.admin-form-card select {
+  height: 44px;
+  border: 1px solid #d9caa7;
+  border-radius: 6px;
+  background-color: #fff;
+  color: #2b2b2b;
+  padding: 10px 16px;
+  font-size: 14px;
+  box-shadow: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.admin-filter-form .form-control:focus,
+.admin-filter-card .form-control:focus,
+.admin-form-card .form-control:focus,
+.admin-form-card textarea:focus,
+.admin-form-card select:focus {
+  border-color: #8b6a14;
+  box-shadow: 0 0 0 3px rgba(139, 106, 20, 0.12);
+  background-color: #fff;
+  color: #2b2b2b;
+  outline: none;
+}
+
+/* 2. Custom Gold Chevron for Dropdown Selects */
+.admin-filter-form select.form-control,
+.admin-filter-card select.form-control,
+.admin-form-card select.form-control {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%238b6a14' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  background-size: 14px 10px !important;
+  padding-right: 38px !important;
+}
+
+/* 3. Primary / Add / Create Buttons (Unified Luxury Gold Gradient) */
+.btn-primary,
+.btn-success,
+.btn-gold,
+.admin-btn-add {
+  background: linear-gradient(135deg, #c9a24a 0%, #8b6a14 100%) !important;
+  border: none !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.5px !important;
+  border-radius: 6px !important;
+  padding: 10px 20px !important;
+  height: 44px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  box-shadow: 0 4px 12px rgba(139, 106, 20, 0.15) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+}
+
+.btn-primary:hover,
+.btn-success:hover,
+.btn-gold:hover,
+.admin-btn-add:hover,
+.btn-primary:focus,
+.btn-success:focus,
+.btn-gold:focus,
+.admin-btn-add:focus {
+  background: linear-gradient(135deg, #b48d35 0%, #755910 100%) !important;
+  color: #fff !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 18px rgba(139, 106, 20, 0.25) !important;
+}
+
+/* Ensure small primary buttons (like branch selectors or small table triggers) fit nicely */
+.btn-sm.btn-primary {
+  height: 34px !important;
+  padding: 6px 14px !important;
+  font-size: 13px !important;
+}
+
+/* 4. Secondary / Clear Buttons (Unified Luxury Gold Outline) */
+.btn-outline-secondary,
+.btn-outline-gold {
+  background: transparent !important;
+  border: 1px solid #d9caa7 !important;
+  color: #8b6a14 !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.5px !important;
+  border-radius: 6px !important;
+  padding: 10px 20px !important;
+  height: 44px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  box-shadow: none !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-gold:hover,
+.btn-outline-secondary:focus,
+.btn-outline-gold:focus {
+  background: #fdfbf7 !important;
+  border-color: #8b6a14 !important;
+  color: #6d5410 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(139, 106, 20, 0.06) !important;
+}
+
+/* Small secondary outline buttons */
+.btn-sm.btn-outline-secondary {
+  height: 34px !important;
+  padding: 6px 14px !important;
+  font-size: 13px !important;
+}
+
+/* 5. Standardized Edit & Delete Action Buttons (Tables & Cards) */
+.admin-btn-edit,
+.btn-action-edit {
+  background: rgba(139, 106, 20, 0.08) !important;
+  color: #8b6a14 !important;
+  border: 1px solid rgba(139, 106, 20, 0.2) !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  padding: 6px 14px !important;
+  height: 34px !important;
+  border-radius: 6px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  transition: all 0.2s ease !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+}
+
+.admin-btn-edit:hover,
+.btn-action-edit:hover {
+  background: #8b6a14 !important;
+  color: #fff !important;
+  border-color: #8b6a14 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(139, 106, 20, 0.18) !important;
+}
+
+.admin-btn-delete,
+.btn-action-delete {
+  background: rgba(198, 40, 40, 0.06) !important;
+  color: #c62828 !important;
+  border: 1px solid rgba(198, 40, 40, 0.16) !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  padding: 6px 14px !important;
+  height: 34px !important;
+  border-radius: 6px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  transition: all 0.2s ease !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+}
+
+.admin-btn-delete:hover,
+.btn-action-delete:hover {
+  background: #c62828 !important;
+  color: #fff !important;
+  border-color: #c62828 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(198, 40, 40, 0.18) !important;
+}
+
+/* 6. Form Card Actions positioning alignment */
+.admin-form-actions .btn-primary,
+.admin-form-actions .btn-outline-secondary {
+  height: 44px !important;
+  padding: 10px 24px !important;
+}
+

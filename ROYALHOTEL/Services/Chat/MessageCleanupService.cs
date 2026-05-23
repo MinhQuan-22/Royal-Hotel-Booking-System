@@ -81,13 +81,15 @@ public class MessageCleanupService : BackgroundService
     }
 
     /// <summary>
-    /// Delete all messages created before today
-    /// Requirement: Delete all messages from previous days
+    /// Delete messages from CLOSED conversations only.
+    /// P5-Fix: Previously deleted ALL old messages regardless of conversation status,
+    /// which would destroy context for Open/EscalatedToAdmin conversations.
+    /// Now only cleans up messages from conversations that are fully Closed.
     /// </summary>
     public async Task<CleanupResult> DeleteOldMessagesAsync(CancellationToken stoppingToken = default)
     {
         var startTime = DateTime.UtcNow;
-        _logger.LogInformation("Starting daily message cleanup");
+        _logger.LogInformation("Starting daily message cleanup (Closed conversations only)");
 
         var result = new CleanupResult
         {
@@ -100,52 +102,78 @@ public class MessageCleanupService : BackgroundService
             using var scope = _serviceProvider.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<RoyalHotelDbContext>();
 
-            // Calculate cutoff date (start of today in UTC)
-            var todayStart = DateTime.UtcNow.Date;
+            // Calculate cutoff date: only delete messages from conversations closed
+            // more than 7 days ago to give admin time to review if needed
+            var cutoffDate = DateTime.UtcNow.AddDays(-7);
 
             _logger.LogInformation(
-                "Querying messages with CreatedAt < {TodayStart} (before today)",
-                todayStart);
+                "Querying messages from Closed conversations updated before {CutoffDate}",
+                cutoffDate);
 
-            // Query messages created before today
+            // P5-Fix: Get IDs of conversations that are fully Closed AND older than 7 days
+            var closedConversationIds = await dbContext.ChatConversations
+                .Where(c => c.Status == "Closed" && c.UpdatedAt < cutoffDate)
+                .Select(c => c.Id)
+                .ToListAsync(stoppingToken);
+
+            if (!closedConversationIds.Any())
+            {
+                result.Success = true;
+                result.MessagesFound = 0;
+                result.MessagesDeleted = 0;
+                result.Message = "No closed conversations eligible for cleanup";
+
+                _logger.LogInformation("Message cleanup: no eligible closed conversations found");
+                return result;
+            }
+
+            _logger.LogInformation(
+                "Found {ConvCount} closed conversations eligible for message cleanup",
+                closedConversationIds.Count);
+
+            // Query messages that belong to those closed conversations
             var oldMessages = await dbContext.ChatMessages
-                .Where(m => m.CreatedAt < todayStart)
+                .Where(m => closedConversationIds.Contains(m.ConversationId))
                 .ToListAsync(stoppingToken);
 
             result.MessagesFound = oldMessages.Count;
 
             _logger.LogInformation(
-                "Found {Count} messages to delete (created before {TodayStart})",
-                oldMessages.Count,
-                todayStart);
+                "Found {Count} messages to delete from {ConvCount} closed conversations",
+                oldMessages.Count, closedConversationIds.Count);
 
             if (oldMessages.Count == 0)
             {
                 result.Success = true;
-                result.Message = "No old messages found to delete";
+                result.Message = "No messages found in closed conversations";
                 return result;
             }
 
-            // Delete messages
-            dbContext.ChatMessages.RemoveRange(oldMessages);
+            // Delete messages in batches of 500 to avoid large transactions
+            const int batchSize = 500;
+            int totalDeleted = 0;
 
-            // Save changes
-            var deletedCount = await dbContext.SaveChangesAsync(stoppingToken);
+            for (int i = 0; i < oldMessages.Count; i += batchSize)
+            {
+                var batch = oldMessages.Skip(i).Take(batchSize).ToList();
+                dbContext.ChatMessages.RemoveRange(batch);
+                await dbContext.SaveChangesAsync(stoppingToken);
+                totalDeleted += batch.Count;
 
-            result.MessagesDeleted = oldMessages.Count;
+                _logger.LogInformation(
+                    "Message cleanup batch: deleted {BatchCount} messages ({Total}/{Total2} total)",
+                    batch.Count, totalDeleted, oldMessages.Count);
+            }
+
+            result.MessagesDeleted = totalDeleted;
             result.Success = true;
-            result.Message = $"Successfully deleted {result.MessagesDeleted} messages";
-
-            _logger.LogInformation(
-                "Message cleanup completed: {Deleted} messages deleted, {Changes} changes saved",
-                result.MessagesDeleted,
-                deletedCount);
+            result.Message = $"Successfully deleted {result.MessagesDeleted} messages from {closedConversationIds.Count} closed conversations";
 
             // Log performance metrics
             var duration = (DateTime.UtcNow - startTime).TotalMilliseconds;
             _logger.LogInformation(
-                "Message cleanup execution completed in {DurationMs}ms",
-                duration);
+                "Message cleanup completed: {Deleted} messages deleted in {DurationMs}ms",
+                result.MessagesDeleted, duration);
 
             return result;
         }
@@ -159,6 +187,7 @@ public class MessageCleanupService : BackgroundService
             return result;
         }
     }
+
 
     /// <summary>
     /// Manual trigger for testing purposes

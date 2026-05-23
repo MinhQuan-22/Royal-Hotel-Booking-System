@@ -7,6 +7,8 @@ public class Hotel
     public string Address { get; set; } = "";
     public string City { get; set; } = "";
     public string Country { get; set; } = "";
+    
+    public string? MapIframeUrl { get; set; }
 
     public List<Room> Rooms { get; set; } = new();
 }
